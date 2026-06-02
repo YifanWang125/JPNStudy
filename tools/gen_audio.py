@@ -27,9 +27,12 @@ OUTPUT
 
 The script is IDEMPOTENT: existing files are skipped. Re-run after adding days.
 
-NOTE on overriding with a human recording: drop a same-named MP3 into audio/
-(e.g. audio/d17_s7.mp3 for a 名句) and add it to manifest.json — the site will
-use it as-is. (Re-running this script won't overwrite existing files.)
+NOTE on overriding with a human recording: the simplest way is to OVERWRITE the
+existing same-named file the manifest already points to (e.g. replace audio/d17_s7.mp3
+for a 名句) — no manifest edit needed, since the key→path mapping is unchanged.
+(The site loads audio/manifest.js as a global, not manifest.json, so hand-editing
+only the .json would NOT take effect and would be overwritten on the next run.
+If you add brand-new files, re-run this script — it regenerates BOTH json + js.)
 """
 
 import argparse, hashlib, json, os, re, subprocess, sys, urllib.parse, urllib.request

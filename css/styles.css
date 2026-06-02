@@ -163,6 +163,34 @@ section.block > h2{
 .vocab-table .play-w{background:none;border:none;color:var(--ink-faint);font-size:1rem}
 .vocab-table .play-w:hover{color:var(--accent)}
 
+/* vocab cards (词性 / 拆解 / 例句) + glossary terms */
+.blk-hint{font-family:var(--sans-jp);font-size:.72rem;color:var(--ink-faint);font-weight:400;margin-left:8px}
+.vcards{display:flex;flex-direction:column;gap:10px}
+.vcard{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+.vc-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.vcard .v-word{font-family:var(--serif-jp);font-size:1.3rem;color:var(--jp)}
+.vcard .v-read{color:var(--accent-2);font-size:.92rem}
+.vcard .play-w{background:none;border:none;color:var(--ink-faint);font-size:1rem;cursor:pointer}
+.vcard .play-w:hover{color:var(--accent)}
+.v-pos{margin-left:auto;font-size:.72rem;color:var(--noon);border:1px solid var(--line);border-radius:6px;padding:1px 8px}
+.vc-mean{font-size:.96rem;color:var(--ink);margin-top:6px;line-height:1.7}
+.vc-mean .v-en{color:var(--ink-faint);font-size:.85rem}
+.vc-parts{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:9px;font-size:.9rem}
+.vc-tag{font-size:.72rem;color:var(--ink-faint);background:var(--panel-2);border-radius:5px;padding:2px 7px;margin-right:2px}
+.vc-part{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:4px 10px;cursor:pointer}
+.vc-part:hover{border-color:var(--accent)}
+.vc-part b{font-family:var(--serif-jp);color:var(--jp);font-size:1.05rem}
+.vc-part i{font-style:normal;color:var(--accent-2);font-size:.74rem;margin-left:3px}
+.vc-plus{color:var(--ink-faint)}
+.vc-ex{margin-top:9px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-family:var(--serif-jp);font-size:1.08rem;cursor:pointer}
+.vc-ex:hover{border-color:var(--accent)}
+.vc-ex .zh{display:block;font-family:var(--sans-jp);font-size:.82rem;color:var(--zh);margin-top:3px}
+.gloss{border-bottom:1px dashed var(--accent-2);color:var(--accent-2);cursor:help}
+.gloss:hover{background:rgba(242,166,90,.15)}
+.gloss-item{padding:10px 4px;border-bottom:1px solid var(--line);font-size:.95rem;line-height:1.75}
+.gloss-item b{color:var(--jp);font-family:var(--serif-jp);margin-right:6px}
+.gloss-item.flash{background:rgba(242,166,90,.18);border-radius:8px}
+
 .gram{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
 .gram h3{font-family:var(--serif-jp);font-size:1.25rem;color:var(--jp)}
 .gram .label{font-size:.8rem;color:var(--noon);letter-spacing:.3px;margin:2px 0 8px;font-weight:600}
@@ -423,7 +451,8 @@ table.r-table ruby rt{font-size:.55em}
 .pron-unsupported{font-size:.88rem;color:var(--ink-faint);background:var(--panel-2);border-radius:8px;padding:12px}
 
 /* pronunciation v3 — modes, bars, playback, history */
-.pron-engine{cursor:pointer;font-family:inherit}
+.pron-engine{display:inline-block;margin-left:6px;font-size:.76rem;color:var(--ink-faint);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:2px 9px;cursor:pointer;font-family:inherit}
+.pron-engine:hover{border-color:var(--accent-2);color:var(--ink)}
 .pron-engine.on{color:var(--good);border-color:var(--good)}
 .pron-modes{display:inline-flex;gap:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin:6px 0 12px}
 .pron-modes button{background:var(--panel);border:none;color:var(--ink-dim);padding:7px 18px;font-size:.88rem;font-weight:600;cursor:pointer}
@@ -460,10 +489,7 @@ table.r-table ruby rt{font-size:.55em}
 .pron-imp.down{background:rgba(224,98,106,.12);color:var(--bad)}
 .pron-imp:not(.up):not(.down){background:var(--panel);color:var(--ink-dim)}
 
-/* pronunciation engine badge + Azure scores */
-.pron-engine{display:inline-block;margin-left:6px;font-size:.76rem;color:var(--ink-faint);border:1px solid var(--line);border-radius:6px;padding:1px 8px}
-.pron-engine.azure{color:var(--good);border-color:var(--good)}
-.pron-engine a{color:var(--accent-2);cursor:pointer;text-decoration:underline}
+/* Azure score chips + misc */
 .pron-box code,.m-note code,.planned-box code{background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:.86em}
 .az-scores{display:flex;flex-wrap:wrap;gap:14px;margin:8px 0;font-size:.9rem;color:var(--ink-dim)}
 .az-scores b{color:var(--accent-2);font-size:1.05em}

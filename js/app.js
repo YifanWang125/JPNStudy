@@ -138,6 +138,7 @@ const $ = sel => document.querySelector(sel);
 function render(){
   stopSpeak();
   localStorage.setItem("jpn-last-day", STATE.day);
+  localStorage.setItem("jpn-last-session", STATE.session);   // remember which sub-page (morning/noon/night) for "继续学习"
   const L = lessonByDay(STATE.day);
   renderHeader(L);
   if(L.planned){ renderPlanned(L); return; }
@@ -267,8 +268,15 @@ function azureInterpret(d){
 
 let PRON = null;
 function pronKey(){ return PRON.mode==="paragraph" ? "P" : ("s"+PRON.idx); }
+function revokePronUrls(p){ if(!p||!p.history) return; try{ Object.keys(p.history).forEach(k=>p.history[k].forEach(a=>{ if(a.url){ try{URL.revokeObjectURL(a.url);}catch(e){} } })); }catch(e){} }
 function appendPron(L, body){
-  PRON = { mode:"sentence", idx:0, recording:false, recorder:null, chunks:[], recog:null, recognizer:null, stream:null, history:{}, _pending:null, _scored:false };
+  if(PRON && PRON.day===L.day){
+    // same-day re-render (e.g. clicking 标记完成): KEEP recording history; reset only transient state (R2-5)
+    PRON.recording=false; PRON.recorder=null; PRON.chunks=[]; PRON.recog=null; PRON.recognizer=null; PRON.stream=null; PRON.pending=null; PRON._scored=false;
+  } else {
+    revokePronUrls(PRON);   // free old day's recordings before switching (R2-5: no objectURL leak)
+    PRON = { day:L.day, mode:"sentence", idx:0, recording:false, recorder:null, chunks:[], recog:null, recognizer:null, stream:null, history:{}, pending:null, _scored:false };
+  }
   const box=document.createElement("div");
   box.className="pron-box"; box.id="pron-box";
   body.appendChild(box);
@@ -331,14 +339,15 @@ function bindPron(L,t,total){
 }
 function updatePronBtn(){ const b=$("#pron-rec"); if(!b) return; b.textContent=PRON.recording?'■ 停止':'🎤 録音して読む'; b.classList.toggle('recording',PRON.recording); }
 
-/* ---- record (MediaRecorder for playback) + score (engine) in parallel ---- */
+/* ---- record (MediaRecorder → playback) + score (engine); finalize ONCE when BOTH ready (R2-2) ---- */
 async function startRec(L){
   stopSpeak();
   const res=$("#pron-result"); if(res) res.innerHTML=`<div class="pron-sub">🎙️ 准备麦克风…</div>`;
   let stream;
   try{ stream=await navigator.mediaDevices.getUserMedia({audio:true}); }
   catch(e){ if(res) res.innerHTML=`<div class="pron-unsupported">无法使用麦克风：${esc(String(e.name||e))}。请允许麦克风权限，并用 <b>http://localhost</b> 打开（file:// 不行）。</div>`; return; }
-  PRON.stream=stream; PRON.chunks=[]; PRON._pending=null; PRON._scored=false;
+  PRON.stream=stream; PRON.chunks=[]; PRON._scored=false;
+  PRON.pending={ url:null, urlReady:false, score:undefined, scoreReady:false };
   try{
     const rec=new MediaRecorder(stream); PRON.recorder=rec;
     rec.ondataavailable=e=>{ if(e.data&&e.data.size) PRON.chunks.push(e.data); };
@@ -346,10 +355,10 @@ async function startRec(L){
       let url=null;
       try{ if(PRON.chunks.length){ url=URL.createObjectURL(new Blob(PRON.chunks,{type:PRON.chunks[0].type||"audio/webm"})); } }catch(e){}
       if(PRON.stream){ PRON.stream.getTracks().forEach(t=>t.stop()); PRON.stream=null; }
-      finalizeAttempt(L, PRON._pending, url);
+      if(PRON.pending){ PRON.pending.url=url; PRON.pending.urlReady=true; tryFinalize(L); }
     };
     rec.start();
-  }catch(e){ PRON.recorder=null; }
+  }catch(e){ PRON.recorder=null; if(PRON.pending) PRON.pending.urlReady=true; }   // no recorder → don't block finalize on audio
   PRON.recording=true; updatePronBtn();
   if(res) res.innerHTML=`<div class="pron-sub">🔴 録音中… ゆっくり、はっきり。读完${PRON.mode==='paragraph'?'点「■ 停止」':'停顿一下会自动结束'}。</div>`;
   const t=pronTarget(L);
@@ -357,24 +366,24 @@ async function startRec(L){
 }
 function stopRec(){
   PRON.recording=false; updatePronBtn();
-  if(PRON.recog){ try{PRON.recog.stop();}catch(e){} }     // browser SR → fires onend → gotScore
-  // Azure recognizeOnce auto-ends on silence; if it hasn't, just stop the recorder for playback only
-  if(azureEnabled() && !PRON._scored){
-    if(PRON.recorder && PRON.recorder.state==="recording"){ PRON._pending=PRON._pending; try{PRON.recorder.stop();}catch(e){} }
-  }
+  if(PRON.recog){ try{PRON.recog.stop();}catch(e){} }                                  // browser SR → onend → gotScore
+  if(PRON.recognizer && PRON.recognizer.stopContinuousRecognitionAsync){ try{ PRON.recognizer.stopContinuousRecognitionAsync(()=>{},()=>{}); }catch(e){} } // azure paragraph → sessionStopped
+  // R2-2: never finalize on stop alone — wait for the score callback; the recorder is stopped inside gotScore.
 }
 function gotScore(L, obj){
-  if(PRON._done) return;
-  PRON._pending=obj; PRON.recording=false; updatePronBtn();
-  if(PRON.recorder && PRON.recorder.state==="recording"){ try{ PRON.recorder.stop(); return; }catch(e){} }
-  finalizeAttempt(L, obj, null);
+  if(!PRON.pending){ PRON.pending={url:null,urlReady:true,score:undefined,scoreReady:false}; }
+  PRON.pending.score=obj; PRON.pending.scoreReady=true;
+  PRON.recording=false; updatePronBtn();
+  if(PRON.recorder && PRON.recorder.state==="recording"){ try{ PRON.recorder.stop(); }catch(e){ PRON.pending.urlReady=true; tryFinalize(L); } }
+  else tryFinalize(L);
 }
-function finalizeAttempt(L, obj, url){
-  PRON._done=true; setTimeout(()=>{ PRON._done=false; },50);
-  if(!obj){ if(!url) return; obj={type:"basic",overall:0,heard:"",html:"",noscore:true}; }
+function tryFinalize(L){
+  const p=PRON.pending; if(!p || !p.scoreReady || !p.urlReady) return;   // both audio + score must be ready → ONE record
+  PRON.pending=null;
+  const obj = p.score || {type:"basic",overall:0,heard:"",html:"",noscore:true};
   const key=pronKey();
   const arr=PRON.history[key]||(PRON.history[key]=[]);
-  arr.push({url, score:obj.overall, data:obj, ts:Date.now()});
+  arr.push({url:p.url||null, score:(obj.overall||0), data:obj, ts:Date.now()});
   while(arr.length>3){ const old=arr.shift(); if(old.url) try{URL.revokeObjectURL(old.url);}catch(e){} }
   renderResult(L);
 }
@@ -386,7 +395,7 @@ function scoreBrowser(L, target){
   r.onresult=(e)=>{ for(let i=e.resultIndex;i<e.results.length;i++){ heard+=e.results[i][0].transcript; } };
   r.onerror=()=>{};
   r.onend=()=>{ if(!PRON._scored){ PRON._scored=true; PRON.recog=null; gotScore(L, browserScoreObj(target, heard)); } };
-  try{ r.start(); }catch(e){ PRON._scored=true; gotScore(L, browserScoreObj(target,"")); }
+  try{ r.start(); }catch(e){ if(!PRON._scored){ PRON._scored=true; gotScore(L, browserScoreObj(target,"")); } }
 }
 function browserScoreObj(target, heard){
   const norm=s=>(s||"").replace(/[\s。、，．！？!?「」『』・]/g,"");
@@ -394,6 +403,7 @@ function browserScoreObj(target, heard){
   const {html,correct}=diffStrings(t,h);
   return {type:"basic", overall: t.length?Math.round(correct/t.length*100):0, heard, html};
 }
+/* ---- Azure: sentence = recognizeOnce; paragraph = continuous + aggregate over all utterances (R2-1) ---- */
 async function scoreAzure(L, target){
   let SDK;
   try{ SDK=await loadAzureSDK(); }
@@ -405,26 +415,42 @@ async function scoreAzure(L, target){
     const pac=new SDK.PronunciationAssessmentConfig(target, SDK.PronunciationAssessmentGradingSystem.HundredMark, SDK.PronunciationAssessmentGranularity.Phoneme, true);
     try{ pac.enableProsodyAssessment=true; }catch(e){}
     const recog=new SDK.SpeechRecognizer(sc,ac); pac.applyTo(recog); PRON.recognizer=recog; PRON._scored=false;
-    recog.recognizeOnceAsync(result=>{
-      if(PRON._scored){ try{recog.close();}catch(e){} return; } PRON._scored=true;
-      let obj; try{ obj=azureScoreObj(SDK.PronunciationAssessmentResult.fromResult(result), result.text); }
-      catch(e){ obj={type:"basic",overall:0,heard:"",html:"",err:true}; }
-      try{recog.close();}catch(e){} gotScore(L,obj);
-    }, err=>{
-      if(PRON._scored){ return; } PRON._scored=true; try{recog.close();}catch(e){}
-      const res=$("#pron-result"); if(res) res.innerHTML=`<div class="pron-unsupported">AI 引擎出错：${esc(String(err))}。请检查 ⚙ 里的 Key / Region（或网络）。这次先回听录音吧。</div>`;
-      gotScore(L, null);
-    });
+    if(PRON.mode==="paragraph"){
+      const segs=[];
+      recog.recognized=(s,e)=>{ try{ if(e.result && e.result.reason===SDK.ResultReason.RecognizedSpeech && e.result.text){ segs.push(azureScoreObj(SDK, e.result)); } }catch(err){} };
+      const finish=()=>{ if(PRON._scored) return; PRON._scored=true; try{recog.close();}catch(e){} gotScore(L, segs.length?aggregateAzure(segs):null); };
+      recog.canceled=()=>finish();
+      recog.sessionStopped=()=>finish();
+      recog.startContinuousRecognitionAsync(()=>{}, ()=>{ scoreBrowser(L,target); });   // start failed → fall back
+    } else {
+      recog.recognizeOnceAsync(result=>{
+        if(PRON._scored){ try{recog.close();}catch(e){} return; } PRON._scored=true;
+        let obj=null; try{ obj=azureScoreObj(SDK, result); }catch(e){ obj=null; }
+        try{recog.close();}catch(e){} gotScore(L,obj);
+      }, err=>{
+        if(PRON._scored){ return; } PRON._scored=true; try{recog.close();}catch(e){}
+        const res=$("#pron-result"); if(res) res.innerHTML=`<div class="pron-unsupported">AI 引擎出错：${esc(String(err))}。请检查 ⚙ 里的 Key / Region（或网络）。这次先回听录音吧。</div>`;
+        gotScore(L, null);
+      });
+    }
   }catch(e){ scoreBrowser(L,target); }
 }
-function azureScoreObj(pa, text){
-  const acc=Math.round(pa.accuracyScore||0), flu=Math.round(pa.fluencyScore||0), comp=Math.round(pa.completenessScore||0), pro=Math.round(pa.prosodyScore||0), overall=Math.round(pa.pronunciationScore||0);
+function aggregateAzure(segs){
+  let acc=0,flu=0,comp=0,pro=0,ov=0,html="";
+  segs.forEach(s=>{ acc+=s.acc; flu+=s.flu; comp+=s.comp; pro+=s.pro; ov+=s.overall; html+=s.wordsHtml; });
+  const n=segs.length||1;
+  return {type:"azure", overall:Math.round(ov/n), acc:Math.round(acc/n), flu:Math.round(flu/n), comp:Math.round(comp/n), pro:Math.round(pro/n), wordsHtml:html};
+}
+/* parse ONE Azure result → unified score obj; per-word coloring with JSON fallback (R2-3) */
+function azureScoreObj(SDK, result){
+  const pa=SDK.PronunciationAssessmentResult.fromResult(result);
+  let json=null; try{ json=result.properties && result.properties.getProperty(SDK.PropertyId.SpeechServiceResponse_JsonResult); }catch(e){}
+  let words=(pa.detailResult&&pa.detailResult.Words)||pa.words||null;
+  if((!words||!words.length) && json){ try{ const nb=JSON.parse(json).NBest; if(nb&&nb[0]&&nb[0].Words) words=nb[0].Words; }catch(e){} }
   let wordsHtml="";
-  try{ const words=(pa.detailResult&&pa.detailResult.Words)||pa.words||[];
-    words.forEach(w=>{ const ws=(w.PronunciationAssessment&&w.PronunciationAssessment.AccuracyScore); const s=(ws!==undefined?ws:(w.accuracyScore!==undefined?w.accuracyScore:100)); const c=s>=80?"ok":(s>=50?"":"miss"); wordsHtml+=`<span class="${c}">${esc(w.Word||w.word||"")}</span>`; });
-  }catch(e){}
-  if(!wordsHtml) wordsHtml=esc(text||"");
-  return {type:"azure", overall, acc, flu, comp, pro, wordsHtml};
+  if(words&&words.length){ words.forEach(w=>{ const paw=w.PronunciationAssessment||{}; const s=(paw.AccuracyScore!==undefined?paw.AccuracyScore:(w.AccuracyScore!==undefined?w.AccuracyScore:(w.accuracyScore!==undefined?w.accuracyScore:100))); const c=s>=80?"ok":(s>=50?"":"miss"); wordsHtml+=`<span class="${c}">${esc(w.Word||w.word||"")}</span>`; }); }
+  else wordsHtml=esc(result.text||"");
+  return {type:"azure", overall:Math.round(pa.pronunciationScore||0), acc:Math.round(pa.accuracyScore||0), flu:Math.round(pa.fluencyScore||0), comp:Math.round(pa.completenessScore||0), pro:Math.round(pa.prosodyScore||0), wordsHtml};
 }
 function renderResult(L){
   const res=$("#pron-result"); if(!res) return;
@@ -474,23 +500,23 @@ function renderNoon(L){
   /* paragraph with translations shown */
   html += `<section class="block"><h2>📝 本文と訳 · 课文与翻译</h2><div class="para" id="para2"></div></section>`;
 
-  /* vocab */
-  html += `<section class="block"><h2>📚 単語 · 词汇</h2>
-    <table class="vocab-table"><thead><tr><th>語 Word</th><th>読み Reading</th><th>意味 Meaning</th><th></th></tr></thead><tbody>
-    ${L.vocab.map((v,i)=>`<tr>
-      <td class="v-word">${esc(v.w)}</td>
-      <td class="v-read">${esc(v.r)}</td>
-      <td>${esc(v.zh)}<div class="v-en">${esc(v.en||"")}</div></td>
-      <td><button class="play-w" data-w="${esc(v.r)}">🔊</button></td>
-    </tr>`).join("")}
-    </tbody></table></section>`;
+  /* vocab — cards: word + reading + 🔊 + 词性 + 释义(术语可点) + 拆解 + 例句 */
+  html += `<section class="block"><h2>📚 単語 · 词汇 <span class="blk-hint">点术语看解释 · 🔊朗读 · 📝例句</span></h2>
+    <div class="vcards">
+    ${L.vocab.map(v=>`<div class="vcard">
+      <div class="vc-head"><span class="v-word">${esc(v.w)}</span><span class="v-read">${esc(v.r)}</span><button class="play-w" data-w="${esc(v.r)}">🔊</button>${v.pos?`<span class="v-pos">${esc(v.pos)}</span>`:""}</div>
+      <div class="vc-mean">${linkTerms(v.zh)}${v.en?`<span class="v-en"> · ${esc(v.en)}</span>`:""}</div>
+      ${v.parts?`<div class="vc-parts"><span class="vc-tag">🧩 拆解</span>${v.parts.map(p=>`<span class="vc-part" ${p.r?`data-w="${esc(p.r)}"`:""}><b>${esc(p.p)}</b>${p.r?`<i>${esc(p.r)}</i>`:""}＝${esc(p.m)}</span>`).join('<span class="vc-plus">＋</span>')}</div>`:""}
+      ${v.ex?`<div class="vc-ex" data-jp="${esc(v.ex.jp)}"><span class="vc-tag">📝 例</span>${toRuby(v.ex.jp)}<span class="zh">${esc(v.ex.zh)}</span></div>`:""}
+    </div>`).join("")}
+    </div></section>`;
 
   /* grammar */
   html += `<section class="block"><h2>🔧 文法 · 语法精讲</h2>
     ${L.grammar.map(g=>`<div class="gram">
       <h3>${esc(g.point)}</h3>
       <div class="label">${esc(g.label||"")}</div>
-      <div class="exp">${esc(g.zh)}</div>
+      <div class="exp">${linkTerms(g.zh)}</div>
       ${g.examples.map(ex=>`<div class="ex" data-jp="${esc(ex.jp)}">${toRuby(ex.jp)}<span class="zh">${esc(ex.zh)}</span></div>`).join("")}
     </div>`).join("")}
   </section>`;
@@ -503,7 +529,7 @@ function renderNoon(L){
   /* extended */
   if(L.extended){
     html += `<section class="block"><h2>🌱 ${esc(L.extended.title)}</h2>
-      <ul class="ext-list">${L.extended.items.map(it=>`<li>${esc(it)}</li>`).join("")}</ul></section>`;
+      <ul class="ext-list">${L.extended.items.map(it=>`<li>${linkTerms(it)}</li>`).join("")}</ul></section>`;
   }
   body.innerHTML=html;
 
@@ -518,9 +544,11 @@ function renderNoon(L){
   });
   if(!STATE.furi) para2.classList.add("hide-furi");
 
-  /* click handlers: play vocab + examples + conversation */
+  /* click handlers: play vocab + examples + conversation + 拆解 + 术语跳转 */
   body.querySelectorAll(".play-w").forEach(b=>b.onclick=()=>speakSequence([{text:b.dataset.w,node:null,audioKey:"v_"+speechNorm(b.dataset.w)}]));
-  body.querySelectorAll(".ex,.conv-item").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:el}]));
+  body.querySelectorAll(".ex,.conv-item,.vc-ex").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:el}]));
+  body.querySelectorAll(".vc-part[data-w]").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.w,node:null}]));
+  body.querySelectorAll(".gloss").forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); gotoGlossary(parseInt(el.dataset.g,10)); });
   addCompleteButton(L,"noon",body);
 }
 
@@ -677,7 +705,7 @@ function renderMap(){
     </div>
   `).join("");
   v.querySelectorAll(".map-card").forEach(c=>c.onclick=()=>{
-    STATE.day=parseInt(c.dataset.day,10); STATE.session="morning"; toggleMap(false); render();
+    STATE.day=parseInt(c.dataset.day,10); STATE.session="morning"; STATE.showZh=false; toggleMap(false); render();
   });
 }
 function toggleMap(show){
@@ -738,6 +766,11 @@ function renderHome(){
   const N=nextStudyDay(), L=lessonByDay(N);
   const allDone = N===LESSONS.length && (()=>{const p=PROG[N]||{};return p.morning&&p.noon&&p.night;})();
   const prevDay = N>1 ? N-1 : null, Lprev = prevDay ? lessonByDay(prevDay) : null;
+  // "继续学习" resumes the EXACT spot you left (day + sub-session), not always morning (user feedback #4)
+  const SESSION_LABEL={morning:"朝の朗読",noon:"昼の理解",night:"夜の反思"};
+  let rDay=parseInt(localStorage.getItem("jpn-last-day")||"0",10); if(!(rDay>=1&&rDay<=LESSONS.length)) rDay=N;
+  let rSess=localStorage.getItem("jpn-last-session")||"morning"; if(!SESSION_LABEL[rSess]) rSess="morning";
+  const Lr=lessonByDay(rDay);
   const ph = DAILY_PHRASES[dayOfYear() % DAILY_PHRASES.length];
 
   // --- stats ---
@@ -762,7 +795,7 @@ function renderHome(){
       </div>
       ${ allDone
         ? `<div class="continue-cta done"><span class="cc-main">🎉 30 天全部完成！</span><small>復習やテストで仕上げよう · 点此回顾</small></div>`
-        : `<button class="continue-cta" data-go="day:${N}:morning"><span class="cc-main">▶ 继续学习 · Day ${N}</span><small>${esc(L.theme)}</small></button>` }
+        : `<button class="continue-cta" data-go="day:${rDay}:${rSess}"><span class="cc-main">▶ 继续学习 · Day ${rDay} · ${SESSION_LABEL[rSess]}</span><small>${esc(Lr.theme)}</small></button>` }
     </div>
 
     <div class="home-grid">
@@ -861,7 +894,7 @@ function openSettings(){
 }
 function closeSettings(){ const ov=$("#modal-overlay"); ov.style.display="none"; ov.innerHTML=""; }
 function exportProgress(){
-  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-page","jpn-active-dates","jpn-name"];
+  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name"];
   const out={ _app:"jpn-n4-n2", _exported:new Date().toISOString(), data:{} };
   keys.forEach(k=>{ const v=localStorage.getItem(k); if(v!==null) out.data[k]=v; });
   const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
@@ -905,6 +938,47 @@ function renderBlocks(blocks){
     return "";
   }).join("");
 }
+/* ---- term glossary + auto-linker (用户反馈 #2b/2c): 把 自動詞/な形容詞/音便 等术语在词义里变成可点的解释 ---- */
+const GLOSSARY = [
+  {term:"自動詞", aliases:["自動詞","自动词"], def:"自动词（intransitive）：动作不带宾语、表示主体自身的变化或动作，如 開[あ]く・始[はじ]まる・変[か]わる。多与「が」搭配。↔ 他动词。"},
+  {term:"他動詞", aliases:["他動詞","他动词"], def:"他动词（transitive）：动作作用于宾语，需要「を」，如 開[あ]ける・始[はじ]める・変[か]える。很多自他成对：開く↔開ける。"},
+  {term:"な形容詞", aliases:["な形容詞","な形容词","な形"], def:"な形容词（也叫“形容动词”）：修饰名词时加「な」（静[しず]かな町[まち]），更像名词，要靠 だ／な／です 撑。"},
+  {term:"い形容詞", aliases:["い形容詞","い形容词","い形"], def:"い形容词：以「い」结尾，会自己变时态（高[たか]い→高[たか]かった），更像动词。"},
+  {term:"可能形", aliases:["可能形"], def:"可能形：表示“能/会做”。書[か]く→書[か]ける、食[た]べる→食[た]べられる、する→できる。"},
+  {term:"受身形", aliases:["受身形","受身"], def:"受身（被动）：“被…”。書[か]く→書[か]かれる、食[た]べる→食[た]べられる；施动者用「に」。"},
+  {term:"使役形", aliases:["使役形","使役"], def:"使役：“让/使…做”。書[か]く→書[か]かせる、食[た]べる→食[た]べさせる。"},
+  {term:"使役受身", aliases:["使役受身"], def:"使役受身：“被迫做”（不情愿）。書[か]く→書[か]かされる、食[た]べる→食[た]べさせられる。"},
+  {term:"音便", aliases:["音便"], def:"音便：为了顺口发生的音变，主要在第1组动词的 て形/た形：書[か]く→書[か]いて、飲[の]む→飲[の]んで、話[はな]す→話[はな]して。详见“动词的活用”。"}
+];
+let _glossRe=null, _glossMap=null;
+function glossRegex(){
+  if(_glossRe) return _glossRe;
+  _glossMap={}; const all=[];
+  GLOSSARY.forEach((g,i)=>g.aliases.forEach(a=>{ _glossMap[a]=i; all.push(a); }));
+  all.sort((a,b)=>b.length-a.length);            // longest first → 使役受身 before 受身
+  _glossRe=new RegExp("("+all.join("|")+")","g");
+  return _glossRe;
+}
+function linkTerms(text){
+  if(text==null) return "";
+  return esc(String(text)).replace(glossRegex(), m=>{ const i=_glossMap[m]; const def=GLOSSARY[i].def.replace(/\[[^\]]+\]/g,""); return `<span class="gloss" data-g="${i}" title="${esc(def)}">${m}</span>`; });
+}
+function glossarySection(){
+  const items=GLOSSARY.map((g,i)=>`<div class="gloss-item" id="gloss-${i}"><b>${esc(g.term)}</b> ${rubyMd(g.def)}</div>`).join("");
+  return `<div class="ref-section" data-id="glossary">
+    <div class="ref-head"><span class="r-emoji">📖</span><h2>语法术语小词典 <span class="r-zh">自動詞 / な形容詞 / 音便… 在单词页点这些术语会跳到这里</span></h2><span class="r-arrow">▸</span></div>
+    <div class="ref-body">${items}</div></div>`;
+}
+function gotoGlossary(idx){
+  showPage("general");
+  setTimeout(()=>{
+    const sec=document.querySelector('#page-general .ref-section[data-id="glossary"]');
+    if(!sec) return; sec.classList.add("open");
+    const it=(idx!=null)?document.getElementById("gloss-"+idx):null;
+    (it||sec).scrollIntoView({behavior:"smooth",block:"center"});
+    if(it){ it.classList.add("flash"); setTimeout(()=>it.classList.remove("flash"),1600); }
+  },70);
+}
 function grammarIndexSection(){
   let items="";
   LESSONS.forEach(l=>{ if(l.grammar){ l.grammar.forEach(g=>{
@@ -923,6 +997,7 @@ function renderGeneral(){
       <div class="ref-head"><span class="r-emoji">${sec.icon}</span><h2>${esc(sec.title)} <span class="r-zh">${esc(sec.titleZh)}</span></h2><span class="r-arrow">▸</span></div>
       <div class="ref-body">${renderBlocks(sec.blocks)}</div></div>`;
   });
+  html+=glossarySection();
   html+=grammarIndexSection();
   c.innerHTML=html;
   c.querySelectorAll(".ref-head").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("open"));
