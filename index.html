@@ -14,10 +14,10 @@
   <div class="top-row">
     <div class="logo">日本語 <b>N4→N2</b><span id="day-num" class="day-num"></span></div>
     <nav class="page-nav" id="page-nav">
-      <button data-p="daily" class="active">📖<span class="pnl"> 每日</span></button>
+      <button data-p="home" class="active">🏠<span class="pnl"> 主页</span></button>
+      <button data-p="daily">📖<span class="pnl"> 每日</span></button>
       <button data-p="general">📚<span class="pnl"> 基础</span></button>
       <button data-p="test">📝<span class="pnl"> 测试</span></button>
-      <button data-p="progress">📊<span class="pnl"> 进度</span></button>
     </nav>
     <div class="top-spacer"></div>
     <span id="daily-controls">
@@ -59,8 +59,8 @@
 <!-- PAGE: test -->
 <main id="page-test" class="wrap" style="display:none"></main>
 
-<!-- PAGE: progress dashboard -->
-<main id="page-progress" class="wrap" style="display:none"></main>
+<!-- PAGE: home (personalized dashboard) -->
+<main id="page-home" class="wrap" style="display:none"></main>
 
 <!-- settings / backup / pronunciation-engine modal (built by app.js) -->
 <div id="modal-overlay" style="display:none"></div>
@@ -77,6 +77,7 @@
 <script src="js/lessons.js"></script>
 <script src="js/reference.js"></script>
 <script src="js/tests.js"></script>
+<script src="js/daily.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -614,46 +614,128 @@ function showPage(p){
   STATE.page=p;
   stopSpeak(); if(PRON.recording) stopRecog();
   document.querySelectorAll("#page-nav button").forEach(b=>b.classList.toggle("active",b.dataset.p===p));
+  $("#page-home").style.display = p==="home"?"block":"none";
   $("#page-daily").style.display = p==="daily"?"block":"none";
   $("#page-general").style.display = p==="general"?"block":"none";
   $("#page-test").style.display = p==="test"?"block":"none";
-  $("#page-progress").style.display = p==="progress"?"block":"none";
   $("#daily-controls").style.display = p==="daily"?"flex":"none";
   if(p!=="daily"){ $("#map-view").classList.remove("show"); $("#day-num").textContent=""; }
   localStorage.setItem("jpn-page",p);
-  if(p==="daily") render();
+  if(p==="home") renderHome();
+  else if(p==="daily") render();
   else if(p==="general") renderGeneral();
   else if(p==="test") renderTestHome();
-  else if(p==="progress") renderProgress();
   window.scrollTo(0,0);
 }
 
 /* ============================================================================
- *  PROGRESS DASHBOARD
+ *  HOME (personalized dashboard)
  * ==========================================================================*/
-function renderProgress(){
-  const c=$("#page-progress");
-  const total=LESSONS.length*3;
-  let done=0, vocabL=0, gramL=0;
+function getName(){ try{ return (localStorage.getItem("jpn-name")||"").trim(); }catch(e){ return ""; } }
+function nextStudyDay(){           // frontier: first day not fully complete (else last day)
+  for(const l of LESSONS){ const p=PROG[l.day]||{}; if(!(p.morning&&p.noon&&p.night)) return l.day; }
+  return LESSONS.length;
+}
+function dayOfYear(){
+  const n=new Date(), s=new Date(n.getFullYear(),0,0);
+  return Math.floor((n-s)/86400000);
+}
+function heatmapHTML(){
+  let cells="";
+  LESSONS.forEach(l=>{ const p=PROG[l.day]||{}; const c=["morning","noon","night"].filter(s=>p[s]).length;
+    cells+=`<div class="hm-cell lv${c}" data-day="${l.day}" title="Day ${l.day}：${c}/3 完成">${l.day}</div>`; });
+  return `<div class="hm-grid">${cells}</div>
+    <div class="hm-legend">每天完成数：<span class="hm-cell lv0">0</span><span class="hm-cell lv1">1</span><span class="hm-cell lv2">2</span><span class="hm-cell lv3">3</span> · 点格子跳到那天</div>`;
+}
+
+function renderHome(){
+  const c=$("#page-home");
+  const name=getName(), streak=computeStreak();
+  const N=nextStudyDay(), L=lessonByDay(N);
+  const allDone = N===LESSONS.length && (()=>{const p=PROG[N]||{};return p.morning&&p.noon&&p.night;})();
+  const prevDay = N>1 ? N-1 : null, Lprev = prevDay ? lessonByDay(prevDay) : null;
+  const ph = DAILY_PHRASES[dayOfYear() % DAILY_PHRASES.length];
+
+  // --- stats ---
+  let done=0,vocabL=0,gramL=0;
   LESSONS.forEach(l=>{ const p=PROG[l.day]||{}; done+=["morning","noon","night"].filter(s=>p[s]).length; if(p.noon){ vocabL+=(l.vocab||[]).length; gramL+=(l.grammar||[]).length; } });
-  const streak=computeStreak(), best=loadTestBest();
-  let cells=""; LESSONS.forEach(l=>{ const p=PROG[l.day]||{}; const cnt=["morning","noon","night"].filter(s=>p[s]).length; cells+=`<div class="hm-cell lv${cnt}" data-day="${l.day}" title="Day ${l.day}：${cnt}/3 完成">${l.day}</div>`; });
-  const weeks={}; LESSONS.forEach(l=>{ (weeks[l.week]=weeks[l.week]||{done:0,total:0}); const p=PROG[l.day]||{}; weeks[l.week].done+=["morning","noon","night"].filter(s=>p[s]).length; weeks[l.week].total+=3; });
-  let weekBars=""; Object.keys(weeks).forEach(w=>{ const o=weeks[w], pc=Math.round(o.done/o.total*100); weekBars+=`<div class="row"><span class="lab" style="width:auto;min-width:150px">${esc(WEEK_LABELS[w]||("第"+w+"周"))}</span><div class="bar"><i style="width:${pc}%"></i></div><span class="pct">${o.done}/${o.total}</span></div>`; });
-  const testRow=TESTS.map(t=>{ const b=best[t.id]; return `<div class="stat"><div class="num">${b?Math.round(b.score/b.total*100)+"%":"—"}</div><div class="lbl">${esc(t.title.split("—")[0].trim())}</div></div>`; }).join("");
+  const total=LESSONS.length*3, best=loadTestBest();
+
+  // --- to-do for current day ---
+  const p=PROG[N]||{};
+  let todo="";
+  [["morning","🌅 朝の朗読（听 & 跟读）"],["noon","☀️ 昼の理解（词汇 & 语法）"],["night","🌙 夜の反思（抄写 & 反思）"]].forEach(([s,label])=>{
+    todo+=`<li class="${p[s]?'tdone':''}" data-go="day:${N}:${s}"><span class="tk-box">${p[s]?'✓':''}</span><span>Day ${N} · ${label}</span></li>`;
+  });
+  if(prevDay) todo+=`<li data-go="day:${prevDay}:morning"><span class="tk-box rv">↻</span><span>复习 Day ${prevDay}：朗读一遍、再听一次音频</span></li>`;
+  if(prevDay && prevDay%7===0){ const tid=prevDay/7; if(tid>=1&&tid<=4) todo+=`<li data-go="test"><span class="tk-box rv">📝</span><span>第${tid}周学完了——做 模試${tid} 检验一下</span></li>`; }
+
   c.innerHTML=`
-    <div class="ref-intro"><h1>📊 学习进度</h1><p>坚持的可视化。数据存在本机浏览器；可在 ⚙ 设置里导出备份。</p></div>
-    <div class="dash-stats">
-      <div class="stat big"><div class="num">🔥 ${streak}</div><div class="lbl">连续学习天数</div></div>
-      <div class="stat"><div class="num">${done}<span style="font-size:.5em;color:var(--ink-faint)">/${total}</span></div><div class="lbl">完成的小节</div></div>
-      <div class="stat"><div class="num">${vocabL}</div><div class="lbl">已学词条</div></div>
-      <div class="stat"><div class="num">${gramL}</div><div class="lbl">已学语法点</div></div>
+    <div class="home-hero">
+      <div class="hh-top">
+        <div class="greet">おかえりなさい${name?('、<b>'+esc(name)+'</b>'):''}！<span class="hh-sub">${toRuby("続[つづ]けることが、何[なに]より大切[たいせつ]です。")}</span></div>
+        <div class="hh-streak">🔥 <b>${streak}</b> 日連続</div>
+      </div>
+      ${ allDone
+        ? `<div class="continue-cta done"><span class="cc-main">🎉 30 天全部完成！</span><small>復習やテストで仕上げよう · 点此回顾</small></div>`
+        : `<button class="continue-cta" data-go="day:${N}:morning"><span class="cc-main">▶ 继续学习 · Day ${N}</span><small>${esc(L.theme)}</small></button>` }
     </div>
-    <div class="dash-card"><h2>📅 30 天热力图</h2><div class="hm-grid">${cells}</div>
-      <div class="hm-legend">每天完成数：<span class="hm-cell lv0">0</span><span class="hm-cell lv1">1</span><span class="hm-cell lv2">2</span><span class="hm-cell lv3">3</span> · 点格子跳到那天</div></div>
-    <div class="dash-card"><h2>📈 分周完成度</h2><div class="eval-cat">${weekBars}</div></div>
-    <div class="dash-card"><h2>📝 测试最佳成绩</h2><div class="dash-stats">${testRow||'<div class="lbl">还没做过测试</div>'}</div></div>`;
+
+    <div class="home-grid">
+      <section class="home-card">
+        <h2>💬 每日一句</h2>
+        <div class="phrase-jp" data-jp="${esc(ph.jp)}">${toRuby(ph.jp)} <button class="phrase-play" title="朗读">🔊</button></div>
+        <div class="phrase-zh">${esc(ph.zh)}</div>
+        <div class="phrase-note">${esc(ph.note)}</div>
+        <div class="phrase-ex" data-jp="${esc(ph.ex.jp)}">「${toRuby(ph.ex.jp)}」<span class="zh">${esc(ph.ex.zh)}</span></div>
+      </section>
+
+      <section class="home-card">
+        <h2>📌 ${prevDay?`昨日の復習 · Day ${prevDay}`:'はじめの一歩'}</h2>
+        ${ Lprev ? `
+          <div class="rv-theme">${esc(Lprev.theme)}</div>
+          <div class="rv-label">要记牢的语法点：</div>
+          <ul class="rv-list">${(Lprev.grammar||[]).slice(0,4).map(g=>`<li>${esc(g.point)}</li>`).join("")}</ul>
+          <div class="rv-label">重点词：</div>
+          <div class="rv-vocab">${(Lprev.vocab||[]).slice(0,6).map(v=>`<span data-jp="${esc(v.r)}">${esc(v.w)}<i>${esc(v.r)}</i></span>`).join("")}</div>
+          <button class="rv-go" data-go="day:${prevDay}:noon">↻ 打开 Day ${prevDay} 复习</button>
+        ` : `<p class="hc-empty">还没有学过的内容。从今天的 Day ${N} 开始你的第一步吧！每天坚持，30 天后回头看，你会惊讶于自己的变化。</p>` }
+      </section>
+
+      <section class="home-card">
+        <h2>✅ 今日のタスク</h2>
+        <ul class="todo-list">${todo}</ul>
+      </section>
+    </div>
+
+    <section class="home-card">
+      <h2>🗓️ 30 天全景</h2>
+      ${heatmapHTML()}
+    </section>
+
+    <section class="home-card">
+      <h2>📊 我的数据</h2>
+      <div class="dash-stats">
+        <div class="stat big"><div class="num">🔥 ${streak}</div><div class="lbl">连续学习天数</div></div>
+        <div class="stat"><div class="num">${done}<span style="font-size:.5em;color:var(--ink-faint)">/${total}</span></div><div class="lbl">完成的小节</div></div>
+        <div class="stat"><div class="num">${vocabL}</div><div class="lbl">已学词条</div></div>
+        <div class="stat"><div class="num">${gramL}</div><div class="lbl">已学语法点</div></div>
+      </div>
+      <div class="dash-stats" style="margin-top:6px">${TESTS.map(t=>{const b=best[t.id];return `<div class="stat"><div class="num" style="font-size:1.3rem">${b?Math.round(b.score/b.total*100)+'%':'—'}</div><div class="lbl">${esc(t.title.split('—')[0].trim())}</div></div>`;}).join("")}</div>
+    </section>`;
+
+  // --- wire interactions ---
+  c.querySelectorAll("[data-go]").forEach(el=>el.onclick=()=>{
+    const g=el.dataset.go;
+    if(g==="test"){ showPage("test"); return; }
+    const m=g.match(/^day:(\d+):(\w+)$/);
+    if(m){ STATE.day=parseInt(m[1],10); STATE.session=m[2]; if(m[2]==="morning") STATE.showZh=false; showPage("daily"); }
+  });
   c.querySelectorAll(".hm-cell[data-day]").forEach(el=>el.onclick=()=>{ STATE.day=parseInt(el.dataset.day,10); STATE.session="morning"; STATE.showZh=false; showPage("daily"); });
+  const pj=$(".phrase-jp"), pp=$(".phrase-play"), pe=$(".phrase-ex");
+  if(pp) pp.onclick=(e)=>{ e.stopPropagation(); speakSequence([{text:ph.jp,node:null}]); };
+  if(pe) pe.onclick=()=>speakSequence([{text:ph.ex.jp,node:null}]);
+  c.querySelectorAll(".rv-vocab span[data-jp]").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:null}]));
 }
 
 /* ============================================================================
@@ -665,6 +747,11 @@ function openSettings(){
   ov.innerHTML=`<div class="modal">
     <div class="modal-head"><h2>⚙️ 设置</h2><button id="modal-close">✕</button></div>
     <div class="modal-body">
+      <section><h3>👤 你的名字（可选）</h3>
+        <p class="m-note">填了之后，主页会用它跟你打招呼（おかえりなさい、…！）。只存在本机浏览器。</p>
+        <label>名字 / Name <input type="text" id="usr-name" value="${esc(getName())}" placeholder="例如 Bob / 王"></label>
+        <div class="m-actions"><button id="name-save" class="primary">保存</button><span id="name-status" class="m-note"></span></div>
+      </section>
       <section><h3>🎤 发音评估引擎</h3>
         <p class="m-note">不填则用浏览器识别（近似）。填入 Azure 语音服务的 <b>Key + Region</b> 可获得逐音素＋语调评分（免费层每月 5 小时）。仅存于本机浏览器，不上传。</p>
         <label>Azure Key <input type="password" id="az-key" value="${esc(cfg.key||"")}" placeholder="Speech 资源的密钥"></label>
@@ -681,6 +768,7 @@ function openSettings(){
     </div></div>`;
   $("#modal-close").onclick=closeSettings;
   ov.onclick=(e)=>{ if(e.target===ov) closeSettings(); };
+  $("#name-save").onclick=()=>{ const v=$("#usr-name").value.trim(); if(v) localStorage.setItem("jpn-name",v); else localStorage.removeItem("jpn-name"); $("#name-status").textContent="已保存 ✓"; };
   $("#az-save").onclick=()=>{ const key=$("#az-key").value.trim(), region=$("#az-region").value.trim(); if(key&&region){ localStorage.setItem("jpn-azure-cfg",JSON.stringify({key,region})); $("#az-status").textContent="已保存 ✓ 发音评估将用 Azure"; } else { $("#az-status").textContent="Key 和 Region 都要填"; } };
   $("#az-clear").onclick=()=>{ localStorage.removeItem("jpn-azure-cfg"); $("#az-key").value=""; $("#az-region").value=""; $("#az-status").textContent="已清除，将用浏览器识别"; };
   $("#exp-prog").onclick=exportProgress;
@@ -689,7 +777,7 @@ function openSettings(){
 }
 function closeSettings(){ const ov=$("#modal-overlay"); ov.style.display="none"; ov.innerHTML=""; }
 function exportProgress(){
-  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-page","jpn-active-dates"];
+  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-page","jpn-active-dates","jpn-name"];
   const out={ _app:"jpn-n4-n2", _exported:new Date().toISOString(), data:{} };
   keys.forEach(k=>{ const v=localStorage.getItem(k); if(v!==null) out.data[k]=v; });
   const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
@@ -903,8 +991,7 @@ function init(){
   setHeaderVar();
   window.addEventListener("resize", setHeaderVar);
 
-  const startPage=localStorage.getItem("jpn-page")||"daily";
-  showPage(["daily","general","test","progress"].includes(startPage)?startPage:"daily");
+  showPage("home");               // always land on the personalized home (it has the "continue Day N" CTA)
   setTimeout(setHeaderVar,300);   // after fonts/layout settle
 }
 document.addEventListener("DOMContentLoaded",init);

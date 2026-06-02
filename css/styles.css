@@ -468,6 +468,58 @@ table.r-table ruby rt{font-size:.55em}
 .hm-legend .hm-cell{width:22px;height:22px;cursor:default;aspect-ratio:auto}
 @media (max-width:520px){ .hm-grid{grid-template-columns:repeat(6,1fr)} }
 
+/* ============================  HOME  ============================ */
+.home-hero{background:linear-gradient(135deg,rgba(228,87,46,.20),var(--panel-2));border:1px solid var(--line);border-radius:16px;padding:22px;margin:22px 0 16px}
+.hh-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.greet{font-family:var(--serif-jp);font-size:1.35rem;flex:1;min-width:200px}
+.greet b{color:var(--accent-2)}
+.hh-sub{display:block;font-family:var(--sans-jp);font-size:.82rem;color:var(--ink-dim);margin-top:4px}
+.hh-streak{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:.95rem;color:var(--ink)}
+.hh-streak b{color:var(--accent);font-size:1.15rem}
+.continue-cta{display:block;width:100%;text-align:left;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:16px 20px;cursor:pointer;transition:.15s}
+.continue-cta:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.continue-cta .cc-main{display:block;font-size:1.25rem;font-weight:800;font-family:var(--serif-jp)}
+.continue-cta small{display:block;opacity:.9;margin-top:3px;font-size:.9rem}
+.continue-cta.done{background:var(--panel);border:1px solid var(--good);color:var(--ink);cursor:default}
+.continue-cta.done .cc-main{color:var(--good)}
+
+.home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:14px}
+.home-card{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.home-card h2{font-family:var(--serif-jp);font-size:1.08rem;color:var(--accent-2);margin-bottom:12px}
+.hc-empty{font-size:.92rem;color:var(--ink-dim);line-height:1.8}
+
+.phrase-jp{font-family:var(--serif-jp);font-size:1.5rem;line-height:1.9;color:var(--jp)}
+.phrase-jp ruby rt{font-size:.5em;color:var(--accent-2)}
+.phrase-play{background:none;border:none;color:var(--ink-faint);font-size:1.05rem;cursor:pointer;vertical-align:middle}
+.phrase-play:hover{color:var(--accent)}
+.phrase-zh{color:var(--zh);font-size:1rem;margin:6px 0}
+.phrase-note{color:var(--ink-dim);font-size:.86rem;line-height:1.7;margin-bottom:10px}
+.phrase-ex{font-family:var(--serif-jp);font-size:1.1rem;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer}
+.phrase-ex:hover{border-color:var(--accent)}
+.phrase-ex .zh{display:block;font-family:var(--sans-jp);font-size:.82rem;color:var(--zh);margin-top:3px}
+
+.rv-theme{font-family:var(--serif-jp);font-size:1.05rem;color:var(--jp);margin-bottom:8px}
+.rv-label{font-size:.8rem;color:var(--ink-faint);margin:8px 0 4px}
+.rv-list{list-style:none;margin-bottom:4px}
+.rv-list li{font-family:var(--serif-jp);font-size:1rem;color:var(--ink);padding:3px 0 3px 16px;position:relative}
+.rv-list li::before{content:"・";position:absolute;left:0;color:var(--accent)}
+.rv-vocab{display:flex;flex-wrap:wrap;gap:6px}
+.rv-vocab span{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-family:var(--serif-jp);font-size:.98rem;color:var(--jp);cursor:pointer}
+.rv-vocab span:hover{border-color:var(--accent)}
+.rv-vocab span i{font-family:var(--sans-jp);font-style:normal;font-size:.74rem;color:var(--accent-2);margin-left:5px}
+.rv-go{margin-top:12px;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 14px;font-size:.86rem;cursor:pointer}
+.rv-go:hover{border-color:var(--accent)}
+
+.todo-list{list-style:none}
+.todo-list li{display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--line);cursor:pointer;font-size:.95rem}
+.todo-list li:last-child{border-bottom:none}
+.todo-list li:hover{background:var(--panel)}
+.todo-list .tk-box{width:24px;height:24px;flex-shrink:0;border:1px solid var(--line);border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:.85rem;color:var(--ink-faint)}
+.todo-list .tk-box.rv{border-style:dashed;color:var(--accent-2)}
+.todo-list li.tdone{color:var(--ink-faint)}
+.todo-list li.tdone span:not(.tk-box){text-decoration:line-through}
+.todo-list li.tdone .tk-box{background:var(--good);border-color:var(--good);color:#0c1610}
+
 footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 @media (max-width:560px){
   .para{font-size:1.3rem}
