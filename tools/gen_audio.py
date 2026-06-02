@@ -52,6 +52,18 @@ def speech_norm(text):        # what the site actually speaks / keys on
     t = to_plain(text).replace("〜", "").replace("～", "")
     return t.strip(" 、。・「」『』\t\n")
 
+# ---- reading-verification helpers (used by --verify) ----
+# Compares the kana I HAND-AUTHORED in the furigana against an INDEPENDENT
+# morphological analyzer (UniDic via fugashi). A mismatch flags either an
+# authoring typo OR a genuinely tricky/ambiguous reading — both worth a glance.
+FURI = re.compile(r"([㐀-鿿々〆ヶ]+)\[([^\]]+)\]")
+def authored_reading(text):   # 漢字[かな]→かな, keep surrounding kana → full kana string
+    return FURI.sub(lambda m: m.group(2), text)
+def _hira2kata(s):
+    return "".join(chr(ord(c) + 0x60) if "ぁ" <= c <= "ゖ" else c for c in s)
+def norm_kana(s):             # canonical katakana, spelling form, punctuation/ascii stripped
+    return re.sub(r"[^ァ-ヺー]", "", _hira2kata(s))
+
 # ---- crude extractor for paragraph[].jp and vocab[].r from lessons.js ----
 # (lessons.js is hand-authored JS data; we read the string literals we need.)
 def load_lessons():
@@ -71,7 +83,14 @@ def load_lessons():
         if "vocab:" in chunk:
             vocab_area = chunk.split("vocab:")[1].split("grammar:")[0]
         readings = re.findall(r'\br\s*:\s*"((?:[^"\\]|\\.)*)"', vocab_area)
-        days.append({"day": day, "sents": sents, "readings": readings})
+        # EVERY OTHER spoken line — jp:"..." AFTER the paragraph area:
+        #   vocab example sentences (ex.jp), grammar examples, conversation lines.
+        # These are keyed by content ("x_<normalized>") so the web app can look them
+        # up the same way it looks up vocab readings. Paragraph jp (positional keys
+        # d{day}_s{i}) are excluded by slicing off para_area first.
+        after_para = chunk.split("vocab:", 1)[1] if "vocab:" in chunk else ""
+        extra = re.findall(r'jp\s*:\s*"((?:[^"\\]|\\.)*)"', after_para)
+        days.append({"day": day, "sents": sents, "readings": readings, "extra": extra})
     return days
 
 # ---- VOICEVOX HTTP API ----
@@ -98,16 +117,77 @@ def to_mp3(wav_bytes, out_path):
                        input=wav_bytes)
     return p.returncode == 0
 
+def verify_readings():
+    """Independent reading check: my hand-authored furigana vs UniDic (fugashi).
+    Lists every line where the two disagree, for a quick human review. Catches both
+    authoring typos and genuinely ambiguous readings. No audio is generated."""
+    try:
+        import fugashi
+    except ImportError:
+        sys.exit("✗ needs fugashi + unidic-lite:  pip3 install --user fugashi unidic-lite")
+    tagger = fugashi.Tagger()
+
+    def unidic_reading(plain):
+        out = []
+        for w in tagger(plain):
+            k = getattr(w.feature, "kana", None)
+            out.append(k if k and k != "*" else w.surface)
+        return norm_kana("".join(out))
+
+    # collect (label, text-with-furigana) for every spoken/furigana-bearing line
+    items = []
+    for d in load_lessons():
+        for i, jp in enumerate(d["sents"]):
+            items.append((f"D{d['day']} 文{i}", jp))
+        for jp in d["extra"]:
+            items.append((f"D{d['day']} 例/会話", jp))
+    # vocab w↔r pairs (verify the authored reading r against UniDic reading of w)
+    src = open(LESSONS, encoding="utf-8").read()
+    for m in re.finditer(r'w\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*r\s*:\s*"((?:[^"\\]|\\.)*)"', src):
+        w, r = m.group(1), m.group(2)
+        items.append((f"単語 {w}", f"{w}[{r}]" if not FURI.search(w) else w, r))
+
+    flags, checked = [], 0
+    for it in items:
+        label, text = it[0], it[1]
+        if len(it) == 3:                       # vocab pair: authored = r directly
+            authored = norm_kana(it[2]); plain = to_plain(text).replace("〜", "").replace("～", "")
+        else:
+            authored = norm_kana(authored_reading(text)); plain = to_plain(text)
+        if not authored:
+            continue
+        checked += 1
+        got = unidic_reading(plain)
+        if authored != got:
+            flags.append((label, to_plain(text), authored, got))
+
+    report = os.path.join(os.path.dirname(os.path.abspath(__file__)), "verify_report.txt")
+    with open(report, "w", encoding="utf-8") as f:
+        f.write(f"Reading verification — {checked} lines checked, {len(flags)} mismatches\n")
+        f.write("(authored furigana  vs  UniDic guess — review each; many are OK ambiguous cases)\n\n")
+        for label, plain, a, g in flags:
+            f.write(f"[{label}]\n  text : {plain}\n  mine : {a}\n  unidic: {g}\n\n")
+    print(f"Checked {checked} lines. {len(flags)} mismatches → {report}")
+    for label, plain, a, g in flags[:40]:
+        print(f"  ⚠ {label}: {plain}\n      mine={a}  unidic={g}")
+    if len(flags) > 40:
+        print(f"  … +{len(flags)-40} more in {report}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--speaker", type=int, default=2, help="VOICEVOX speaker id (default 2 = 四国めたん ノーマル)")
     ap.add_argument("--no-vocab", action="store_true")
     ap.add_argument("--wav", action="store_true", help="keep WAV, skip MP3 conversion")
     ap.add_argument("--list-speakers", action="store_true")
+    ap.add_argument("--verify", action="store_true",
+                    help="check every furigana reading against UniDic (fugashi) and report mismatches; no synthesis")
     args = ap.parse_args()
 
     if args.list_speakers:
         list_speakers(); return
+    if args.verify:
+        verify_readings(); return
 
     # sanity: engine reachable?
     try:
@@ -137,6 +217,8 @@ def main():
         manifest[key] = rel_path; made += 1
         print(f"  ✓ {key}  «{spoken[:24]}»")
 
+    EX_DIR = os.path.join(AUDIO_DIR, "ex")
+    os.makedirs(EX_DIR, exist_ok=True)
     for d in load_lessons():
         for i, jp in enumerate(d["sents"]):
             key = f'd{d["day"]}_s{i}'
@@ -150,6 +232,17 @@ def main():
                 # web app can look it up directly; FILENAME = short hash (filesystem-safe).
                 h = hashlib.sha1(spoken.encode("utf-8")).hexdigest()[:12]
                 emit(f"v_{spoken}", r, os.path.join(VOCAB_DIR, f"{h}.{ext}"), f"audio/vocab/{h}.{ext}")
+        # example sentences + grammar examples + conversation lines.
+        # KEY = "x_<normalized spoken text>" so app.js can look it up via speechNorm();
+        # FILENAME = short hash. De-dup within a day in case the same line repeats.
+        seen = set()
+        for jp in d["extra"]:
+            spoken = speech_norm(jp)
+            if not spoken or spoken in seen:
+                continue
+            seen.add(spoken)
+            h = hashlib.sha1(spoken.encode("utf-8")).hexdigest()[:12]
+            emit(f"x_{spoken}", jp, os.path.join(EX_DIR, f"{h}.{ext}"), f"audio/ex/{h}.{ext}")
 
     json.dump(manifest, open(MANIFEST, "w", encoding="utf-8"), ensure_ascii=False, indent=0)
     # also emit a JS manifest so audio works on file:// (double-click) where fetch() is blocked

@@ -546,7 +546,7 @@ function renderNoon(L){
 
   /* click handlers: play vocab + examples + conversation + 拆解 + 术语跳转 */
   body.querySelectorAll(".play-w").forEach(b=>b.onclick=()=>speakSequence([{text:b.dataset.w,node:null,audioKey:"v_"+speechNorm(b.dataset.w)}]));
-  body.querySelectorAll(".ex,.conv-item,.vc-ex").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:el}]));
+  body.querySelectorAll(".ex,.conv-item,.vc-ex").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:el,audioKey:"x_"+speechNorm(el.dataset.jp)}]));
   body.querySelectorAll(".vc-part[data-w]").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.w,node:null}]));
   body.querySelectorAll(".gloss").forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); gotoGlossary(parseInt(el.dataset.g,10)); });
   addCompleteButton(L,"noon",body);
