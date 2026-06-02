@@ -173,6 +173,12 @@ section.block > h2{
 .vcard .play-w{background:none;border:none;color:var(--ink-faint);font-size:1rem;cursor:pointer}
 .vcard .play-w:hover{color:var(--accent)}
 .v-pos{margin-left:auto;font-size:.72rem;color:var(--noon);border:1px solid var(--line);border-radius:6px;padding:1px 8px}
+.vc-pitch{margin:5px 0 1px;overflow-x:auto}
+svg.pitch{display:inline-block;vertical-align:middle}
+svg.pitch polyline{fill:none;stroke:var(--accent-2);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+svg.pitch circle{fill:var(--accent-2)}
+svg.pitch circle.nuc{fill:var(--accent);stroke:var(--accent);r:3.4px}
+svg.pitch text{fill:var(--ink-dim);font-family:var(--sans-jp);font-size:11px}
 .vc-mean{font-size:.96rem;color:var(--ink);margin-top:6px;line-height:1.7}
 .vc-mean .v-en{color:var(--ink-faint);font-size:.85rem}
 .vc-parts{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:9px;font-size:.9rem}

@@ -83,6 +83,43 @@ let SPEAK_TOKEN = 0;              // cancels sequential playback
 /* normalize text for TTS / file lookup: drop furigana, 「〜」placeholder, edge punct */
 function speechNorm(text){ return toPlain(text).replace(/[〜～]/g,"").replace(/^[、。・「」『』\s]+|[、。・「」『』\s]+$/g,"").trim(); }
 
+/* ---- pitch-accent contour (音高线) ---- */
+let PITCH = {};                   // { "v_あめ":[{a:1,m:["ア","メ"]},...], ... }
+function kata2hira(s){ return s.replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60)); }
+function moraSplit(s){ return s.match(/.[ゃゅょぁぃぅぇぉゎ]?/g) || []; }   // kana → morae (small kana attach)
+/* OJAD-style high/low line from pre-computed VOICEVOX accent data. Returns "" if none.
+   Tokyo rule per accent phrase: heiban(a=0)=L H H…; 頭高(a=1)=H L L…; 中高/尾高(a≥2)=L H…H↓L.
+   `reading` (optional) relabels morae with the authored kana spelling (しょう, particle を…),
+   keeping VOICEVOX's pattern — so the line matches the reading shown above it. */
+function pitchHTML(key, reading){
+  const phr = PITCH[key];
+  if(!phr || !phr.length) return "";
+  let labels2 = phr.map(p=>p.m.map(kata2hira));
+  if(reading){
+    const rm = moraSplit(kata2hira(reading.replace(/[^ぁ-ゖァ-ヶー]/g,"")));
+    const total = phr.reduce((n,p)=>n+p.m.length,0);
+    if(rm.length===total){ let i=0; labels2 = phr.map(p=>p.m.map(()=>rm[i++])); }
+  }
+  const STEP=18, PAD=7, yHi=7, yLo=20, H=34, r=2.6;
+  let x=PAD, circles="", labels="", polys=[];
+  phr.forEach((p,pi)=>{
+    const a=p.a, pts=[];
+    p.m.forEach((mora,i)=>{
+      const j=i+1;
+      const hi = a===0 ? j>=2 : (a===1 ? j===1 : (j>=2 && j<=a));
+      const y = hi?yHi:yLo;
+      pts.push(x+","+y);
+      circles += `<circle cx="${x}" cy="${y}" r="${r}"${(a>=1&&j===a)?' class="nuc"':''}/>`;
+      labels  += `<text x="${x}" y="${H-3}" text-anchor="middle">${labels2[pi][i]}</text>`;
+      x += STEP;
+    });
+    polys.push(`<polyline points="${pts.join(' ')}"/>`);
+    x += STEP*0.55;
+  });
+  const W = Math.ceil(x - STEP*0.55 + PAD);
+  return `<svg class="pitch" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="音高线"><title>音高：上＝高音 · 下＝低音 · ●＝降调点（accent）</title>${polys.join("")}${circles}${labels}</svg>`;
+}
+
 function ttsOne(text, node){
   return new Promise(res=>{
     if(!("speechSynthesis" in window) || !speechNorm(text)){ res(); return; }
@@ -501,10 +538,11 @@ function renderNoon(L){
   html += `<section class="block"><h2>📝 本文と訳 · 课文与翻译</h2><div class="para" id="para2"></div></section>`;
 
   /* vocab — cards: word + reading + 🔊 + 词性 + 释义(术语可点) + 拆解 + 例句 */
-  html += `<section class="block"><h2>📚 単語 · 词汇 <span class="blk-hint">点术语看解释 · 🔊朗读 · 📝例句</span></h2>
+  html += `<section class="block"><h2>📚 単語 · 词汇 <span class="blk-hint">点术语看解释 · 🔊朗读 · 📈音高线(上高下低·红点=降调) · 📝例句</span></h2>
     <div class="vcards">
     ${L.vocab.map(v=>`<div class="vcard">
       <div class="vc-head"><span class="v-word">${esc(v.w)}</span><span class="v-read">${esc(v.r)}</span><button class="play-w" data-w="${esc(v.r)}">🔊</button>${v.pos?`<span class="v-pos">${esc(v.pos)}</span>`:""}</div>
+      ${(p=>p?`<div class="vc-pitch">${p}</div>`:"")(pitchHTML("v_"+speechNorm(v.r), v.r))}
       <div class="vc-mean">${linkTerms(v.zh)}${v.en?`<span class="v-en"> · ${esc(v.en)}</span>`:""}</div>
       ${v.parts?`<div class="vc-parts"><span class="vc-tag">🧩 拆解</span>${v.parts.map(p=>`<span class="vc-part" ${p.r?`data-w="${esc(p.r)}"`:""}><b>${esc(p.p)}</b>${p.r?`<i>${esc(p.r)}</i>`:""}＝${esc(p.m)}</span>`).join('<span class="vc-plus">＋</span>')}</div>`:""}
       ${v.ex?`<div class="vc-ex" data-jp="${esc(v.ex.jp)}"><span class="vc-tag">📝 例</span>${toRuby(v.ex.jp)}<span class="zh">${esc(v.ex.zh)}</span></div>`:""}
@@ -1146,6 +1184,12 @@ function init(){
     AUDIO_MANIFEST = window.AUDIO_MANIFEST;
   } else if(typeof fetch==="function" && location.protocol!=="file:"){
     fetch("audio/manifest.json").then(r=>r.ok?r.json():{}).then(m=>{ AUDIO_MANIFEST=m||{}; }).catch(()=>{ AUDIO_MANIFEST={}; });
+  }
+  // pre-computed pitch-accent contours (same loading strategy as the audio manifest)
+  if(typeof window!=="undefined" && window.PITCH){
+    PITCH = window.PITCH;
+  } else if(typeof fetch==="function" && location.protocol!=="file:"){
+    fetch("audio/pitch.json").then(r=>r.ok?r.json():{}).then(p=>{ PITCH=p||{}; }).catch(()=>{ PITCH={}; });
   }
   setHeaderVar();
   window.addEventListener("resize", setHeaderVar);
