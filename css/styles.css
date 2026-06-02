@@ -422,6 +422,44 @@ table.r-table ruby rt{font-size:.55em}
 .pron-tips{font-size:.86rem;color:var(--ink-dim);line-height:1.7}
 .pron-unsupported{font-size:.88rem;color:var(--ink-faint);background:var(--panel-2);border-radius:8px;padding:12px}
 
+/* pronunciation v3 — modes, bars, playback, history */
+.pron-engine{cursor:pointer;font-family:inherit}
+.pron-engine.on{color:var(--good);border-color:var(--good)}
+.pron-modes{display:inline-flex;gap:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin:6px 0 12px}
+.pron-modes button{background:var(--panel);border:none;color:var(--ink-dim);padding:7px 18px;font-size:.88rem;font-weight:600;cursor:pointer}
+.pron-modes button.on{background:var(--accent);color:#fff}
+.pron-nav{display:flex;align-items:center;gap:10px;margin:10px 0 6px}
+.pj-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.pj-chip{width:30px;height:30px;border:1px solid var(--line);background:var(--panel);color:var(--ink-dim);border-radius:7px;font-size:.82rem;cursor:pointer}
+.pj-chip:hover{border-color:var(--accent-2)}
+.pj-chip.on{background:var(--accent-2);color:#15121d;border-color:var(--accent-2);font-weight:700}
+.pron-overall{font-family:var(--serif-jp);font-size:1.25rem;margin:6px 0 12px}
+.pron-overall b{font-size:1.5rem}
+.pron-overall.great{color:var(--good)} .pron-overall.ok{color:var(--accent-2)} .pron-overall.again{color:var(--bad)}
+.pron-overall .band{font-family:var(--sans-jp);font-size:.8rem;border:1px solid currentColor;border-radius:999px;padding:2px 10px;vertical-align:middle}
+.band.great{color:var(--good)} .band.ok{color:var(--accent-2)} .band.again{color:var(--bad)}
+.pron-bars{display:flex;flex-direction:column;gap:7px;margin:4px 0 8px}
+.bar-row{display:flex;align-items:center;gap:10px;font-size:.88rem}
+.bar-lab{width:74px;color:var(--ink-dim);cursor:help;flex-shrink:0}
+.pbar{flex:1;height:12px;background:var(--panel);border-radius:6px;overflow:hidden}
+.pbar i{display:block;height:100%}
+.bf-great{background:var(--good)} .bf-ok{background:var(--accent-2)} .bf-again{background:var(--bad)}
+.bar-val{width:30px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.pron-interp{background:var(--panel);border-left:3px solid var(--accent);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:.92rem;line-height:1.75}
+.pron-playback{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 4px}
+.pron-play{border:none;border-radius:10px;padding:10px 18px;font-weight:700;font-size:.92rem;cursor:pointer}
+.pron-play.mine{background:var(--accent);color:#fff}
+.pron-play.demo{background:var(--panel-2);color:var(--ink);border:1px solid var(--line)}
+.pron-play:hover{filter:brightness(1.08)}
+.pron-hist{display:flex;gap:8px;flex-wrap:wrap}
+.hist-chip{background:var(--panel);border:1px solid var(--line);color:var(--ink-dim);border-radius:8px;padding:6px 12px;font-size:.82rem;cursor:pointer}
+.hist-chip:hover{border-color:var(--accent)}
+.hist-chip.cur{border-color:var(--accent-2);color:var(--accent-2)}
+.pron-imp{margin-top:10px;padding:9px 14px;border-radius:8px;font-size:.92rem;font-weight:600}
+.pron-imp.up{background:rgba(95,179,122,.16);color:var(--good)}
+.pron-imp.down{background:rgba(224,98,106,.12);color:var(--bad)}
+.pron-imp:not(.up):not(.down){background:var(--panel);color:var(--ink-dim)}
+
 /* pronunciation engine badge + Azure scores */
 .pron-engine{display:inline-block;margin-left:6px;font-size:.76rem;color:var(--ink-faint);border:1px solid var(--line);border-radius:6px;padding:1px 8px}
 .pron-engine.azure{color:var(--good);border-color:var(--good)}

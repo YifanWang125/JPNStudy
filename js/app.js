@@ -241,145 +241,229 @@ function loadAzureSDK(){
   return _azureSDK;
 }
 
-let PRON = { idx:0, recog:null, recording:false };
+/* metric definitions (shown as ⓘ tooltips + used in advice) */
+const METRIC_DEF = {
+  acc:["正確さ","发音准确度：每个假名/音有没有读对。低 = 个别音发错或走音。"],
+  flu:["流暢さ","流利度：有没有不自然的停顿、卡顿、拖音。低 = 读得断断续续。"],
+  comp:["完整さ","完整度：句子读全了吗、有没有漏字/吞字。低 = 有遗漏。"],
+  pro:["抑揚","语调·韵律：句子高低起伏是否自然（日语靠音高表意，很关键）。低 = 读得太平。"]
+};
+function scoreBand(s){
+  if(s>=90) return {t:"優秀 · 近母语",c:"great"};
+  if(s>=75) return {t:"良好 · 熟练",c:"great"};
+  if(s>=60) return {t:"合格线 · 还行",c:"ok"};
+  return {t:"要加强",c:"again"};
+}
+function azureInterpret(d){
+  const dims=[["acc",d.acc],["flu",d.flu],["comp",d.comp],["pro",d.pro]];
+  const weak=dims.reduce((a,b)=>b[1]<a[1]?b:a);
+  const tips={ acc:"看下面红/黄的字，单独跟读那几个假名，把音对准。",
+    flu:"先放慢，把整句连起来读顺，别一个词一个词蹦，再慢慢提速。",
+    comp:"对照原文，每个字都读出来，别吞音、别漏字。",
+    pro:"日语靠高低音表意——重点模仿示范的“起伏”，别从头到尾一个调。" };
+  if(weak[1]>=85) return "四项都很均衡，非常棒！保持这个状态，挑战下一句/整段。";
+  return `你最该练的是「${METRIC_DEF[weak[0]][0]}」(${weak[1]}分)：${tips[weak[0]]}`;
+}
+
+let PRON = null;
+function pronKey(){ return PRON.mode==="paragraph" ? "P" : ("s"+PRON.idx); }
 function appendPron(L, body){
-  PRON = { idx:0, recog:null, recording:false };
+  PRON = { mode:"sentence", idx:0, recording:false, recorder:null, chunks:[], recog:null, recognizer:null, stream:null, history:{}, _pending:null, _scored:false };
   const box=document.createElement("div");
   box.className="pron-box"; box.id="pron-box";
   body.appendChild(box);
   renderPron(L);
 }
+/* user-friendly, clickable engine badge (no "Azure" jargon; click → settings to manage/turn off) */
 function pronEngineBadge(){
-  if(azureEnabled()) return `<span class="pron-engine azure">引擎：Azure 发音评估（逐音素＋语调）</span>`;
-  if(SpeechRec)      return `<span class="pron-engine">引擎：浏览器识别（近似）· <a id="pron-upgrade">接入 Azure 获取逐音素评分 ⚙</a></span>`;
+  if(azureEnabled()) return `<button class="pron-engine on" id="pron-engine" title="点击管理 / 关闭 AI 引擎">● AI 引擎已开启 · 逐音素＋语调 ⚙</button>`;
+  if(SpeechRec)      return `<button class="pron-engine" id="pron-engine" title="点此开启 AI 精评（逐音素＋语调）">○ 基础版 · 点此开启 AI 精评</button>`;
   return "";
+}
+function pronTarget(L){
+  if(PRON.mode==="paragraph"){
+    return { jpRuby:L.paragraph.map(s=>toRuby(s.jp)).join(""),
+             plain:L.paragraph.map(s=>speechNorm(s.jp)).join("、"),
+             listen:L.paragraph.map((s,i)=>({text:s.jp,node:null,audioKey:audioKeyFor(L.day,i)})) };
+  }
+  const s=L.paragraph[PRON.idx];
+  return { jpRuby:toRuby(s.jp), plain:speechNorm(s.jp),
+           listen:[{text:s.jp,node:null,audioKey:audioKeyFor(L.day,PRON.idx)}] };
 }
 function renderPron(L){
   const box=$("#pron-box"); if(!box) return;
-  const total=L.paragraph.length, s=L.paragraph[PRON.idx];
-  const listenItem=[{text:s.jp,node:null,audioKey:audioKeyFor(L.day,PRON.idx)}];
-  const targetHtml=`<div class="pron-target">${toRuby(s.jp)}</div>`;
-  const navHtml=`<button class="nav" id="pron-prev">◀</button><span class="pron-sub">${PRON.idx+1} / ${total}</span><button class="nav" id="pron-next">▶</button>`;
-  let html=`<h3>🎤 発音チェック · 跟读评估</h3>
-    <div class="pron-sub">跟读一句，AI 对比你读出的内容，指出哪里清晰、哪里可能不准。逐句练习。${pronEngineBadge()}</div>`;
+  const total=L.paragraph.length, t=pronTarget(L);
+  const modeTabs=`<div class="pron-modes"><button class="${PRON.mode==='sentence'?'on':''}" id="pm-sent">逐句</button><button class="${PRON.mode==='paragraph'?'on':''}" id="pm-para">整段</button></div>`;
+  let nav="";
+  if(PRON.mode==="sentence"){
+    let chips=""; for(let i=0;i<total;i++) chips+=`<button class="pj-chip ${i===PRON.idx?'on':''}" data-jump="${i}">${i+1}</button>`;
+    nav=`<div class="pron-nav"><button class="nav" id="pron-prev">◀</button><span class="pron-sub">第 ${PRON.idx+1} / ${total} 句</span><button class="nav" id="pron-next">▶</button></div><div class="pj-chips">${chips}</div>`;
+  }
+  let head=`<h3>🎤 発音チェック · 跟读评估 ${pronEngineBadge()}</h3>
+    <div class="pron-sub">跟读 → 录音 → <b>回听自己的声音</b>并对比标准音。${PRON.mode==='paragraph'?'整段模式：一口气读完，读完点「■ 停止」。':'逐句模式：点下面数字可跳到任意句。'}</div>
+    ${modeTabs}<div class="pron-target">${t.jpRuby}</div>`;
   if(IS_FILE){
-    html+=`<div class="pron-unsupported">🔌 你正用 <b>file://</b> 打开本页，浏览器会禁止麦克风。请改用本地服务器：终端运行 <code>python3 -m http.server 4173</code>，再打开 <b>http://127.0.0.1:4173</b> —— 即可启用录音评估。现在仍可点「🔊 听示范」跟读。</div>
-      ${targetHtml}<div class="pron-ctrl"><button class="listen" id="pron-listen">🔊 听示范</button>${navHtml}</div>`;
-    box.innerHTML=html; bindPronNav(L,listenItem,total); return;
+    box.innerHTML=head+`<div class="pron-unsupported">🔌 你正用 file:// 打开。麦克风需要本地服务器：终端跑 <code>python3 -m http.server 4173</code> 再开 <b>http://localhost:4173</b>。现在仍可「🔊 听示范」。</div><div class="pron-ctrl"><button class="listen" id="pron-listen">🔊 听示范</button></div>${nav}`;
+    bindPron(L,t,total); return;
   }
   if(!SpeechRec && !azureEnabled()){
-    html+=`<div class="pron-unsupported">⚠️ 当前浏览器不支持语音识别。建议用 <b>Chrome</b> 打开，或在 ⚙ 设置里接入 Azure 发音评估。你仍可点「🔊 听示范」跟读。</div>
-      ${targetHtml}<div class="pron-ctrl"><button class="listen" id="pron-listen">🔊 听示范</button>${navHtml}</div>`;
-    box.innerHTML=html; bindPronNav(L,listenItem,total); return;
+    box.innerHTML=head+`<div class="pron-unsupported">⚠️ 此浏览器不支持录音识别。建议用 <b>Chrome</b>，或在 ⚙ 开启 AI 引擎。仍可「🔊 听示范」。</div><div class="pron-ctrl"><button class="listen" id="pron-listen">🔊 听示范</button></div>${nav}`;
+    bindPron(L,t,total); return;
   }
-  html+=`${targetHtml}
+  box.innerHTML=head+`
     <div class="pron-ctrl">
       <button class="rec ${PRON.recording?'recording':''}" id="pron-rec">${PRON.recording?'■ 停止':'🎤 録音して読む'}</button>
-      <button class="listen" id="pron-listen">🔊 听示范</button>${navHtml}
-    </div>
+      <button class="listen" id="pron-listen">🔊 听标准示范</button>
+    </div>${nav}
     <div class="pron-result" id="pron-result"></div>`;
-  box.innerHTML=html;
-  $("#pron-rec").onclick=()=>startPronCheck(L);
-  bindPronNav(L,listenItem,total);
+  $("#pron-rec").onclick=()=>{ if(PRON.recording) stopRec(); else startRec(L); };
+  bindPron(L,t,total);
+  renderResult(L);
 }
-function bindPronNav(L,listenItem,total){
-  if($("#pron-listen")) $("#pron-listen").onclick=()=>speakSequence(listenItem);
-  if($("#pron-prev"))   $("#pron-prev").onclick=()=>{ if(PRON.recording)stopRecog(); if(PRON.idx>0){PRON.idx--;renderPron(L);} };
-  if($("#pron-next"))   $("#pron-next").onclick=()=>{ if(PRON.recording)stopRecog(); if(PRON.idx<total-1){PRON.idx++;renderPron(L);} };
-  if($("#pron-upgrade"))$("#pron-upgrade").onclick=openSettings;
-}
-function startPronCheck(L){
-  if(PRON.recording){ stopRecog(); return; }
-  if(azureEnabled()) evalPronAzure(L);
-  else toggleRecog(L);
+function bindPron(L,t,total){
+  if($("#pron-engine")) $("#pron-engine").onclick=openSettings;
+  if($("#pron-listen")) $("#pron-listen").onclick=()=>speakSequence(t.listen);
+  if($("#pron-prev"))   $("#pron-prev").onclick=()=>{ if(PRON.recording)stopRec(); if(PRON.idx>0){PRON.idx--;renderPron(L);} };
+  if($("#pron-next"))   $("#pron-next").onclick=()=>{ if(PRON.recording)stopRec(); if(PRON.idx<total-1){PRON.idx++;renderPron(L);} };
+  if($("#pm-sent"))     $("#pm-sent").onclick=()=>{ if(PRON.recording)stopRec(); PRON.mode="sentence"; renderPron(L); };
+  if($("#pm-para"))     $("#pm-para").onclick=()=>{ if(PRON.recording)stopRec(); PRON.mode="paragraph"; renderPron(L); };
+  document.querySelectorAll(".pj-chip[data-jump]").forEach(b=>b.onclick=()=>{ if(PRON.recording)stopRec(); PRON.idx=parseInt(b.dataset.jump,10); renderPron(L); });
 }
 function updatePronBtn(){ const b=$("#pron-rec"); if(!b) return; b.textContent=PRON.recording?'■ 停止':'🎤 録音して読む'; b.classList.toggle('recording',PRON.recording); }
-function stopRecog(){ if(PRON.recog){ try{PRON.recog.stop();}catch(e){} } PRON.recording=false; updatePronBtn(); }
-function toggleRecog(L){
-  if(PRON.recording){ stopRecog(); return; }
-  stopSpeak();
-  const r=new SpeechRec();
-  r.lang="ja-JP"; r.interimResults=false; r.maxAlternatives=1;
-  PRON.recog=r; PRON.recording=true; updatePronBtn();
-  const res=$("#pron-result"); if(res) res.innerHTML=`<div class="pron-sub">🔴 録音中… ゆっくり、はっきり読んでください。</div>`;
-  r.onresult=(e)=>{ evalPron(L, e.results[0][0].transcript); };
-  r.onerror=(e)=>{ const res=$("#pron-result"); if(res) res.innerHTML=`<div class="pron-sub">识别出错（${esc(e.error)}）。请确认已允许麦克风权限，并在安静环境重试。</div>`; };
-  r.onend=()=>{ PRON.recording=false; updatePronBtn(); };
-  try{ r.start(); }catch(e){ PRON.recording=false; updatePronBtn(); }
-}
-function evalPron(L, heard){
-  const res=$("#pron-result"); if(!res) return;
-  const norm=s=>(s||"").replace(/[\s。、，．！？!?「」『』・]/g,"");
-  const target=norm(toPlain(L.paragraph[PRON.idx].jp));
-  const h=norm(heard);
-  const {html,correct}=diffStrings(target,h);
-  const pct = target.length? Math.round(correct/target.length*100):0;
-  let cls,verdict;
-  if(pct>=85){ cls="great"; verdict=`✅ とても良い！発音がクリアです（一致度 ${pct}%）`; }
-  else if(pct>=60){ cls="ok"; verdict=`🟡 おおむね良好（一致度 ${pct}%）。下線の音をもう一度。`; }
-  else { cls="again"; verdict=`🔴 もう一度ゆっくり（一致度 ${pct}%）。下線部分が聞き取れませんでした。`; }
-  res.innerHTML=`
-    <div class="pron-verdict ${cls}">${verdict}</div>
-    <div class="pron-sub">識別された音声：</div>
-    <div class="pron-heard">${esc(heard)||'<span class="miss">（無音 / 未識別）</span>'}</div>
-    <div class="pron-sub">原文との照合（<span class="miss">下線</span>＝うまく識別されなかった＝発音が不明瞭な可能性）：</div>
-    <div class="pron-heard">${html}</div>
-    <div class="pron-tips">💡 これは音声認識による近似評価です。下線部は「読み方が違う」か「発音が不明瞭」のサイン——🔊で示範を聞き、その音だけ繰り返してみましょう。${PRON.idx<L.paragraph.length-1?'うまくいったら「▶」で次の文へ。':'これで最後の文です。お疲れさま！'}</div>`;
-}
 
-/* ----- Azure path: phoneme + prosody scoring ----- */
-async function evalPronAzure(L){
-  const res=$("#pron-result"), cfg=getAzureCfg();
-  if(res) res.innerHTML=`<div class="pron-sub">⏳ Azure エンジン準備中…（初回は SDK 読み込みに数秒）</div>`;
+/* ---- record (MediaRecorder for playback) + score (engine) in parallel ---- */
+async function startRec(L){
+  stopSpeak();
+  const res=$("#pron-result"); if(res) res.innerHTML=`<div class="pron-sub">🎙️ 准备麦克风…</div>`;
+  let stream;
+  try{ stream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e){ if(res) res.innerHTML=`<div class="pron-unsupported">无法使用麦克风：${esc(String(e.name||e))}。请允许麦克风权限，并用 <b>http://localhost</b> 打开（file:// 不行）。</div>`; return; }
+  PRON.stream=stream; PRON.chunks=[]; PRON._pending=null; PRON._scored=false;
+  try{
+    const rec=new MediaRecorder(stream); PRON.recorder=rec;
+    rec.ondataavailable=e=>{ if(e.data&&e.data.size) PRON.chunks.push(e.data); };
+    rec.onstop=()=>{
+      let url=null;
+      try{ if(PRON.chunks.length){ url=URL.createObjectURL(new Blob(PRON.chunks,{type:PRON.chunks[0].type||"audio/webm"})); } }catch(e){}
+      if(PRON.stream){ PRON.stream.getTracks().forEach(t=>t.stop()); PRON.stream=null; }
+      finalizeAttempt(L, PRON._pending, url);
+    };
+    rec.start();
+  }catch(e){ PRON.recorder=null; }
+  PRON.recording=true; updatePronBtn();
+  if(res) res.innerHTML=`<div class="pron-sub">🔴 録音中… ゆっくり、はっきり。读完${PRON.mode==='paragraph'?'点「■ 停止」':'停顿一下会自动结束'}。</div>`;
+  const t=pronTarget(L);
+  if(azureEnabled()) scoreAzure(L, t.plain); else scoreBrowser(L, t.plain);
+}
+function stopRec(){
+  PRON.recording=false; updatePronBtn();
+  if(PRON.recog){ try{PRON.recog.stop();}catch(e){} }     // browser SR → fires onend → gotScore
+  // Azure recognizeOnce auto-ends on silence; if it hasn't, just stop the recorder for playback only
+  if(azureEnabled() && !PRON._scored){
+    if(PRON.recorder && PRON.recorder.state==="recording"){ PRON._pending=PRON._pending; try{PRON.recorder.stop();}catch(e){} }
+  }
+}
+function gotScore(L, obj){
+  if(PRON._done) return;
+  PRON._pending=obj; PRON.recording=false; updatePronBtn();
+  if(PRON.recorder && PRON.recorder.state==="recording"){ try{ PRON.recorder.stop(); return; }catch(e){} }
+  finalizeAttempt(L, obj, null);
+}
+function finalizeAttempt(L, obj, url){
+  PRON._done=true; setTimeout(()=>{ PRON._done=false; },50);
+  if(!obj){ if(!url) return; obj={type:"basic",overall:0,heard:"",html:"",noscore:true}; }
+  const key=pronKey();
+  const arr=PRON.history[key]||(PRON.history[key]=[]);
+  arr.push({url, score:obj.overall, data:obj, ts:Date.now()});
+  while(arr.length>3){ const old=arr.shift(); if(old.url) try{URL.revokeObjectURL(old.url);}catch(e){} }
+  renderResult(L);
+}
+function scoreBrowser(L, target){
+  if(!SpeechRec){ gotScore(L,{type:"basic",overall:0,heard:"",html:""}); return; }
+  const r=new SpeechRec();
+  r.lang="ja-JP"; r.maxAlternatives=1; r.interimResults=false; r.continuous=(PRON.mode==="paragraph");
+  PRON.recog=r; PRON._scored=false; let heard="";
+  r.onresult=(e)=>{ for(let i=e.resultIndex;i<e.results.length;i++){ heard+=e.results[i][0].transcript; } };
+  r.onerror=()=>{};
+  r.onend=()=>{ if(!PRON._scored){ PRON._scored=true; PRON.recog=null; gotScore(L, browserScoreObj(target, heard)); } };
+  try{ r.start(); }catch(e){ PRON._scored=true; gotScore(L, browserScoreObj(target,"")); }
+}
+function browserScoreObj(target, heard){
+  const norm=s=>(s||"").replace(/[\s。、，．！？!?「」『』・]/g,"");
+  const t=norm(target), h=norm(heard);
+  const {html,correct}=diffStrings(t,h);
+  return {type:"basic", overall: t.length?Math.round(correct/t.length*100):0, heard, html};
+}
+async function scoreAzure(L, target){
   let SDK;
   try{ SDK=await loadAzureSDK(); }
-  catch(e){ if(res) res.innerHTML=`<div class="pron-sub">⚠️ Azure SDK を読み込めません（ネット接続を確認）。ブラウザ識別にフォールバックします。</div>`; toggleRecog(L); return; }
+  catch(e){ const res=$("#pron-result"); if(res) res.innerHTML+=`<div class="pron-sub">AI 引擎加载失败，改用基础版评分。</div>`; scoreBrowser(L,target); return; }
   try{
-    const ref=speechNorm(L.paragraph[PRON.idx].jp);
-    const speechConfig=SDK.SpeechConfig.fromSubscription(cfg.key, cfg.region);
-    speechConfig.speechRecognitionLanguage="ja-JP";
-    const audioConfig=SDK.AudioConfig.fromDefaultMicrophoneInput();
-    const pa=new SDK.PronunciationAssessmentConfig(ref,
-      SDK.PronunciationAssessmentGradingSystem.HundredMark,
-      SDK.PronunciationAssessmentGranularity.Phoneme, true);
-    try{ pa.enableProsodyAssessment=true; }catch(e){}
-    const recognizer=new SDK.SpeechRecognizer(speechConfig, audioConfig);
-    pa.applyTo(recognizer);
-    PRON.recording=true; updatePronBtn();
-    if(res) res.innerHTML=`<div class="pron-sub">🔴 録音中… はっきり読んでください。</div>`;
-    recognizer.recognizeOnceAsync(result=>{
-      PRON.recording=false; updatePronBtn();
-      try{ renderAzureResult(L, SDK.PronunciationAssessmentResult.fromResult(result), result.text); }
-      catch(e){ if(res) res.innerHTML=`<div class="pron-sub">評価を取得できませんでした。もう一度どうぞ。</div>`; }
-      recognizer.close();
-    }, err=>{ PRON.recording=false; updatePronBtn(); if(res) res.innerHTML=`<div class="pron-sub">Azure エラー：${esc(String(err))}。キー / リージョンを確認してください。</div>`; recognizer.close(); });
-  }catch(e){ PRON.recording=false; updatePronBtn(); if(res) res.innerHTML=`<div class="pron-sub">初期化エラー。ブラウザ識別にフォールバックします。</div>`; toggleRecog(L); }
-}
-function renderAzureResult(L, pa, heardText){
-  const res=$("#pron-result"); if(!res) return;
-  const acc=Math.round(pa.accuracyScore||0), flu=Math.round(pa.fluencyScore||0),
-        comp=Math.round(pa.completenessScore||0), pro=Math.round(pa.prosodyScore||0),
-        overall=Math.round(pa.pronunciationScore||0);
-  let wordsHtml="";
-  try{
-    const words=(pa.detailResult&&pa.detailResult.Words)||pa.words||[];
-    words.forEach(w=>{
-      const ws=(w.PronunciationAssessment&&w.PronunciationAssessment.AccuracyScore);
-      const sc=(ws!==undefined?ws:(w.accuracyScore!==undefined?w.accuracyScore:100));
-      const cls=sc>=80?"ok":(sc>=50?"":"miss");
-      wordsHtml+=`<span class="${cls}">${esc(w.Word||w.word||"")}</span>`;
+    const cfg=getAzureCfg();
+    const sc=SDK.SpeechConfig.fromSubscription(cfg.key,cfg.region); sc.speechRecognitionLanguage="ja-JP";
+    const ac=SDK.AudioConfig.fromDefaultMicrophoneInput();
+    const pac=new SDK.PronunciationAssessmentConfig(target, SDK.PronunciationAssessmentGradingSystem.HundredMark, SDK.PronunciationAssessmentGranularity.Phoneme, true);
+    try{ pac.enableProsodyAssessment=true; }catch(e){}
+    const recog=new SDK.SpeechRecognizer(sc,ac); pac.applyTo(recog); PRON.recognizer=recog; PRON._scored=false;
+    recog.recognizeOnceAsync(result=>{
+      if(PRON._scored){ try{recog.close();}catch(e){} return; } PRON._scored=true;
+      let obj; try{ obj=azureScoreObj(SDK.PronunciationAssessmentResult.fromResult(result), result.text); }
+      catch(e){ obj={type:"basic",overall:0,heard:"",html:"",err:true}; }
+      try{recog.close();}catch(e){} gotScore(L,obj);
+    }, err=>{
+      if(PRON._scored){ return; } PRON._scored=true; try{recog.close();}catch(e){}
+      const res=$("#pron-result"); if(res) res.innerHTML=`<div class="pron-unsupported">AI 引擎出错：${esc(String(err))}。请检查 ⚙ 里的 Key / Region（或网络）。这次先回听录音吧。</div>`;
+      gotScore(L, null);
     });
+  }catch(e){ scoreBrowser(L,target); }
+}
+function azureScoreObj(pa, text){
+  const acc=Math.round(pa.accuracyScore||0), flu=Math.round(pa.fluencyScore||0), comp=Math.round(pa.completenessScore||0), pro=Math.round(pa.prosodyScore||0), overall=Math.round(pa.pronunciationScore||0);
+  let wordsHtml="";
+  try{ const words=(pa.detailResult&&pa.detailResult.Words)||pa.words||[];
+    words.forEach(w=>{ const ws=(w.PronunciationAssessment&&w.PronunciationAssessment.AccuracyScore); const s=(ws!==undefined?ws:(w.accuracyScore!==undefined?w.accuracyScore:100)); const c=s>=80?"ok":(s>=50?"":"miss"); wordsHtml+=`<span class="${c}">${esc(w.Word||w.word||"")}</span>`; });
   }catch(e){}
-  if(!wordsHtml) wordsHtml=esc(heardText||"");
-  const cls=overall>=80?"great":(overall>=60?"ok":"again");
-  const prosodyTip = (pro && pro<60) ? `<div class="pron-tips">🎵 抑揚（语调）${pro} 点偏低：注意整句的高低起伏，模仿示范的语调，别每个字都读平。</div>` : "";
-  res.innerHTML=`
-    <div class="pron-verdict ${cls}">総合 ${overall} 点</div>
-    <div class="az-scores"><span>正確さ <b>${acc}</b></span><span>流暢さ <b>${flu}</b></span><span>完整さ <b>${comp}</b></span><span>抑揚 <b>${pro}</b></span></div>
-    <div class="pron-sub">逐字評価（绿=好 / 黄=一般 / <span class="miss">红下划线</span>=不准）：</div>
-    <div class="pron-heard">${wordsHtml}</div>
-    ${prosodyTip}
-    <div class="pron-tips">💡 Azure 逐音素评估。把红/黄的字用 🔊 听示范，单独重复几遍。${PRON.idx<L.paragraph.length-1?'好了点「▶」下一句。':'最后一句，お疲れさま！'}</div>`;
+  if(!wordsHtml) wordsHtml=esc(text||"");
+  return {type:"azure", overall, acc, flu, comp, pro, wordsHtml};
+}
+function renderResult(L){
+  const res=$("#pron-result"); if(!res) return;
+  const key=pronKey(), arr=PRON.history[key]||[];
+  if(!arr.length){ res.innerHTML=`<div class="pron-sub">点「🎤 録音して読む」开始：读完会自动评分，并能<b>回听自己的录音</b>，和标准音对比。系统保留你最近 3 次，方便看进步。</div>`; return; }
+  const a=arr[arr.length-1], d=a.data, b=scoreBand(a.score||0);
+  let imp="";
+  if(arr.length>=2){ const delta=(a.score||0)-(arr[arr.length-2].score||0);
+    if(delta>0) imp=`<div class="pron-imp up">📈 比上次 +${delta} 分，进步了！继续保持～</div>`;
+    else if(delta<0) imp=`<div class="pron-imp down">比上次低了 ${-delta} 分，别灰心，再来一次准更好。</div>`;
+    else imp=`<div class="pron-imp">和上次持平，稳住，再冲一点点。</div>`;
+  }
+  let body="";
+  if(d.type==="azure"){
+    const dims=[["acc",d.acc],["flu",d.flu],["comp",d.comp],["pro",d.pro]];
+    const bars=dims.map(([k,v])=>{ const bd=scoreBand(v); return `<div class="bar-row"><span class="bar-lab" title="${esc(METRIC_DEF[k][1])}">${METRIC_DEF[k][0]} ⓘ</span><div class="pbar"><i class="bf-${bd.c}" style="width:${v}%"></i></div><span class="bar-val">${v}</span></div>`; }).join("");
+    body=`<div class="pron-overall ${b.c}">総合 <b>${a.score}</b> 点 · <span class="band ${b.c}">${b.t}</span></div>
+      <div class="pron-bars">${bars}</div>
+      <div class="pron-sub" style="margin-top:6px">逐字（绿=好 / 黄=一般 / <span class="miss">红=不准</span>，鼠标悬停指标看含义）：</div>
+      <div class="pron-heard">${d.wordsHtml}</div>
+      <div class="pron-interp">💡 ${azureInterpret(d)}</div>`;
+  } else {
+    body=`<div class="pron-overall ${b.c}">一致度 <b>${a.score}%</b> · <span class="band ${b.c}">${b.t}</span></div>
+      <div class="pron-sub" title="把你读的转成文字、与原文比对的吻合度；衡量“读清楚/读对了没”，是近似值，不评语调。">一致度 ⓘ：识别一致度（近似 · 不含语调评估）</div>
+      <div class="pron-sub">识别到：</div><div class="pron-heard">${d.heard?esc(d.heard):'<span class="miss">（未识别到声音）</span>'}</div>
+      <div class="pron-sub">原文对照（<span class="miss">下线</span>＝没读清 / 读错）：</div><div class="pron-heard">${d.html||""}</div>
+      <div class="pron-interp">💡 想要逐音素＋<b>语调</b>的精细评分，点上方「开启 AI 精评」。</div>`;
+  }
+  body+=`<div class="pron-playback">
+    ${a.url?`<button class="pron-play mine" data-url="${a.url}">▶ 听我的录音</button>`:`<span class="pron-sub">（这次没录到音频）</span>`}
+    <button class="pron-play demo" id="pb-demo">🔊 听标准示范</button></div>`;
+  if(arr.length>1){
+    const hist=arr.map((x,i)=>`<button class="hist-chip ${i===arr.length-1?'cur':''}" ${x.url?`data-url="${x.url}"`:''}>第${i+1}次 · ${x.data.type==='azure'?(x.score+'分'):(x.score+'%')}${x.url?' ▶':''}</button>`).join("");
+    body+=`<div class="pron-sub" style="margin-top:8px">最近 ${arr.length} 次（点击回听对比）：</div><div class="pron-hist">${hist}</div>`;
+  }
+  body+=imp;
+  res.innerHTML=body;
+  res.querySelectorAll(".pron-play[data-url],.hist-chip[data-url]").forEach(el=>el.onclick=()=>{ try{ new Audio(el.dataset.url).play(); }catch(e){} });
+  const demo=$("#pb-demo"); if(demo) demo.onclick=()=>speakSequence(pronTarget(L).listen);
 }
 
 /* ----------------------------- NOON ----------------------------- */
@@ -612,7 +696,7 @@ function toggleMap(show){
  * ==========================================================================*/
 function showPage(p){
   STATE.page=p;
-  stopSpeak(); if(PRON.recording) stopRecog();
+  stopSpeak(); if(PRON && PRON.recording) stopRec();
   document.querySelectorAll("#page-nav button").forEach(b=>b.classList.toggle("active",b.dataset.p===p));
   $("#page-home").style.display = p==="home"?"block":"none";
   $("#page-daily").style.display = p==="daily"?"block":"none";
