@@ -79,6 +79,14 @@ if("speechSynthesis" in window){
 let AUDIO_MANIFEST = {};          // { "d1_s0": "audio/d1_s0.mp3", ... }
 let CURRENT_AUDIO = null;
 let SPEAK_TOKEN = 0;              // cancels sequential playback
+let VOICES = [];                  // selectable voice models (window.VOICES); [0] = default
+let VOICE_PREFIX = "audio/";      // path prefix of the currently selected voice
+function setVoice(id){
+  const v = VOICES.find(x=>x.id===id) || VOICES[0];
+  VOICE_PREFIX = (v && v.prefix) || "audio/";
+  try{ localStorage.setItem("jpn-voice", v?v.id:"default"); }catch(e){}
+}
+function currentVoiceId(){ try{ return localStorage.getItem("jpn-voice")||"default"; }catch(e){ return "default"; } }
 
 /* normalize text for TTS / file lookup: drop furigana, 「〜」placeholder, edge punct */
 function speechNorm(text){ return toPlain(text).replace(/[〜～]/g,"").replace(/^[、。・「」『』\s]+|[、。・「」『』\s]+$/g,"").trim(); }
@@ -134,13 +142,23 @@ function ttsOne(text, node){
 function playOne(item){           // {text, node, audioKey}
   const key=item.audioKey, src=key && AUDIO_MANIFEST[key];
   if(!src) return ttsOne(item.text, item.node);
+  // candidate sources: selected voice's parallel file first, then the default file,
+  // then system TTS. Alternate voices reuse the same filenames under their own prefix,
+  // so a missing clip (e.g. examples not generated for that voice) gracefully falls back.
+  const srcs = (VOICE_PREFIX && VOICE_PREFIX!=="audio/")
+    ? [VOICE_PREFIX + src.replace(/^audio\//,""), src] : [src];
   return new Promise(res=>{
-    const a=new Audio(src); CURRENT_AUDIO=a; a.playbackRate=STATE.rate;
     if(item.node) item.node.classList.add("speaking");
     const clear=()=>{ if(item.node) item.node.classList.remove("speaking"); if(CURRENT_AUDIO===a) CURRENT_AUDIO=null; };
-    a.onended=()=>{ clear(); res(); };
-    a.onerror=()=>{ clear(); ttsOne(item.text, item.node).then(res); };
-    a.play().catch(()=>{ clear(); ttsOne(item.text, item.node).then(res); });
+    let a;
+    const tryAt=(i)=>{
+      if(i>=srcs.length){ clear(); ttsOne(item.text, item.node).then(res); return; }
+      a=new Audio(srcs[i]); CURRENT_AUDIO=a; a.playbackRate=STATE.rate;
+      a.onended=()=>{ clear(); res(); };
+      a.onerror=()=>tryAt(i+1);
+      a.play().catch(()=>tryAt(i+1));
+    };
+    tryAt(0);
   });
 }
 /* one-off speak (vocab readings, single examples) */
@@ -917,8 +935,14 @@ function openSettings(){
         <p class="m-note">进度只存在本机浏览器，清缓存就会丢。考前建议导出一份。</p>
         <div class="m-actions"><button id="exp-prog" class="primary">导出进度 JSON</button><button id="imp-prog">导入进度…</button><input type="file" id="imp-file" accept="application/json" style="display:none"><span id="bk-status" class="m-note"></span></div>
       </section>
+      <section><h3>🎙️ 声音模型 / Voice</h3>
+        <p class="m-note">选择朗读用的声音。切换后全站的真人语音都会用它。带「核心」标记的声音覆盖课文与单词；个别未生成的句子会自动回退到标准音。</p>
+        <label>声音 <select id="voice-sel">${VOICES.map(v=>`<option value="${esc(v.id)}"${v.id===currentVoiceId()?" selected":""}>${esc(v.name)} · ${esc(v.tag)}${v.core?"（核心）":""}</option>`).join("")}</select></label>
+        <p class="m-note" id="voice-desc"></p>
+        <div class="m-actions"><button id="voice-demo">▶ 试听</button><span id="voice-status" class="m-note"></span></div>
+      </section>
       <section><h3>🔊 真人音频（VOICEVOX）</h3>
-        <p class="m-note">${Object.keys(AUDIO_MANIFEST).length?`已加载 <b>${Object.keys(AUDIO_MANIFEST).length}</b> 条预生成音频 ✓`:"当前使用系统 TTS（机械音）。"} 要换成真人声优音频：启动 VOICEVOX 引擎后运行 <code>python3 tools/gen_audio.py</code> 生成到 <code>audio/</code>，刷新即可（详见 README）。需通过本地服务器打开。</p>
+        <p class="m-note">${Object.keys(AUDIO_MANIFEST).length?`已加载 <b>${Object.keys(AUDIO_MANIFEST).length}</b> 条预生成音频 ✓`:"当前使用系统 TTS（机械音）。"} 要新增声音：启动 VOICEVOX（或 AivisSpeech）引擎后运行 <code>python3 tools/gen_audio.py --voice-dir &lt;名字&gt; --speaker &lt;id&gt;</code>，再在 <code>audio/voices.js</code> 注册即可（详见 README）。需通过本地服务器打开。</p>
       </section>
     </div></div>`;
   $("#modal-close").onclick=closeSettings;
@@ -929,6 +953,13 @@ function openSettings(){
   $("#exp-prog").onclick=exportProgress;
   $("#imp-prog").onclick=()=>$("#imp-file").click();
   $("#imp-file").onchange=importProgress;
+  // voice picker
+  const vdesc=()=>{ const v=VOICES.find(x=>x.id===$("#voice-sel").value)||VOICES[0]; if($("#voice-desc")) $("#voice-desc").textContent=v?v.desc||"":""; };
+  if($("#voice-sel")){
+    vdesc();
+    $("#voice-sel").onchange=()=>{ setVoice($("#voice-sel").value); vdesc(); $("#voice-status").textContent="已切换 ✓"; };
+    $("#voice-demo").onclick=()=>{ stopSpeak(); $("#voice-status").textContent="试听中…"; speakSequence([{text:"日本語[にほんご]を勉強[べんきょう]しています。",node:null,audioKey:"d1_s1"}]).then(()=>{ if($("#voice-status")) $("#voice-status").textContent=""; }); };
+  }
 }
 function closeSettings(){ const ov=$("#modal-overlay"); ov.style.display="none"; ov.innerHTML=""; }
 function exportProgress(){
@@ -1191,6 +1222,11 @@ function init(){
   } else if(typeof fetch==="function" && location.protocol!=="file:"){
     fetch("audio/pitch.json").then(r=>r.ok?r.json():{}).then(p=>{ PITCH=p||{}; }).catch(()=>{ PITCH={}; });
   }
+  // voice models (registry script-loaded). Always include a built-in default first.
+  VOICES = (typeof window!=="undefined" && Array.isArray(window.VOICES) && window.VOICES.length)
+    ? window.VOICES
+    : [{id:"default",name:"标准",tag:"标准",desc:"标准声音。",prefix:"audio/"}];
+  setVoice(currentVoiceId());
   setHeaderVar();
   window.addEventListener("resize", setHeaderVar);
 

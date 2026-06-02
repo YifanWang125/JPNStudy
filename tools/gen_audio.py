@@ -223,12 +223,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--speaker", type=int, default=2, help="VOICEVOX speaker id (default 2 = 四国めたん ノーマル)")
     ap.add_argument("--no-vocab", action="store_true")
+    ap.add_argument("--no-ex", action="store_true", help="skip example/conversation lines (used for alternate voices to save space)")
     ap.add_argument("--wav", action="store_true", help="keep WAV, skip MP3 conversion")
     ap.add_argument("--list-speakers", action="store_true")
     ap.add_argument("--verify", action="store_true",
                     help="check every furigana reading against UniDic (fugashi) and report mismatches; no synthesis")
     ap.add_argument("--pitch", action="store_true",
                     help="pre-compute pitch-accent contours → audio/pitch.js (no audio synthesis)")
+    ap.add_argument("--voice-dir", default=None,
+                    help="generate an ALTERNATE voice into audio/voices/<name>/ (same filenames as default; "
+                         "the web app plays it by path-prefix swap with fallback). Use with --speaker / a different "
+                         "engine via VOICEVOX_URL (e.g. AivisSpeech on :10101).")
     args = ap.parse_args()
 
     if args.list_speakers:
@@ -244,17 +249,24 @@ def main():
     except Exception as e:
         sys.exit(f"✗ VOICEVOX engine not reachable at {ENGINE}\n  Start VOICEVOX first (see header of this file). {e}")
 
-    os.makedirs(AUDIO_DIR, exist_ok=True)
-    os.makedirs(VOCAB_DIR, exist_ok=True)
-    manifest = json.load(open(MANIFEST, encoding="utf-8")) if os.path.exists(MANIFEST) else {}
+    # default → audio/ ; alternate voice → audio/voices/<name>/ (same filenames).
+    base    = AUDIO_DIR if not args.voice_dir else os.path.join(AUDIO_DIR, "voices", args.voice_dir)
+    vocab_d = os.path.join(base, "vocab")
+    ex_d    = os.path.join(base, "ex")
+    manifest_path = os.path.join(base, "manifest.json")
+    os.makedirs(base, exist_ok=True)
+    os.makedirs(vocab_d, exist_ok=True)
+    os.makedirs(ex_d, exist_ok=True)
+    manifest = json.load(open(manifest_path, encoding="utf-8")) if os.path.exists(manifest_path) else {}
     ext = "wav" if args.wav else "mp3"
     made = skipped = 0
 
-    def emit(key, text, out_path, rel_path):
+    def emit(key, text, out_path):
         nonlocal made, skipped
         spoken = speech_norm(text)
         if not spoken:
             return
+        rel_path = os.path.relpath(out_path, ROOT).replace(os.sep, "/")
         if os.path.exists(out_path):
             manifest[key] = rel_path; skipped += 1; return
         wav = synth_wav(spoken, args.speaker)
@@ -266,12 +278,10 @@ def main():
         manifest[key] = rel_path; made += 1
         print(f"  ✓ {key}  «{spoken[:24]}»")
 
-    EX_DIR = os.path.join(AUDIO_DIR, "ex")
-    os.makedirs(EX_DIR, exist_ok=True)
     for d in load_lessons():
         for i, jp in enumerate(d["sents"]):
             key = f'd{d["day"]}_s{i}'
-            emit(key, jp, os.path.join(AUDIO_DIR, f"{key}.{ext}"), f"audio/{key}.{ext}")
+            emit(key, jp, os.path.join(base, f"{key}.{ext}"))
         if not args.no_vocab:
             for r in d["readings"]:
                 spoken = speech_norm(r)
@@ -280,10 +290,12 @@ def main():
                 # manifest KEY = readable normalized reading ("v_をとおして") so the
                 # web app can look it up directly; FILENAME = short hash (filesystem-safe).
                 h = hashlib.sha1(spoken.encode("utf-8")).hexdigest()[:12]
-                emit(f"v_{spoken}", r, os.path.join(VOCAB_DIR, f"{h}.{ext}"), f"audio/vocab/{h}.{ext}")
+                emit(f"v_{spoken}", r, os.path.join(vocab_d, f"{h}.{ext}"))
         # example sentences + grammar examples + conversation lines.
         # KEY = "x_<normalized spoken text>" so app.js can look it up via speechNorm();
         # FILENAME = short hash. De-dup within a day in case the same line repeats.
+        if args.no_ex:
+            continue
         seen = set()
         for jp in d["extra"]:
             spoken = speech_norm(jp)
@@ -291,15 +303,16 @@ def main():
                 continue
             seen.add(spoken)
             h = hashlib.sha1(spoken.encode("utf-8")).hexdigest()[:12]
-            emit(f"x_{spoken}", jp, os.path.join(EX_DIR, f"{h}.{ext}"), f"audio/ex/{h}.{ext}")
+            emit(f"x_{spoken}", jp, os.path.join(ex_d, f"{h}.{ext}"))
 
-    json.dump(manifest, open(MANIFEST, "w", encoding="utf-8"), ensure_ascii=False, indent=0)
-    # also emit a JS manifest so audio works on file:// (double-click) where fetch() is blocked
-    manifest_js = os.path.join(AUDIO_DIR, "manifest.js")
-    with open(manifest_js, "w", encoding="utf-8") as f:
-        f.write("window.AUDIO_MANIFEST=" + json.dumps(manifest, ensure_ascii=False) + ";\n")
-    print(f"\nDone. generated={made}  skipped(existing)={skipped}  total in manifest={len(manifest)}")
-    print(f"Manifest: {MANIFEST}  (+ manifest.js for file:// playback)")
+    json.dump(manifest, open(manifest_path, "w", encoding="utf-8"), ensure_ascii=False, indent=0)
+    if not args.voice_dir:
+        # default voice → emit the JS manifest the site loads (file://-safe). Alternate
+        # voices need no manifest: the app plays them by swapping the path prefix.
+        with open(os.path.join(AUDIO_DIR, "manifest.js"), "w", encoding="utf-8") as f:
+            f.write("window.AUDIO_MANIFEST=" + json.dumps(manifest, ensure_ascii=False) + ";\n")
+    print(f"\nDone ({args.voice_dir or 'default'}). generated={made}  skipped(existing)={skipped}  total={len(manifest)}")
+    print(f"Manifest: {manifest_path}")
 
 if __name__ == "__main__":
     main()
