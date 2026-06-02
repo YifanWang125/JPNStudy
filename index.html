@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日本語 N4 → N2 · 30日の道</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-row">
+    <div class="logo">日本語 <b>N4→N2</b><span id="day-num" class="day-num"></span></div>
+    <nav class="page-nav" id="page-nav">
+      <button data-p="daily" class="active">📖<span class="pnl"> 每日</span></button>
+      <button data-p="general">📚<span class="pnl"> 基础</span></button>
+      <button data-p="test">📝<span class="pnl"> 测试</span></button>
+      <button data-p="progress">📊<span class="pnl"> 进度</span></button>
+    </nav>
+    <div class="top-spacer"></div>
+    <span id="daily-controls">
+      <button class="map-toggle" id="map-toggle">🗺️<span class="ctl-label"> 30天地图</span></button>
+      <button class="toggle-furi" id="furi-toggle">ふりがな</button>
+      <div class="day-nav">
+        <button id="prev" title="前の日">‹</button>
+        <select class="day-pick" id="day-pick"></select>
+        <button id="next" title="次の日">›</button>
+      </div>
+    </span>
+    <button class="gear-btn" id="gear-btn" title="设置 / 备份 / 发音引擎">⚙️</button>
+  </div>
+  <div class="progress-line"><i id="prog-fill"></i></div>
+</header>
+
+<!-- 30-day map -->
+<div id="map-view" class="wrap"></div>
+
+<!-- PAGE: daily -->
+<main id="page-daily" class="wrap">
+
+  <div class="day-head" id="day-head"></div>
+
+  <!-- planned-day placeholder -->
+  <div id="planned" style="display:none"></div>
+
+  <!-- real lesson -->
+  <div id="lesson" style="display:none">
+    <div class="tabs" id="tabs"></div>
+    <div class="panel"><div id="panel-body"></div></div>
+  </div>
+
+</main>
+
+<!-- PAGE: general reference -->
+<main id="page-general" class="wrap" style="display:none"></main>
+
+<!-- PAGE: test -->
+<main id="page-test" class="wrap" style="display:none"></main>
+
+<!-- PAGE: progress dashboard -->
+<main id="page-progress" class="wrap" style="display:none"></main>
+
+<!-- settings / backup / pronunciation-engine modal (built by app.js) -->
+<div id="modal-overlay" style="display:none"></div>
+
+<footer>
+  毎日少しずつ。 一歩ずつ。 · 每天一点点，一步一步来。<br>
+  <span style="opacity:.6">进度自动保存在本机浏览器 · 音频由系统日语语音朗读（建议用 Chrome / Safari）</span>
+</footer>
+
+<!-- pre-generated audio manifest (VOICEVOX). Loaded as a script so real-voice audio
+     works even on file:// (double-click), where fetch() is blocked. Absent until you
+     run tools/gen_audio.py — harmless 404 if missing. -->
+<script src="audio/manifest.js"></script>
+<script src="js/lessons.js"></script>
+<script src="js/reference.js"></script>
+<script src="js/tests.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
