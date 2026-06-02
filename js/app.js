@@ -724,6 +724,8 @@ function rubyMd(s){ return toRuby(s).replace(/\*\*(.+?)\*\*/g,"<strong>$1</stron
 function renderBlocks(blocks){
   return blocks.map(b=>{
     if(b.t==="p") return `<p>${rubyMd(b.zh)}</p>`;
+    if(b.t==="why") return `<div class="r-why"><span class="r-why-tag">🤔 为什么</span>${rubyMd(b.zh)}</div>`;
+    if(b.t==="analogy") return `<div class="r-analogy"><span class="r-an-tag">🔗 类比</span>${rubyMd(b.zh)}</div>`;
     if(b.t==="note") return `<div class="r-note">${rubyMd(b.zh)}</div>`;
     if(b.t==="rules") return `<ul class="r-rules">${b.items.map(it=>`<li>${rubyMd(it)}</li>`).join("")}</ul>`;
     if(b.t==="ex") return b.items.map(e=>`<div class="r-ex" data-jp="${esc(e.jp)}">${toRuby(e.jp)}<span class="zh">${esc(e.zh)}</span></div>`).join("");

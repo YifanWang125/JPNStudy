@@ -317,6 +317,11 @@ textarea.typing:focus{outline:none;border-color:var(--night)}
 .ref-section.open .ref-body{display:block}
 .ref-body p{font-size:.95rem;color:var(--ink);margin:10px 0;line-height:1.8}
 .ref-body .r-note{background:var(--panel);border-left:3px solid var(--accent-2);border-radius:8px;padding:10px 14px;margin:12px 0;font-size:.92rem}
+.ref-body .r-why{background:rgba(242,166,90,.08);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:12px 14px;margin:12px 0;font-size:.95rem;line-height:1.85}
+.ref-body .r-why-tag{display:inline-block;font-weight:700;color:var(--accent-2);margin-right:8px}
+.ref-body .r-analogy{background:rgba(159,211,199,.09);border:1px solid var(--line);border-left:3px solid var(--zh);border-radius:8px;padding:12px 14px;margin:12px 0;font-size:.95rem;line-height:1.9}
+.ref-body .r-an-tag{display:inline-block;font-weight:700;color:var(--zh);margin-right:8px}
+.ref-body .r-why strong,.ref-body .r-analogy strong{color:var(--jp)}
 .ref-body ul.r-rules{list-style:none;margin:10px 0}
 .ref-body ul.r-rules li{padding:7px 0 7px 22px;position:relative;font-size:.93rem;border-bottom:1px solid var(--line)}
 .ref-body ul.r-rules li::before{content:"▸";position:absolute;left:2px;color:var(--accent)}
