@@ -501,6 +501,8 @@ function tryFinalize(L){
   const arr=PRON.history[key]||(PRON.history[key]=[]);
   arr.push({url:p.url||null, score:(obj.overall||0), data:obj, ts:Date.now()});
   while(arr.length>3){ const old=arr.shift(); if(old.url) try{URL.revokeObjectURL(old.url);}catch(e){} }
+  if(!obj.noscore){ pushScoreLog("jpn-pron-log",{day:L.day,k:key,score:(obj.overall||0),kind:obj.type});  // persist score → pet progress
+    if(window.Pet) Pet.onStudy(); }
   renderResult(L);
 }
 function scoreBrowser(L, target){
@@ -1124,7 +1126,7 @@ function openSettings(){
 }
 function closeSettings(){ const ov=$("#modal-overlay"); ov.style.display="none"; ov.innerHTML=""; }
 function exportProgress(){
-  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name","jpn-notes","jpn-pet","jpn-rate"];
+  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name","jpn-notes","jpn-pet","jpn-rate","jpn-test-log","jpn-pron-log"];
   const out={ _app:"jpn-n4-n2", _exported:new Date().toISOString(), data:{} };
   keys.forEach(k=>{ const v=localStorage.getItem(k); if(v!==null) out.data[k]=v; });
   const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
@@ -1314,6 +1316,12 @@ function renderScenarios(){
  * ==========================================================================*/
 function loadTestBest(){ try{ return JSON.parse(localStorage.getItem("jpn-test-best"))||{}; }catch(e){ return {}; } }
 function saveTestBest(id,score,total){ const b=loadTestBest(); if(!b[id]||score>b[id].score){ b[id]={score,total}; localStorage.setItem("jpn-test-best",JSON.stringify(b)); } }
+/* append a timestamped score attempt to a capped log → lets the pet SEE real progress
+   (improvement over time), not just activity. key: "jpn-test-log" | "jpn-pron-log". */
+function pushScoreLog(key, entry){
+  try{ const a=JSON.parse(localStorage.getItem(key))||[]; a.push(Object.assign({ts:Date.now()},entry));
+    while(a.length>200) a.shift(); localStorage.setItem(key, JSON.stringify(a)); }catch(e){}
+}
 
 let TEST=null;   // { def, answers[], remaining, interval, submitted }
 
@@ -1395,6 +1403,8 @@ function finishTest(auto){
   showEvaluation(auto);
   const score=d.questions.reduce((s,q,i)=>s+(TEST.answers[i]===q.answer?1:0),0);
   saveTestBest(d.id,score,d.questions.length);
+  pushScoreLog("jpn-test-log",{id:d.id,score,total:d.questions.length});   // attempt history → pet progress
+  if(window.Pet) Pet.onStudy();
   document.querySelectorAll("#page-test a[data-day]").forEach(a=>a.onclick=()=>{ STATE.day=+a.dataset.day; STATE.session="noon"; showPage("daily"); });
   window.scrollTo({top:0,behavior:"smooth"});
 }

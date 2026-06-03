@@ -38,17 +38,32 @@
   const clamp=(v,a,b)=>Math.max(a==null?0:a,Math.min(b==null?100:b,v));
   const now=()=>Date.now();
 
-  // ---- Study XP (derived from existing progress; monotonic & retroactive) ---
-  function studySXP(){
-    let sxp=0;
-    try{ const p=JSON.parse(localStorage.getItem("jpn-n2-progress"))||{};
-      for(const d in p){ const o=p[d]||{}; ["morning","noon","night"].forEach(s=>{ if(o[s]) sxp+=10; });
-        if(o.morning&&o.noon&&o.night) sxp+=20; } }catch(e){}
-    try{ const b=JSON.parse(localStorage.getItem("jpn-test-best"))||{};
-      for(const id in b){ const t=b[id]; if(t&&t.total) sxp+=Math.round(t.score/t.total*50); } }catch(e){}
-    try{ const a=JSON.parse(localStorage.getItem("jpn-active-dates"))||[]; sxp+=a.length*8; }catch(e){}
-    return sxp;
+  // ---- Study XP — growth = EFFORT (showing up) + PROGRESS (real mastery) -----
+  // Philosophy: marking sessions "done" is a weak, gameable signal → it's only a
+  // small FLOOR (effort). The pet truly grows from PROGRESS — best test scores and
+  // best pronunciation. Best-score is un-gameable & monotonic: a plateau adds
+  // nothing, beating your record adds exactly the gain, and being stuck low keeps
+  // the pet small. Progress is weighted far higher than effort, per the design.
+  const J=(k,d)=>{ try{ return JSON.parse(localStorage.getItem(k))||d; }catch(e){ return d; } };
+  function effortXP(){
+    let e=0; const p=J("jpn-n2-progress",{});
+    for(const d in p){ const o=p[d]||{}; ["morning","noon","night"].forEach(s=>{ if(o[s]) e+=5; });
+      if(o.morning&&o.noon&&o.night) e+=10; }
+    e += (J("jpn-active-dates",[]).length)*4;        // showing up daily
+    return e;
   }
+  function progressXP(){
+    let pr=0;
+    const b=J("jpn-test-best",{});                    // mastery = best test scores (un-gameable)
+    for(const id in b){ const t=b[id]; if(t&&t.total) pr += (t.score/t.total*100)*1.2; }
+    const pb=pronBest(); if(pb>0) pr += pb*0.8;        // best pronunciation
+    return Math.round(pr);
+  }
+  function pronBest(){ let m=0; J("jpn-pron-log",[]).forEach(x=>{ if((x.score||0)>m) m=x.score; }); return m; }
+  function studySXP(){ return effortXP()+progressXP(); }
+  // recent improvement (for the pet to NOTICE & comment) — last two distinct attempts
+  function recentGain(log,valFn){ const a=J(log,[]); if(a.length<2) return 0;
+    return Math.round((valFn(a[a.length-1]) - valFn(a[a.length-2]))); }
   function coins(){ return Math.max(0, Math.floor(studySXP()*TUNE.coinsPerSXP) - (S.spent||0)); }
   function spend(n){ if(coins()<n) return false; S.spent=(S.spent||0)+n; save(); return true; }
 
@@ -203,7 +218,16 @@
     if(m.energy<15) return "sleepy"; if(avg<35||m.hunger<20) return "sad"; if(avg>70) return "happy"; return "ok"; }
   let JUST_STUDIED=0;
   function says(p){ const m=p.meters;
-    if(JUST_STUDIED && now()-JUST_STUDIED<8000) return T("やった、一緒に頑張ろう！","Yay — let's study together!");
+    if(JUST_STUDIED && now()-JUST_STUDIED<9000){
+      const tl=J("jpn-test-log",[]), pl=J("jpn-pron-log",[]);   // react to whichever was JUST done
+      const usePron=(pl.length?pl[pl.length-1].ts:0) >= (tl.length?tl[tl.length-1].ts:0);
+      const g = usePron ? recentGain("jpn-pron-log",x=>x.score||0)
+                        : recentGain("jpn-test-log",x=>x.total?x.score/x.total*100:0);
+      if(g>=5)  return usePron ? T(`発音[はつおん]、${g}点[てん]アップ！その調子[ちょうし]！`,`Your pronunciation jumped ${g} points — keep it up!`)
+                               : T(`前[まえ]より${g}点[てん]アップ！えらい！`,`Up ${g} points from last time — nice work!`);
+      if(g<=-5) return T("今回[こんかい]はちょっと残念[ざんねん]…次[つぎ]はいけるよ！","A bit lower this time… you'll get it next round!");
+      return T("一緒[いっしょ]に頑張[がんば]ろうね！","Let's keep at it together!");
+    }
     if(p.sick) return T("ぐすん…ちょっと具合悪いよ…💊","I don't feel so good… 💊");
     if(p.hasPoop) return T("💩 そうじ してほしいな…","Could you clean my poop? 💩");
     if(m.hunger<25) return T("おなかすいた…ごはん つれてって！","I'm hungry… take me to eat!");
@@ -230,7 +254,7 @@
     return `<div class="pet-box" data-uid="${p.uid}">
       <div class="pet-head"><b class="pet-name">${esc(p.name||"…")}</b><span class="pet-stage">${stageLbl[p.stage]||st}</span><span class="pet-coins">🪙 ${coins()}</span></div>
       <div class="pet-stage-wrap"><canvas class="pet-canvas" width="132" height="132"></canvas></div>
-      <div class="pet-speech">${esc(says(p))}</div>
+      <div class="pet-speech">${window.toRuby?toRuby(says(p)):esc(says(p))}</div>
       ${warn}
       <div class="pet-xp"><span>${p.stage==="egg"?T("孵化","Hatch"):T("成长","Growth")}</span><i><b style="width:${clamp(toNext)}%"></b></i></div>
       ${p.stage==="egg"?"":`<div class="pet-meters">
