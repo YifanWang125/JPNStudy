@@ -217,6 +217,44 @@
       meters:{hunger:100,clean:100,happy:100,energy:100,ts:now()}, hp:100 };
     S.active=uid; S.dex["sp"+(seed%24)]={seen:true}; S.dex.nat=S.dex.nat||{}; S.dex.nat[natureOf(seed)]=true; save(); }
   function ensureEgg(){ if(!S.active && !S.mourning) adopt(Math.floor(Math.random()*1e9)); }
+
+  // ---- first-time WORLD INTRO (the 言霊 story) — shown once, when the egg first appears ----
+  const INTRO=[
+    { jp:"むかしむかし——言葉[ことば]には 魂[たましい]が 宿[やど]ると 言[い]われていた。人[ひと]は それを「言霊[ことだま]」と 呼[よ]んだ。",
+      zh:"很久很久以前，人们相信：话语之中栖宿着灵魂——他们称它为「言霊」(ことだま)。",
+      en:"Long ago, it was said that words carry a spirit. People called it 言霊 (kotodama) — the soul of language." },
+    { jp:"多[おお]くの人[ひと]は 気[き]づかない。けれど、あなたの 日本語[にほんご]は——少[すこ]しずつ 光[ひか]りはじめた。",
+      zh:"多数人从未察觉。但你的日语，已经一点一点地，开始发出光芒。",
+      en:"Most never notice it. But your Japanese has begun, little by little, to glow." },
+    { jp:"その光[ひかり]に 引[ひ]き寄[よ]せられ、一[ひと]つの タマゴが あなたのもとへ。それは 言霊[ことだま]を 糧[かて]に 生[い]きるという。",
+      zh:"被那光芒吸引，一颗蛋来到了你的身边。据说，它以「言霊」为食而生。",
+      en:"Drawn by that glow, an egg has found its way to you — a creature said to live on 言霊 itself." },
+    { jp:"えらばれたんだ。学[まな]べば学[まな]ぶほど 言霊[ことだま]は あふれ、この子[こ]は あなたと ともに 育[そだ]っていく。",
+      zh:"你被选中了。你学得越深，言霊便越充盈，这孩子也将与你一同成长。",
+      en:"You've been chosen. The more deeply you learn, the more 言霊 flows — and it grows alongside you." },
+    { jp:"大切[たいせつ]に 育[そだ]てよう。さあ、一緒[いっしょ]に。",
+      zh:"好好养育它吧。来，一起。",
+      en:"Raise it with care. Now — together." },
+  ];
+  function maybePetIntro(){ const p=pet(); if(!p||p.stage!=="egg"||S.introSeen) return; showPetIntro(); }
+  function showPetIntro(){
+    let ov=document.getElementById("pet-intro-ov");
+    if(ov) return;
+    ov=document.createElement("div"); ov.id="pet-intro-ov"; ov.className="pet-intro-ov"; document.body.appendChild(ov);
+    const ruby=s=>window.toRuby?window.toRuby(s):esc(s);
+    const lines=INTRO.map((b,i)=>`<div class="pintro-line" style="animation-delay:${0.5+i*1.7}s"><p class="pintro-jp">${ruby(b.jp)}</p><p class="pintro-tr">${esc(window.LANG==="en"?b.en:b.zh)}</p></div>`).join("");
+    ov.innerHTML=`<div class="pet-intro">
+      <div class="pintro-egg"><canvas class="pet-canvas" width="120" height="120"></canvas></div>
+      <h2 class="pintro-title">${ruby(T("言霊[ことだま]の たまご","The Egg of Kotodama"))}</h2>
+      <div class="pintro-lines">${lines}</div>
+      <button class="pintro-ok" style="animation-delay:${0.5+INTRO.length*1.7}s">${ruby(T("🥚 タマゴを 受[う]け取[と]る","🥚 Receive the egg"))}</button>
+      <button class="pintro-skip">${T("スキップ","Skip")}</button>
+    </div>`;
+    const close=()=>{ S.introSeen=true; save(); ov.remove(); refresh(); };
+    ov.querySelector(".pintro-ok").onclick=close;
+    ov.querySelector(".pintro-skip").onclick=close;
+    startAnim();
+  }
   function welcomeNewEgg(){ S.mourning=false; adopt(Math.floor(Math.random()*1e9)); refresh(); }
 
   // ---- mood + speech --------------------------------------------------------
@@ -242,8 +280,8 @@
     if(m.energy<20) return T("ねむい…zzz","So sleepy… zzz");
     if(m.happy<30) return T("ねえねえ、あそぼうよ！","Hey, let's play!");
     if(p.stage==="egg"){
-      if(now()-(p.found||0)<60000) return T("ふしぎなタマゴが届いた…縁だね。大事に育てよう！","A mysterious egg found its way to you… fate. Let's raise it with care!");
-      return T("コツコツ勉強すると、生まれるよ…！","Keep studying and I'll hatch…!");
+      if(now()-(p.found||0)<60000) return T("ふしぎな タマゴだ…日本語[にほんご]の 言霊[ことだま]で 育[そだ]つらしい。","A mysterious egg… they say it grows on the 言霊 of Japanese.");
+      return T("勉強[べんきょう]すると 言霊[ことだま]が あつまって、生[う]まれるよ…！","Study to gather 言霊, and I'll hatch…!");
     }
     const reg=REGISTERS[petReg(p)];                  // evolved dialect/register flavor (zh-mode)
     if(window.LANG!=="en" && reg && reg.idle && reg.idle.length && Math.random()<0.6) return reg.idle[Math.floor(Math.random()*reg.idle.length)];
@@ -507,7 +545,7 @@
       <div class="pet-id"><b class="pet-name">${esc(p.name||"たまご")}</b><span class="pet-tags">${stageLbl[p.stage]||""}${egg?"":" · "+esc(natLabel(p))}${(!egg&&petReg(p)!=="std")?' · <span class="pet-reg">'+esc(regLabel(p))+'</span>':""}</span></div>
       <div class="pet-speech">${window.toRuby?toRuby(says(p)):esc(says(p))}</div>
       ${warn}
-      <div class="pet-grow"><span class="pl">${egg?T("ふか","Hatch"):T("せいちょう","Growth")}</span><i><b style="width:${clamp(toNext)}%"></b></i></div>
+      <div class="pet-grow" title="${T('勉強でたまる言霊。いっぱいになると成長する','言霊 from studying — fills up, then it grows')}"><span class="pl">${egg?T("ふか","Hatch"):"言霊"}</span><i><b style="width:${clamp(toNext)}%"></b></i></div>
       ${egg?"":`
       <div class="pet-meters">${meter("食",p.meters.hunger)}${meter("浴",p.meters.clean)}${meter("楽",p.meters.happy)}${meter("力",p.meters.energy)}</div>
       <div class="pet-actions">
@@ -634,7 +672,7 @@
   // The pet now lives as the LEFT COLUMN of a centered [pet | content] home layout
   // (#pet-slot), so the page stays balanced — no more lone fixed gutter rail.
   function mountHome(homeContainer){
-    if(!S.mourning){ ensureEgg(); rollActivity(); maybeGoOut(); }   // live a little + maybe wander off
+    if(!S.mourning){ ensureEgg(); maybePetIntro(); rollActivity(); maybeGoOut(); }   // welcome story + live a little
     const slot = homeContainer && homeContainer.querySelector("#pet-slot");
     if(slot) renderInto(slot);
   }

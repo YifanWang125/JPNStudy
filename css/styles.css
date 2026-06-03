@@ -907,6 +907,21 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 
 /* ============================== 🥚 STUDY PET ============================== */
 :root{ --pixel:'DotGothic16','Noto Sans JP',monospace; }
+/* first-time 言霊 world intro (cinematic, staged) */
+.pet-intro-ov{position:fixed;inset:0;z-index:80;background:radial-gradient(ellipse at 50% 40%,rgba(40,20,10,.92),rgba(8,8,12,.97));display:flex;align-items:center;justify-content:center;padding:22px}
+.pet-intro{max-width:520px;width:100%;text-align:center}
+.pintro-egg{display:flex;justify-content:center;margin-bottom:6px;filter:drop-shadow(0 0 18px rgba(228,87,46,.65));animation:eggGlow 2.4s ease-in-out infinite}
+.pintro-egg .pet-canvas{image-rendering:pixelated;width:120px;height:120px}
+@keyframes eggGlow{0%,100%{filter:drop-shadow(0 0 12px rgba(228,87,46,.45))}50%{filter:drop-shadow(0 0 26px rgba(255,180,120,.85))}}
+.pintro-title{font-family:var(--pixel);color:#ffd9a8;font-size:1.3rem;letter-spacing:1px;margin-bottom:18px;opacity:0;animation:pintroIn .9s .2s forwards}
+.pintro-lines{display:flex;flex-direction:column;gap:14px;margin-bottom:22px}
+.pintro-line{opacity:0;animation:pintroIn 1s forwards}
+.pintro-jp{font-family:var(--serif-jp);font-size:1.04rem;line-height:1.95;color:#fff}
+.pintro-tr{font-family:var(--sans-jp);font-size:.84rem;color:#c9b8a8;margin-top:3px}
+.pintro-ok{opacity:0;animation:pintroIn 1s forwards;font-family:var(--pixel);font-size:1rem;padding:10px 22px;border:none;border-radius:999px;background:linear-gradient(135deg,var(--accent),#f0883e);color:#fff;cursor:pointer;box-shadow:0 8px 30px rgba(228,87,46,.45)}
+.pintro-ok:hover{transform:translateY(-2px)}
+.pintro-skip{display:block;margin:14px auto 0;background:none;border:none;color:#8a7f72;font-size:.8rem;cursor:pointer;opacity:.7}
+@keyframes pintroIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 /* balanced home layout: pet (left) + content centered as a GROUP → equal gutters */
 #page-home.wrap{max-width:1180px}
 .home-layout{display:flex;gap:22px;align-items:flex-start}
