@@ -86,7 +86,7 @@
       if(target.indexOf("course:")===0){
         const id=target.slice(7); const ref=CINDEX.byId[id]; const text=label||(ref?ref.display:id);
         if(!ref) return `<span class="note-broken">📎 ${text}</span>`;
-        const fd=firstDayOf(id); const first=(fd&&fd!==ref.day)?` <span class="note-first" data-cid="d:${fd}">↩ 初出 Day ${fd}</span>`:"";
+        const fd=firstDayOf(id); const first=(fd&&fd!==ref.day)?` <span class="note-first" data-cid="d:${fd}">${T("↩ 初出 Day "+fd,"↩ first appeared Day "+fd)}</span>`:"";
         return `<a class="note-clink" data-cid="${id}">📎 ${text}</a>${first}`;
       }
       const id=titleToId(target); const text=label||target;
@@ -105,7 +105,7 @@
   /* ---------- page UI ---------- */
   const N={ open:null, q:"", filter:"all" };
   function root(){ return document.getElementById("page-notes"); }
-  function badge(n){ return n.provenance&&n.provenance.kind==="ai-qa" ? `<span class="np-badge ai">🤖 AI</span>` : `<span class="np-badge">✍️ 手写</span>`; }
+  function badge(n){ return n.provenance&&n.provenance.kind==="ai-qa" ? `<span class="np-badge ai">🤖 AI</span>` : `<span class="np-badge">${T("✍️ 手写","✍️ Note")}</span>`; }
 
   function renderPage(){
     const r=root(); if(!r) return;
@@ -122,49 +122,49 @@
       const tags=(n.tags||[]).map(t=>`<span class="np-tag">#${esc(t)}</span>`).join("");
       const bl=backlinksTo(n.id).length;
       return `<div class="np-item" data-open="${n.id}">
-        <div class="np-item-top">${badge(n)}<b>${esc(n.title||"（无标题）")}</b>${bl?`<span class="np-bl">⇠${bl}</span>`:""}</div>
-        <div class="np-snip">${snip||"<i>空笔记</i>"}</div>
+        <div class="np-item-top">${badge(n)}<b>${esc(n.title||T("（无标题）","(Untitled)"))}</b>${bl?`<span class="np-bl">⇠${bl}</span>`:""}</div>
+        <div class="np-snip">${snip||"<i>"+T("空笔记","Empty note")+"</i>"}</div>
         <div class="np-tags">${tags}<span class="np-date">${(n.updatedAt||"").slice(0,10)}</span></div>
       </div>`;
     }).join("");
     return `<div class="np-head">
-        <h1>📓 我的笔记 <span class="np-count">${allNotes().length}</span></h1>
-        <button id="np-new" class="primary">＋ 新建笔记</button>
+        <h1>${T("📓 我的笔记","📓 My Notes")} <span class="np-count">${allNotes().length}</span></h1>
+        <button id="np-new" class="primary">${T("＋ 新建笔记","＋ New note")}</button>
       </div>
-      <p class="np-intro">这里是你的<b>笔记库</b>（正式笔记），区别于课程大纲。用 <code>[[标题]]</code> 链接其它笔记，用「关联课程」把笔记接回某一课，并能溯源到知识点最早出现的那天。<br>💡 想<b>随手记</b>？用右下角 <b>🗒️ 速记本</b>（自动保存草稿），整理好按「保存为 Section」就会出现在这里。AI 问答也能一键存成笔记。</p>
+      <p class="np-intro">${T("这里是你的<b>笔记库</b>（正式笔记），区别于课程大纲。用 <code>[[标题]]</code> 链接其它笔记，用「关联课程」把笔记接回某一课，并能溯源到知识点最早出现的那天。<br>💡 想<b>随手记</b>？用右下角 <b>🗒️ 速记本</b>（自动保存草稿），整理好按「保存为 Section」就会出现在这里。AI 问答也能一键存成笔记。","This is your <b>note library</b> (formal notes), separate from the syllabus. Use <code>[[Title]]</code> to link notes, use \"Link to lesson\" to tie a note back to a day, and trace a point back to where it first appeared.<br>💡 Want to <b>jot quickly</b>? Use the <b>🗒️ Quick notes</b> button (bottom-right; auto-saves a draft); press \"Save as Section\" and it shows up here. AI answers can be saved as notes too.")}</p>
       <div class="np-bar">
-        <input id="np-q" placeholder="🔍 搜索标题 / 正文 / 标签" value="${esc(N.q)}">
+        <input id="np-q" placeholder="${T("🔍 搜索标题 / 正文 / 标签","🔍 Search title / body / tags")}" value="${esc(N.q)}">
         <select id="np-filter">
-          <option value="all"${N.filter==="all"?" selected":""}>全部</option>
-          <option value="manual"${N.filter==="manual"?" selected":""}>✍️ 手写</option>
-          <option value="ai"${N.filter==="ai"?" selected":""}>🤖 来自 AI</option>
+          <option value="all"${N.filter==="all"?" selected":""}>${T("全部","All")}</option>
+          <option value="manual"${N.filter==="manual"?" selected":""}>${T("✍️ 手写","✍️ Notes")}</option>
+          <option value="ai"${N.filter==="ai"?" selected":""}>${T("🤖 来自 AI","🤖 From AI")}</option>
         </select>
       </div>
-      <div class="np-list">${items||`<div class="np-empty">还没有笔记。点「＋ 新建笔记」，或在学习时用右下角 🤖 提问后「存为笔记」。</div>`}</div>`;
+      <div class="np-list">${items||`<div class="np-empty">${T("还没有笔记。点「＋ 新建笔记」，或在学习时用右下角 🤖 提问后「存为笔记」。","No notes yet. Tap \"＋ New note\", or ask the 🤖 assistant while studying and save the answer.")}</div>`}</div>`;
   }
   function courseOptions(){
     const l=LESSONS[STATE.day-1]; if(!l) return "";
-    let o=`<option value="">＋ 关联课程…</option><option value="d:${l.day}">整课 · Day ${l.day}</option>`;
-    (l.grammar||[]).forEach(g=>{ if(/^[①-⑩\d]/.test(g.point)) return; o+=`<option value="g:${l.day}:${slug(g.point)}|${esc(g.point)}">语法 · ${esc(g.point)}</option>`; });
-    (l.vocab||[]).forEach(v=>{ o+=`<option value="v:${slug(v.w)}|${esc(v.w)}">词 · ${esc(v.w)}</option>`; });
+    let o=`<option value="">${T("＋ 关联课程…","＋ Link to lesson…")}</option><option value="d:${l.day}">${T("整课","Whole day")} · Day ${l.day}</option>`;
+    (l.grammar||[]).forEach(g=>{ if(/^[①-⑩\d]/.test(g.point)) return; o+=`<option value="g:${l.day}:${slug(g.point)}|${esc(g.point)}">${T("语法","Grammar")} · ${esc(g.point)}</option>`; });
+    (l.vocab||[]).forEach(v=>{ o+=`<option value="v:${slug(v.w)}|${esc(v.w)}">${T("词","Word")} · ${esc(v.w)}</option>`; });
     return o;
   }
   function detailHTML(id){
     const n=getNote(id)||{ title:"", body:"", tags:[], provenance:{kind:"manual"} };
     const isNew=!getNote(id);
     const bls=backlinksTo(id);
-    const blHTML=bls.length?`<div class="np-backlinks"><h4>⇠ 被这些笔记引用</h4>${bls.map(b=>`<a class="note-nlink" data-nid="${b.id}">${esc(b.title||"（无标题）")}</a>`).join("")}</div>`:"";
-    const prov=n.provenance&&n.provenance.kind==="ai-qa"?`<div class="np-prov">🤖 由 AI 问答生成${n.provenance.ai&&n.provenance.ai.studyContext?`（当时在 Day ${n.provenance.ai.studyContext.day}）`:""}</div>`:"";
+    const blHTML=bls.length?`<div class="np-backlinks"><h4>${T("⇠ 被这些笔记引用","⇠ Linked from")}</h4>${bls.map(b=>`<a class="note-nlink" data-nid="${b.id}">${esc(b.title||T("（无标题）","(Untitled)"))}</a>`).join("")}</div>`:"";
+    const prov=n.provenance&&n.provenance.kind==="ai-qa"?`<div class="np-prov">${T("🤖 由 AI 问答生成","🤖 From an AI Q&A")}${n.provenance.ai&&n.provenance.ai.studyContext?T("（当时在 Day "+n.provenance.ai.studyContext.day+"）"," (while on Day "+n.provenance.ai.studyContext.day+")"):""}</div>`:"";
     return `<div class="np-detail">
-      <div class="np-dhead"><button id="np-back">← 返回</button>${badge(n)}<div class="np-dactions"><span class="np-autosave" id="np-autosave">自动保存</span><button id="np-del" class="np-danger">删除</button><button id="np-save" class="primary">完成</button></div></div>
+      <div class="np-dhead"><button id="np-back">${T("← 返回","← Back")}</button>${badge(n)}<div class="np-dactions"><span class="np-autosave" id="np-autosave">${T("自动保存","Auto-saved")}</span><button id="np-del" class="np-danger">${T("删除","Delete")}</button><button id="np-save" class="primary">${T("完成","Done")}</button></div></div>
       ${prov}
-      <input id="np-title" class="np-title" placeholder="标题…" value="${esc(n.title||"")}">
+      <input id="np-title" class="np-title" placeholder="${T("标题…","Title…")}" value="${esc(n.title||"")}">
       <div class="np-toolbar">
         <select id="np-course">${courseOptions()}</select>
-        <input id="np-tags" class="np-tags-in" placeholder="标签，逗号分隔（如 语法, 音便）" value="${esc((n.tags||[]).join(", "))}">
+        <input id="np-tags" class="np-tags-in" placeholder="${T("标签，逗号分隔（如 语法, 音便）","Tags, comma-separated (e.g. grammar, onbin)")}" value="${esc((n.tags||[]).join(", "))}">
       </div>
-      <textarea id="np-body" class="np-body" placeholder="写下你的理解…&#10;支持 **加粗**、- 列表、漢字[かな] 振假名。&#10;[[另一条笔记的标题]] 链接笔记；用上面「关联课程」插入课程链接。">${esc(n.body||"")}</textarea>
-      <div class="np-prevwrap"><div class="np-prevlabel">预览</div><div class="np-preview" id="np-preview">${renderBody(n.body)}</div></div>
+      <textarea id="np-body" class="np-body" placeholder="${T("写下你的理解…&#10;支持 **加粗**、- 列表、漢字[かな] 振假名。&#10;[[另一条笔记的标题]] 链接笔记；用上面「关联课程」插入课程链接。","Write your understanding…&#10;Supports **bold**, - lists, 漢字[かな] furigana.&#10;[[Another note title]] links notes; use \"Link to lesson\" above to insert a lesson link.")}">${esc(n.body||"")}</textarea>
+      <div class="np-prevwrap"><div class="np-prevlabel">${T("预览","Preview")}</div><div class="np-preview" id="np-preview">${renderBody(n.body)}</div></div>
       ${blHTML}
     </div>`;
   }
@@ -199,7 +199,7 @@
     const body=document.getElementById("np-body");
     if(body){ const prev=document.getElementById("np-preview"); body.oninput=()=>{ prev.innerHTML=renderBody(body.value); autosave(); }; }
     const save=document.getElementById("np-save"); if(save) save.onclick=finish;
-    const del=document.getElementById("np-del"); if(del) del.onclick=()=>{ if(confirm("删除这条笔记？")){ deleteNote(N.open); N.open=null; renderPage(); } };
+    const del=document.getElementById("np-del"); if(del) del.onclick=()=>{ if(confirm(T("删除这条笔记？","Delete this note?"))){ deleteNote(N.open); N.open=null; renderPage(); } };
     const cs=document.getElementById("np-course"); if(cs) cs.onchange=()=>{ const v=cs.value; if(!v) return; const [id,label]=v.split("|"); const ref=CINDEX.byId[id]; const text=label||(ref?ref.display:id); insertAtCursor(document.getElementById("np-body"), `[[course:${id}|${text}]]`); document.getElementById("np-preview").innerHTML=renderBody(document.getElementById("np-body").value); cs.value=""; };
     // link clicks (delegate within page-notes)
     r.addEventListener("click",(e)=>{
@@ -210,7 +210,7 @@
   }
 
   let _asT;
-  function autosave(){ clearTimeout(_asT); _asT=setTimeout(()=>{ persistDetail(); const a=document.getElementById("np-autosave"); if(a){ a.textContent="已保存 ✓"; setTimeout(()=>{ if(a&&a.textContent==="已保存 ✓") a.textContent="自动保存"; },1200); } }, 500); }
+  function autosave(){ clearTimeout(_asT); _asT=setTimeout(()=>{ persistDetail(); const a=document.getElementById("np-autosave"); if(a){ const sv=T("已保存 ✓","Saved ✓"); a.textContent=sv; setTimeout(()=>{ if(a&&a.textContent===sv) a.textContent=T("自动保存","Auto-saved"); },1200); } }, 500); }
   function cleanupIfEmpty(){ const n=getNote(N.open); if(n && !(n.title||"").trim() && !(n.body||"").trim()){ deleteNote(N.open); } }
 
   /* ---------- quick-notes side panel (always at hand; auto-saves a scratchpad) ---------- */
@@ -229,47 +229,47 @@
   function qStatus(html){ const s=document.getElementById("qn-status"); if(!s) return; s.innerHTML=html; }
   function saveSection(){
     const ta=document.getElementById("qn-scratch"); const text=(ta.value||"").trim();
-    if(!text){ qStatus("草稿是空的，先写点什么吧。"); return; }
+    if(!text){ qStatus(T("草稿是空的，先写点什么吧。","Draft is empty — write something first.")); return; }
     const assoc=document.getElementById("qn-assoc").checked, day=STATE.day, theme=(LESSONS[day-1]||{}).theme||"";
     const first=text.split("\n").find(x=>x.trim())||"";
-    const body=text + (assoc?`\n\n关联：[[course:d:${day}|Day ${day} · ${theme}]]`:"");
-    const id=createNote({ title:first.slice(0,28)||("速记 "+new Date().toISOString().slice(0,10)),
-      body, tags:assoc?["速记","Day"+day]:["速记"], provenance:{kind:"manual", source:"scratch"} });
+    const body=text + (assoc?`\n\n${T("关联","Linked")}：[[course:d:${day}|Day ${day} · ${theme}]]`:"");
+    const id=createNote({ title:first.slice(0,28)||((LANG==="en"?"Note ":"速记 ")+new Date().toISOString().slice(0,10)),
+      body, tags:assoc?[T("速记","quick"),"Day"+day]:[T("速记","quick")], provenance:{kind:"manual", source:"scratch"} });
     renderRecent();
-    qStatus(`已存为 Section ✓ <a class="qn-view" data-nid="${id}">查看</a> · <a class="qn-clear">清空草稿</a>`);
+    qStatus(`${T("已存为 Section ✓","Saved as a Section ✓")} <a class="qn-view" data-nid="${id}">${T("查看","View")}</a> · <a class="qn-clear">${T("清空草稿","Clear draft")}</a>`);
   }
   function renderRecent(){
     const box=document.getElementById("qn-recent"); if(!box) return;
     const items=allNotes().slice(0,5);
-    box.innerHTML=`<div class="qn-recent-h">最近的笔记</div>`+(items.length
-      ? items.map(n=>`<a class="qn-rec-item" data-nid="${n.id}">${badge(n)} ${esc(n.title||"（无标题）")}</a>`).join("")
-      : `<div class="qn-empty">还没有笔记。</div>`);
+    box.innerHTML=`<div class="qn-recent-h">${T("最近的笔记","Recent notes")}</div>`+(items.length
+      ? items.map(n=>`<a class="qn-rec-item" data-nid="${n.id}">${badge(n)} ${esc(n.title||T("（无标题）","(Untitled)"))}</a>`).join("")
+      : `<div class="qn-empty">${T("还没有笔记。","No notes yet.")}</div>`);
   }
   function injectQuick(){
     if(document.getElementById("qn-fab")) return;
-    const fab=document.createElement("button"); fab.id="qn-fab"; fab.type="button"; fab.textContent="🗒️"; fab.title="速记本（可拖动）";
+    const fab=document.createElement("button"); fab.id="qn-fab"; fab.type="button"; fab.textContent="🗒️"; fab.title=T("速记本（可拖动）","Quick notes (draggable)");
     document.body.appendChild(fab);
     const p=document.createElement("div"); p.id="qn-panel";
-    p.innerHTML=`<div class="qn-head"><b>🗒️ 速记本</b><span class="qn-tag-draft">草稿</span><span class="qn-ctx" id="qn-ctx"></span><button id="qn-close">✕</button></div>
-      <div class="qn-hint">随手记，<b>自动保存</b>。这是<b>草稿箱</b>；整理好按「保存为 Section」存成一条正式笔记（进入顶部 📓 笔记库），并可选择是否关联当前课。</div>
-      <textarea id="qn-scratch" placeholder="在这里随手记下疑问、心得、想背的句子…（自动保存）"></textarea>
+    p.innerHTML=`<div class="qn-head"><b>${T("🗒️ 速记本","🗒️ Quick Notes")}</b><span class="qn-tag-draft">${T("草稿","draft")}</span><span class="qn-ctx" id="qn-ctx"></span><button id="qn-close">✕</button></div>
+      <div class="qn-hint">${T("随手记，<b>自动保存</b>。这是<b>草稿箱</b>；整理好按「保存为 Section」存成一条正式笔记（进入顶部 📓 笔记库），并可选择是否关联当前课。","Jot freely — <b>auto-saved</b>. This is your <b>draft pad</b>; press \"Save as Section\" to turn it into a formal note (it appears in 📓 My Notes), optionally linked to the current day.")}</div>
+      <textarea id="qn-scratch" placeholder="${T("在这里随手记下疑问、心得、想背的句子…（自动保存）","Jot questions, insights, sentences to memorize… (auto-saved)")}"></textarea>
       <div class="qn-saverow">
-        <label class="qn-assoc"><input type="checkbox" id="qn-assoc" checked> 关联当前课 <b id="qn-assoc-day"></b></label>
-        <button id="qn-section" class="primary">保存为 Section</button>
+        <label class="qn-assoc"><input type="checkbox" id="qn-assoc" checked> ${T("关联当前课","Link to current day")} <b id="qn-assoc-day"></b></label>
+        <button id="qn-section" class="primary">${T("保存为 Section","Save as Section")}</button>
       </div>
       <div class="qn-status" id="qn-status"></div>
       <div class="qn-recent" id="qn-recent"></div>
-      <div class="qn-foot"><a id="qn-manage">管理全部笔记 →</a></div>`;
+      <div class="qn-foot"><a id="qn-manage">${T("管理全部笔记 →","Manage all notes →")}</a></div>`;
     document.body.appendChild(p);
     if(window.makeDraggable) makeDraggable(fab,"jpn-qnfab-pos",qOpen); else fab.onclick=qOpen;
     document.getElementById("qn-close").onclick=qClose;
     const ta=document.getElementById("qn-scratch"); ta.value=getScratch();
-    ta.addEventListener("input",()=>{ clearTimeout(_scratchT); _scratchT=setTimeout(()=>{ STORE.scratch=ta.value; save(STORE); qStatus("已自动保存 ✓"); setTimeout(()=>{ const s=document.getElementById("qn-status"); if(s&&s.textContent==="已自动保存 ✓") s.textContent=""; },1200); },400); });
+    ta.addEventListener("input",()=>{ clearTimeout(_scratchT); _scratchT=setTimeout(()=>{ STORE.scratch=ta.value; save(STORE); const m=T("已自动保存 ✓","Auto-saved ✓"); qStatus(m); setTimeout(()=>{ const s=document.getElementById("qn-status"); if(s&&s.textContent===m) s.textContent=""; },1200); },400); });
     document.getElementById("qn-section").onclick=saveSection;
     document.getElementById("qn-manage").onclick=()=>{ qClose(); showPage("notes"); };
     p.addEventListener("click",(e)=>{
       const v=e.target.closest(".qn-view,.qn-rec-item"); if(v){ N.open=v.dataset.nid; qClose(); showPage("notes"); return; }
-      if(e.target.classList.contains("qn-clear")){ document.getElementById("qn-scratch").value=""; STORE.scratch=""; save(STORE); qStatus("已清空草稿"); }
+      if(e.target.classList.contains("qn-clear")){ document.getElementById("qn-scratch").value=""; STORE.scratch=""; save(STORE); qStatus(T("已清空草稿","Draft cleared")); }
     });
   }
 
@@ -277,13 +277,13 @@
   function homeCardHTML(){
     const items=allNotes().slice(0,3);
     const list=items.length
-      ? items.map(n=>`<a class="np-home-item" data-nid="${n.id}">${badge(n)} ${esc(n.title||"（无标题）")}</a>`).join("")
-      : `<p class="hc-empty">还没有笔记。学习时点右下角 🗒️ 随手记，自动保存。</p>`;
+      ? items.map(n=>`<a class="np-home-item" data-nid="${n.id}">${badge(n)} ${esc(n.title||T("（无标题）","(Untitled)"))}</a>`).join("")
+      : `<p class="hc-empty">${T("还没有笔记。学习时点右下角 🗒️ 随手记，自动保存。","No notes yet. Tap 🗒️ (bottom-right) to jot as you study — auto-saved.")}</p>`;
     return `<section class="home-card">
-      <h2>🗒️ 速记本 <span class="np-count">${allNotes().length}</span></h2>
-      <p class="np-home-tip">手边的笔记：随时记下疑问与心得，自动保存；可整理成与课程关联的 Section。</p>
+      <h2>${T("🗒️ 速记本","🗒️ Quick Notes")} <span class="np-count">${allNotes().length}</span></h2>
+      <p class="np-home-tip">${T("手边的笔记：随时记下疑问与心得，自动保存；可整理成与课程关联的 Section。","Notes at hand: jot questions & insights anytime (auto-saved); turn them into lesson-linked Sections.")}</p>
       <div class="np-home-list">${list}</div>
-      <div class="np-home-actions"><button class="np-home-open">✍️ 打开速记本</button><a class="np-home-all">管理全部 →</a></div>
+      <div class="np-home-actions"><button class="np-home-open">${T("✍️ 打开速记本","✍️ Open quick notes")}</button><a class="np-home-all">${T("管理全部 →","Manage all →")}</a></div>
     </section>`;
   }
   // delegated handlers for the home card (home is re-rendered by app.js)
@@ -294,19 +294,19 @@
   });
 
   /* ---------- AI assistant integration ---------- */
-  function saveBtnHTML(){ return `<button class="note-save-ai">📝 存为笔记</button>`; }
+  function saveBtnHTML(){ return `<button class="note-save-ai">${T("📝 存为笔记","📝 Save as note")}</button>`; }
   function bindSaveBtn(node, ex){
     const b=node.querySelector(".note-save-ai"); if(!b) return;
     b.onclick=()=>{
       const day=ex.day, theme=(LESSONS[day-1]||{}).theme||"";
       const id=createNote({
-        title:(ex.q||"AI 问答").slice(0,28)+((ex.q||"").length>28?"…":""),
-        body:`**问：** ${ex.q}\n\n**答：**\n${ex.a}\n\n关联：[[course:d:${day}|Day ${day} · ${theme}]]`,
+        title:(ex.q||"AI Q&A").slice(0,28)+((ex.q||"").length>28?"…":""),
+        body:`**${T("问","Q")}：** ${ex.q}\n\n**${T("答","A")}：**\n${ex.a}\n\n${T("关联","Linked")}：[[course:d:${day}|Day ${day} · ${theme}]]`,
         tags:["AI", "Day"+day].filter(Boolean),
         provenance:{ kind:"ai-qa", ai:{ question:ex.q, answer:ex.a, studyContext:{ day:ex.day, session:ex.session } } }
       });
-      b.textContent="已存为笔记 ✓"; b.disabled=true;
-      b.insertAdjacentHTML("afterend", ` <button class="note-goto" data-nid="${id}">查看</button>`);
+      b.textContent=T("已存为笔记 ✓","Saved as note ✓"); b.disabled=true;
+      b.insertAdjacentHTML("afterend", ` <button class="note-goto" data-nid="${id}">${T("查看","View")}</button>`);
       const go=b.nextElementSibling; if(go) go.onclick=()=>{ N.open=id; showPage("notes"); };
     };
   }
