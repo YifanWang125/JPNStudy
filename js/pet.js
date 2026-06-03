@@ -32,7 +32,7 @@
 
   // ---- state ----------------------------------------------------------------
   function load(){ try{ return JSON.parse(localStorage.getItem(KEY))||fresh(); }catch(e){ return fresh(); } }
-  function fresh(){ return {v:1, active:null, spent:0, pets:{}, eggChoices:null, memorial:[], dex:{}}; }
+  function fresh(){ return {v:1, active:null, spent:0, pets:{}, memorial:[], dex:{}, mourning:false}; }
   let S=load();
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
   const clamp=(v,a,b)=>Math.max(a==null?0:a,Math.min(b==null?100:b,v));
@@ -186,15 +186,16 @@
     p.poopAt=now()+TUNE.poopEveryH*3.6e6; if(!p.name) p.name=NAMES[Math.floor(Math.random()*NAMES.length)];
     S.dex[p.species]=S.dex[p.species]||{}; S.dex[p.species].hatched=true; save(); }
   function die(p){ p.diedAt=now(); S.memorial.push({name:p.name,seed:p.seed,bornAt:p.bornAt,diedAt:p.diedAt});
-    S.active=null; save(); }
+    S.active=null; S.mourning=true; save(); }
 
-  // ---- adoption (pick from 3 random eggs) -----------------------------------
-  function ensureEggs(){ if(!S.eggChoices){ S.eggChoices=[0,0,0].map(()=>Math.floor(Math.random()*1e9)); save(); } }
+  // ---- adoption: fate hands you ONE precious egg (no choosing) ---------------
   function adopt(seed){ const uid="p"+now().toString(36);
-    S.pets[uid]={ uid, seed, species:"sp"+(seed%24), name:null, stage:"egg",
+    S.pets[uid]={ uid, seed, species:"sp"+(seed%24), name:null, stage:"egg", found:now(),
       adoptSXP:studySXP(), hatchAt:studySXP()+TUNE.hatchCost, bornAt:now(),
       meters:{hunger:100,clean:100,happy:100,energy:100,ts:now()}, hp:100 };
-    S.active=uid; S.eggChoices=null; S.dex["sp"+(seed%24)]={seen:true}; save(); }
+    S.active=uid; S.dex["sp"+(seed%24)]={seen:true}; save(); }
+  function ensureEgg(){ if(!S.active && !S.mourning) adopt(Math.floor(Math.random()*1e9)); }
+  function welcomeNewEgg(){ S.mourning=false; adopt(Math.floor(Math.random()*1e9)); refresh(); }
 
   // ---- mood + speech --------------------------------------------------------
   function moodOf(p){ if(p.diedAt) return "dead"; if(p.sick) return "sick";
@@ -208,7 +209,10 @@
     if(m.hunger<25) return T("おなかすいた…ごはん つれてって！","I'm hungry… take me to eat!");
     if(m.energy<20) return T("ねむい…zzz","So sleepy… zzz");
     if(m.happy<30) return T("ねえねえ、あそぼうよ！","Hey, let's play!");
-    if(p.stage==="egg") return T("コツコツ勉強すると、生まれるよ…！","Keep studying and I'll hatch…!");
+    if(p.stage==="egg"){
+      if(now()-(p.found||0)<60000) return T("ふしぎなタマゴが届いた…縁だね。大事に育てよう！","A mysterious egg found its way to you… fate. Let's raise it with care!");
+      return T("コツコツ勉強すると、生まれるよ…！","Keep studying and I'll hatch…!");
+    }
     return T("きょうも えらいね！","You're doing great today!");
   }
 
@@ -216,10 +220,7 @@
   function bar(label,v,cls){ return `<div class="pet-meter"><span>${label}</span><i class="${cls}"><b style="width:${Math.round(clamp(v))}%"></b></i></div>`; }
   function panelHTML(){
     const p=pet();
-    if(!p){ ensureEggs();
-      return `<div class="pet-box pet-adopt"><h3>🥚 ${T("たまごを選ぼう","Choose an egg")}</h3>
-        <p class="pet-sub">${T("学习会让蛋孵化。挑一颗你的伙伴吧！","Study to hatch it. Pick your companion!")}</p>
-        <div class="pet-eggs">${S.eggChoices.map((sd,i)=>`<button class="pet-egg" data-seed="${sd}"><canvas width="84" height="84" data-eggseed="${sd}"></canvas></button>`).join("")}</div></div>`; }
+    if(!p) return "";   // renderInto guarantees a pet via ensureEgg() before calling this
     const st=p.diedAt?"—":stageOf(p), mood=moodOf(p), since=studySXP()-(p.hatchBase||p.adoptSXP||0);
     let next=null,prev=0; for(const [n,need] of STAGES){ if(since>=need) prev=need; else { next=need; break; } }
     const toNext = p.stage==="egg" ? Math.round((studySXP()-(p.adoptSXP||0))/TUNE.hatchCost*100)
@@ -264,19 +265,20 @@
   let RAF=0, FRAME=0;
   function draw(){ FRAME++;
     document.querySelectorAll(".pet-canvas").forEach(cv=>{ const p=pet(); if(p) drawCreature(cv, genome(p.seed), p.stage, moodOf(p), FRAME); });
-    document.querySelectorAll("canvas[data-eggseed]").forEach(cv=>{ drawCreature(cv, genome(+cv.dataset.eggseed), "egg", "ok", 0); });
     RAF=requestAnimationFrame(draw);
   }
   function startAnim(){ if(!RAF) RAF=requestAnimationFrame(draw); }
   function stopAnim(){ if(RAF) cancelAnimationFrame(RAF); RAF=0; }
 
   function bind(root){
-    root.querySelectorAll(".pet-egg").forEach(b=>b.onclick=()=>{ adopt(+b.dataset.seed); refresh(); });
+    root.querySelectorAll(".pet-newegg").forEach(b=>b.onclick=welcomeNewEgg);
     root.querySelectorAll(".pet-actions button").forEach(b=>b.onclick=()=>act(b.dataset.act));
     const cv=root.querySelector(".pet-canvas"); if(cv) cv.onclick=()=>{ const p=pet(); if(p&&!p.diedAt){ p.meters.happy=clamp(p.meters.happy+6); save(); } };
   }
-  function renderInto(el){ if(!el) return; const p=pet(); if(p) decay(p);
-    el.innerHTML = (p&&p.diedAt) ? deathHTML() : panelHTML();
+  function renderInto(el){ if(!el) return;
+    if(!S.mourning) ensureEgg();              // fate grants one egg the first time
+    const p=pet(); if(p) decay(p);            // decay may trigger death → sets S.mourning
+    el.innerHTML = S.mourning ? deathHTML() : panelHTML();
     if(FLASH){ const sp=el.querySelector(".pet-speech"); if(sp) sp.textContent=FLASH; }
     bind(el); startAnim();
   }
@@ -291,13 +293,11 @@
   function mountHome(homeContainer){
     // 1) fixed left-gutter rail (wide screens) — fills the empty side space
     let rail=document.getElementById(RAIL_ID);
-    if(!rail){ rail=document.createElement("aside"); rail.id=RAIL_ID; rail.className="pet-rail"; document.body.appendChild(rail);
-      rail.addEventListener("click",e=>{ if(e.target.classList.contains("pet-newegg")){ ensureEggs(); refresh(); } }); }
+    if(!rail){ rail=document.createElement("aside"); rail.id=RAIL_ID; rail.className="pet-rail"; document.body.appendChild(rail); }
     renderInto(rail);
     // 2) in-flow card inside the home grid (narrow screens) — CSS shows one or the other
     if(homeContainer){ let card=homeContainer.querySelector("#pet-home-card");
       if(!card){ card=document.createElement("section"); card.id="pet-home-card"; card.className="home-card pet-card";
-        homeContainer.addEventListener("click",e=>{ if(e.target.classList.contains("pet-newegg")){ ensureEggs(); refresh(); } });
         const grid=homeContainer.querySelector(".home-grid"); (grid||homeContainer).insertBefore(card,(grid||homeContainer).firstChild); }
       renderInto(card);
     }
