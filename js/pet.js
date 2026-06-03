@@ -230,7 +230,7 @@
       return T("一緒[いっしょ]に頑張[がんば]ろうね！","Let's keep at it together!");
     }
     if(p.sick) return T("ぐすん…ちょっと具合悪いよ…💊","I don't feel so good… 💊");
-    if(p.hasPoop) return T("💩 そうじ してほしいな…","Could you clean my poop? 💩");
+    if(p.hasPoop) return T("うんち、そうじ してほしいな…","Could you clean up after me…");
     if(m.hunger<25) return T("おなかすいた…ごはん つれてって！","I'm hungry… take me to eat!");
     if(m.energy<20) return T("ねむい…zzz","So sleepy… zzz");
     if(m.happy<30) return T("ねえねえ、あそぼうよ！","Hey, let's play!");
@@ -438,38 +438,37 @@
   }
 
   // ---- panel UI -------------------------------------------------------------
-  function bar(label,v,cls){ return `<div class="pet-meter"><span>${label}</span><i class="${cls}"><b style="width:${Math.round(clamp(v))}%"></b></i></div>`; }
+  // compact pixel meter: a single-kanji dot-font label + a thin bar (no emoji)
+  function meter(label,v){ v=clamp(v); return `<div class="pm${v<25?' low':''}"><span class="pm-l">${label}</span><i><b style="width:${Math.round(v)}%"></b></i></div>`; }
   function panelHTML(){
     const p=pet();
     if(!p) return "";   // renderInto guarantees a pet via ensureEgg() before calling this
-    const st=p.diedAt?"—":stageOf(p), mood=moodOf(p), since=studySXP()-(p.hatchBase||p.adoptSXP||0);
+    const since=studySXP()-(p.hatchBase||p.adoptSXP||0);
     let next=null,prev=0; for(const [n,need] of STAGES){ if(since>=need) prev=need; else { next=need; break; } }
     const toNext = p.stage==="egg" ? Math.round((studySXP()-(p.adoptSXP||0))/TUNE.hatchCost*100)
                  : next==null?100:Math.round((since-prev)/(next-prev)*100);
-    const stageLbl={egg:T("たまご","Egg"),hatchling:T("赤ちゃん","Baby"),child:T("こども","Child"),teen:T("わかもの","Teen"),adult:T("おとな","Adult"),elder:T("長老","Elder")};
-    const warn = (p.sick)?`<div class="pet-warn">🤒 ${T("具合が悪いよ。お薬で治してね（成長が止まってる）","Sick — cure it with medicine (growth is paused)")}</div>`:"";
-    return `<div class="pet-box" data-uid="${p.uid}">
-      <div class="pet-head"><b class="pet-name">${esc(p.name||"…")}</b><span class="pet-stage">${stageLbl[p.stage]||st}</span>
-        ${p.stage!=="egg"?`<span class="pet-nature" title="${T('性格','Nature')}">${esc(natLabel(p))}</span>`:""}
-        ${p.stage!=="egg"?`<button class="pet-chatbtn${unseenChat()?" unseen":""}" title="${T('話す','Talk')}">💬</button>`:""}
-        ${p.stage!=="egg"?`<button class="pet-logbtn${unseenLog()?" unseen":""}" title="${T('日记・活动','Diary & activity')}">📔</button>`:""}
-        <span class="pet-coins">🪙 ${coins()}</span></div>
-      <div class="pet-stage-wrap"><canvas class="pet-canvas" width="132" height="132"></canvas></div>
+    const stageLbl={egg:T("たまご","Egg"),hatchling:T("あかちゃん","Baby"),child:T("こども","Child"),teen:T("わかもの","Teen"),adult:T("おとな","Adult"),elder:T("ちょうろう","Elder")};
+    const hp=clamp(p.hp==null?100:p.hp);
+    const egg = p.stage==="egg";
+    const warn = (!egg && (p.sick||hp<60)) ? `<div class="pet-warn">${p.sick?T("ぐあいが わるいよ…「くすり」を つかってね","Feeling sick… use medicine"):T("げんきが ないみたい。やすませてあげて","Looking weak — let it rest")}<i class="pm-hp"><b style="width:${hp}%"></b></i></div>` : "";
+    return `<div class="pet-box pix" data-uid="${p.uid}">
+      <div class="pet-screen"><canvas class="pet-canvas" width="120" height="120"></canvas></div>
+      <div class="pet-id"><b class="pet-name">${esc(p.name||"たまご")}</b><span class="pet-tags">${stageLbl[p.stage]||""}${egg?"":" · "+esc(natLabel(p))}</span></div>
       <div class="pet-speech">${window.toRuby?toRuby(says(p)):esc(says(p))}</div>
       ${warn}
-      <div class="pet-xp"><span>${p.stage==="egg"?T("孵化","Hatch"):T("成长","Growth")}</span><i><b style="width:${clamp(toNext)}%"></b></i></div>
-      ${p.stage==="egg"?"":`<div class="pet-meters">
-        ${bar("🍙",p.meters.hunger,"m-hunger")}${bar("🛁",p.meters.clean,"m-clean")}
-        ${bar("😊",p.meters.happy,"m-happy")}${bar("⚡",p.meters.energy,"m-energy")}
-        <div class="pet-meter pet-hp"><span>❤️</span><i class="m-hp"><b style="width:${clamp(p.hp==null?100:p.hp)}%"></b></i></div></div>
-        <div class="pet-actions">
-          <button data-act="feed" title="${T('喂食 (🪙3)','Feed (🪙3)')}">🍙</button>
-          <button data-act="wash" title="${T('洗澡','Wash')}">🛁</button>
-          <button data-act="poop" title="${T('清理便便','Clean poop')}"${p.hasPoop?"":" disabled"}>💩</button>
-          <button data-act="play" title="${T('玩耍','Play')}">🎾</button>
-          <button data-act="sleep" title="${T('睡觉','Sleep')}">😴</button>
-          ${p.sick?`<button data-act="med" title="${T('吃药 (🪙8)','Medicine (🪙8)')}">💊</button>`:""}
-        </div>`}
+      <div class="pet-grow"><span class="pl">${egg?T("ふか","Hatch"):T("せいちょう","Growth")}</span><i><b style="width:${clamp(toNext)}%"></b></i></div>
+      ${egg?"":`
+      <div class="pet-meters">${meter("食",p.meters.hunger)}${meter("浴",p.meters.clean)}${meter("楽",p.meters.happy)}${meter("力",p.meters.energy)}</div>
+      <div class="pet-actions">
+        <button data-act="feed">ごはん</button><button data-act="wash">おふろ</button>
+        <button data-act="poop"${p.hasPoop?"":" disabled"}>そうじ</button><button data-act="play">あそぶ</button>
+        <button data-act="sleep">ねる</button>${p.sick?`<button data-act="med" class="med">くすり</button>`:""}
+      </div>
+      <div class="pet-foot">
+        <button class="pet-chatbtn">はなす</button>
+        <button class="pet-logbtn${unseenLog()?" unseen":""}">にっき</button>
+        <span class="pet-coins" title="${T('コイン','Coins')}">◆ ${coins()}</span>
+      </div>`}
     </div>`;
   }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
@@ -499,9 +498,8 @@
     root.querySelectorAll(".pet-newegg").forEach(b=>b.onclick=welcomeNewEgg);
     root.querySelectorAll(".pet-actions button").forEach(b=>b.onclick=()=>act(b.dataset.act));
     root.querySelectorAll(".pet-logbtn").forEach(b=>b.onclick=openLog);
-    root.querySelectorAll(".pet-chatbtn").forEach(b=>b.onclick=openChat);
-    const cv=root.querySelector(".pet-canvas"); if(cv) cv.onclick=openChat;        // tap the pet → talk to it
-    const sb=root.querySelector(".pet-speech"); if(sb){ sb.classList.add("tappable"); sb.onclick=openChat; }  // tap its bubble → reply
+    root.querySelectorAll(".pet-chatbtn").forEach(b=>b.onclick=openChat);   // explicit "はなす" → chat
+    const cv=root.querySelector(".pet-canvas"); if(cv) cv.onclick=()=>{ const p=pet(); if(p&&!p.diedAt&&p.stage!=="egg"){ p.meters.happy=clamp(p.meters.happy+5); save(); refresh(); } };  // tap = pet it
   }
 
   // ---- B1 log/diary overlay (Japanese reading surface) ----------------------
@@ -544,29 +542,21 @@
     bind(el); startAnim();
   }
   function deathHTML(){ const last=S.memorial[S.memorial.length-1]||{};
-    return `<div class="pet-box pet-dead"><h3>🕊️ ${T("おわかれ","Farewell")}</h3>
+    return `<div class="pet-box pix pet-dead"><h3>🕊️ ${T("おわかれ","Farewell")}</h3>
       <p class="pet-sub">${T(esc(last.name||"パートナー")+" は天国へ旅立ちました。一緒に過ごせてありがとう。",
         esc(last.name||"Your friend")+" has passed on. Thank you for the time together.")}</p>
       <button class="pet-newegg primary">🥚 ${T("新しいたまごを迎える","Welcome a new egg")}</button></div>`; }
 
   // ---- public mount points --------------------------------------------------
-  const RAIL_ID="pet-rail";
+  // The pet now lives as the LEFT COLUMN of a centered [pet | content] home layout
+  // (#pet-slot), so the page stays balanced — no more lone fixed gutter rail.
   function mountHome(homeContainer){
     if(!S.mourning){ ensureEgg(); rollActivity(); }   // live a little while you were away
-    // 1) fixed left-gutter rail (wide screens) — fills the empty side space
-    let rail=document.getElementById(RAIL_ID);
-    if(!rail){ rail=document.createElement("aside"); rail.id=RAIL_ID; rail.className="pet-rail"; document.body.appendChild(rail); }
-    renderInto(rail);
-    // 2) in-flow card inside the home grid (narrow screens) — CSS shows one or the other
-    if(homeContainer){ let card=homeContainer.querySelector("#pet-home-card");
-      if(!card){ card=document.createElement("section"); card.id="pet-home-card"; card.className="home-card pet-card";
-        const grid=homeContainer.querySelector(".home-grid"); (grid||homeContainer).insertBefore(card,(grid||homeContainer).firstChild); }
-      renderInto(card);
-    }
+    const slot = homeContainer && homeContainer.querySelector("#pet-slot");
+    if(slot) renderInto(slot);
   }
-  function refresh(){ const rail=document.getElementById(RAIL_ID); if(rail) renderInto(rail);
-    const card=document.getElementById("pet-home-card"); if(card) renderInto(card); }
-  function showRail(on){ const rail=document.getElementById(RAIL_ID); if(rail) rail.classList.toggle("show",!!on); }
+  function refresh(){ const slot=document.getElementById("pet-slot"); if(slot) renderInto(slot); }
+  function showRail(){}   // no-op (kept for the app.js call site; layout is now in-flow)
 
   // study event hook (called from app.js markSession / test finish)
   function onStudy(){ JUST_STUDIED=now(); AI_SAY=null; S.chatNudge=now(); const p=pet(); if(p) decay(p); save(); refresh();
