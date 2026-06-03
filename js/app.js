@@ -26,12 +26,20 @@ function applyLang(){
 function T(zh, en){ return (LANG==="en" && en!=null) ? en : zh; }
 /* data field: show the English value when in en-mode AND it exists; else the Chinese */
 function zhen(zh, en){ return (LANG==="en" && en!=null && en!=="") ? en : (zh!=null?zh:""); }
+/* English lesson content (js/i18n-en.js); ENL(day) → that day's en fields or {} */
+function ENL(day){ return (typeof window!=="undefined" && window.EN && window.EN[day]) || {}; }
+/* part-of-speech labels → English */
+const POS_EN={ "名詞":"noun","動詞":"verb","自動詞":"intransitive verb","他動詞":"transitive verb","な形容詞":"na-adjective","い形容詞":"i-adjective","副詞":"adverb","助詞":"particle","接続詞":"conjunction","接続助詞":"conjunctive particle","連体詞":"adnominal","感動詞":"interjection","補助動詞":"auxiliary verb","代名詞":"pronoun","連語":"phrase","慣用句":"idiom","表現":"expression","接尾":"suffix","接頭":"prefix","接尾辞":"suffix","形容動詞":"na-adjective","数詞":"numeral","する動詞":"suru-verb" };
+function posLabel(pos){ if(!pos) return ""; if(LANG!=="en") return pos;
+  if(POS_EN[pos]) return POS_EN[pos];
+  return pos.replace(/[（(]([^）)]*)[）)]/g,(m,inner)=>"("+(POS_EN[inner]||inner)+")")   // e.g. 自動詞（する）
+    .replace(/名詞|動詞|自動詞|他動詞|な形容詞|い形容詞|副詞|助詞|複合|する|词组|動詞词组/g,x=>({"名詞":"noun","動詞":"verb","自動詞":"intransitive","他動詞":"transitive","な形容詞":"na-adj","い形容詞":"i-adj","副詞":"adverb","助詞":"particle","複合":"compound","する":"suru","词组":"phrase","動詞词组":"verb phrase"}[x]||x)); }
 
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 const SESSIONS = {
-  morning:{ emoji:"🌅", name:"朝の朗読", sub:"Morning · 读 & 跟读", hint:"专注「读」。先听标准发音，再跟读。默认隐藏译文——这一节只练读音和节奏，听不懂没关系。" },
-  noon:   { emoji:"☀️", name:"昼の理解", sub:"Noon · 懂 & 学语法", hint:"现在弄懂意思。对照译文，记单词，吃透今天的语法点，看它们怎么用在日常对话里。" },
-  night:  { emoji:"🌙", name:"夜の反思", sub:"Night · 写 & 反思", hint:"抄写与默写。先用「输入核对」练打字与假名，再用「遮挡默写」凭记忆复述，最后回答反思问题。" },
+  morning:{ emoji:"🌅", name:"朝の朗読", sub:"Morning · 读 & 跟读", subEn:"Morning · Read & Shadow", hint:"专注「读」。先听标准发音，再跟读。默认隐藏译文——这一节只练读音和节奏，听不懂没关系。", hintEn:"Focus on READING. Listen to the model audio, then shadow it. Translations are hidden by default — this session is just about sound and rhythm; it's fine not to understand yet." },
+  noon:   { emoji:"☀️", name:"昼の理解", sub:"Noon · 懂 & 学语法", subEn:"Noon · Understand & Grammar", hint:"现在弄懂意思。对照译文，记单词，吃透今天的语法点，看它们怎么用在日常对话里。", hintEn:"Now understand it. Use the translations, learn the vocab, master today's grammar points, and see how they're used in everyday conversation." },
+  night:  { emoji:"🌙", name:"夜の反思", sub:"Night · 写 & 反思", subEn:"Night · Write & Reflect", hint:"抄写与默写。先用「输入核对」练打字与假名，再用「遮挡默写」凭记忆复述，最后回答反思问题。", hintEn:"Copy and recall. First use Type & Check to practice typing the kana, then Hide & Recall to reproduce it from memory, and finally answer the reflection questions." },
 };
 
 /* ---------- localStorage progress ---------- */
@@ -211,12 +219,13 @@ function renderHeader(L){
 function renderDayHead(L){
   $("#planned").style.display="none";
   $("#lesson").style.display="block";
+  const EH=ENL(L.day);
   $("#day-head").innerHTML = `
     <span class="week-chip">${WEEK_LABELS[L.week]||""}</span>
     <h1>${esc(L.theme)}<span class="level-badge">${L.level}</span></h1>
-    <div class="theme-zh">${esc(L.themeZh)}</div>
-    <div class="source">📖 来源 / Source：${esc(L.source)}</div>
-    <div class="goals">${(L.goals||[]).map(g=>`<span>🎯 ${esc(g)}</span>`).join("")}</div>
+    <div class="theme-zh">${esc(zhen(L.themeZh, EH.themeEn))}</div>
+    <div class="source">${T("📖 来源 / Source","📖 Source")}：${esc(L.source)}</div>
+    <div class="goals">${(L.goals||[]).map((g,i)=>`<span>🎯 ${esc(zhen(g,(EH.goalsEn||[])[i]))}</span>`).join("")}</div>
   `;
 }
 
@@ -227,7 +236,7 @@ function renderTabs(L){
     return `<button data-s="${key}" class="${STATE.session===key?'active':''}">
       <span class="t-emoji">${s.emoji}</span>${done?'<span class="done-dot">✓</span>':''}
       <span class="t-name">${s.name}</span>
-      <span class="t-sub">${s.sub}</span>
+      <span class="t-sub">${zhen(s.sub, s.subEn)}</span>
     </button>`;
   }).join("");
   wrap.querySelectorAll("button").forEach(b=>b.onclick=()=>{ STATE.session=b.dataset.s; if(b.dataset.s==="morning") STATE.showZh=false; render(); });
@@ -237,24 +246,24 @@ function renderTabs(L){
 function renderMorning(L){
   const body = $("#panel-body");
   body.innerHTML = `
-    <div class="session-hint">${SESSIONS.morning.hint}</div>
+    <div class="session-hint">${zhen(SESSIONS.morning.hint, SESSIONS.morning.hintEn)}</div>
     <div class="audio-bar">
-      <button id="play-all">▶ 全文を聴く</button>
-      <button id="stop-all" class="ghost">■ 停止</button>
-      <div class="speed">速さ <input type="range" id="rate" min="0.5" max="1.1" step="0.05" value="${STATE.rate}"><b id="rate-v">${STATE.rate.toFixed(2)}</b></div>
+      <button id="play-all">${T("▶ 全文を聴く","▶ Play all")}</button>
+      <button id="stop-all" class="ghost">${T("■ 停止","■ Stop")}</button>
+      <div class="speed">${T("速さ","Speed")} <input type="range" id="rate" min="0.5" max="1.1" step="0.05" value="${STATE.rate}"><b id="rate-v">${STATE.rate.toFixed(2)}</b></div>
     </div>
     <div class="mini-toggles">
-      <button id="m-zh" class="${STATE.showZh?'on':''}">中文译文</button>
-      <button id="m-furi" class="${STATE.furi?'on':''}">ふりがな</button>
+      <button id="m-zh" class="${STATE.showZh?'on':''}">${T("中文译文","Translation")}</button>
+      <button id="m-furi" class="${STATE.furi?'on':''}">${T("ふりがな","Furigana")}</button>
     </div>
     <div class="para ${STATE.furi?'':'hide-furi'} ${STATE.showZh?'':'hide-zh'}" id="para"></div>
-    <p class="typing-tip">💡 点击任意一句可单独播放并跟读。早上目标：跟着读 3 遍，先不求懂意思。</p>
+    <p class="typing-tip">${T("💡 点击任意一句可单独播放并跟读。早上目标：跟着读 3 遍，先不求懂意思。","💡 Tap any sentence to play and shadow it. Morning goal: read along 3 times — don't worry about meaning yet.")}</p>
   `;
   const para=$("#para");
   L.paragraph.forEach((s,idx)=>{
     const el=document.createElement("span");
     el.className="sent";
-    el.innerHTML = toRuby(s.jp) + `<span class="zh">${esc(s.zh)}</span>`;
+    el.innerHTML = toRuby(s.jp) + `<span class="zh">${esc(zhen(s.zh,(ENL(L.day).paraEn||[])[idx]))}</span>`;
     el.onclick=()=>speakSequence([{text:s.jp,node:el,audioKey:audioKeyFor(L.day,idx)}]);
     para.appendChild(el);
   });
@@ -576,41 +585,42 @@ function renderResult(L){
 /* ----------------------------- NOON ----------------------------- */
 function renderNoon(L){
   const body=$("#panel-body");
-  let html = `<div class="session-hint">${SESSIONS.noon.hint}</div>`;
+  const E=ENL(L.day);
+  let html = `<div class="session-hint">${zhen(SESSIONS.noon.hint, SESSIONS.noon.hintEn)}</div>`;
 
   /* paragraph with translations shown */
-  html += `<section class="block"><h2>📝 本文と訳 · 课文与翻译</h2><div class="para" id="para2"></div></section>`;
+  html += `<section class="block"><h2>${T("📝 本文と訳 · 课文与翻译","📝 Passage & Translation")}</h2><div class="para" id="para2"></div></section>`;
 
   /* vocab — cards: word + reading + 🔊 + 词性 + 释义(术语可点) + 拆解 + 例句 */
-  html += `<section class="block"><h2>📚 単語 · 词汇 <span class="blk-hint">点术语看解释 · 🔊朗读 · 📝例句</span></h2>
+  html += `<section class="block"><h2>${T("📚 単語 · 词汇","📚 Vocabulary")} <span class="blk-hint">${T("点术语看解释 · 🔊朗读 · 📝例句","🔊 tap to hear · 📝 examples")}</span></h2>
     <div class="vcards">
     ${L.vocab.map(v=>`<div class="vcard">
-      <div class="vc-head"><span class="v-word">${esc(v.w)}</span><span class="v-read">${esc(v.r)}</span><button class="play-w" data-w="${esc(v.r)}">🔊</button>${v.pos?`<span class="v-pos">${esc(v.pos)}</span>`:""}</div>
-      <div class="vc-mean">${LANG==="en" ? esc(v.en||v.zh) : (linkTerms(v.zh)+(v.en?`<span class="v-en"> · ${esc(v.en)}</span>`:""))}</div>
-      ${v.parts?`<div class="vc-parts"><span class="vc-tag">🧩 拆解</span>${v.parts.map(p=>`<span class="vc-part" ${p.r?`data-w="${esc(p.r)}"`:""}><b>${esc(p.p)}</b>${p.r?`<i>${esc(p.r)}</i>`:""}＝${esc(p.m)}</span>`).join('<span class="vc-plus">＋</span>')}</div>`:""}
-      ${v.ex?`<div class="vc-ex" data-jp="${esc(v.ex.jp)}"><span class="vc-tag">📝 例</span>${toRuby(v.ex.jp)}<span class="zh">${esc(v.ex.zh)}</span></div>`:""}
+      <div class="vc-head"><span class="v-word">${esc(v.w)}</span><span class="v-read">${esc(v.r)}</span><button class="play-w" data-w="${esc(v.r)}">🔊</button>${v.pos?`<span class="v-pos">${esc(posLabel(v.pos))}</span>`:""}</div>
+      <div class="vc-mean">${LANG==="en" ? esc((E.vocabEn&&E.vocabEn[v.w])||v.en||v.zh) : (linkTerms(v.zh)+(v.en?`<span class="v-en"> · ${esc(v.en)}</span>`:""))}</div>
+      ${v.parts?`<div class="vc-parts"><span class="vc-tag">${T("🧩 拆解","🧩 Breakdown")}</span>${v.parts.map(p=>`<span class="vc-part" ${p.r?`data-w="${esc(p.r)}"`:""}><b>${esc(p.p)}</b>${p.r?`<i>${esc(p.r)}</i>`:""}＝${esc(LANG==="en"?(POS_EN[p.m]||p.m):p.m)}</span>`).join('<span class="vc-plus">＋</span>')}</div>`:""}
+      ${v.ex?`<div class="vc-ex" data-jp="${esc(v.ex.jp)}"><span class="vc-tag">${T("📝 例","📝 e.g.")}</span>${toRuby(v.ex.jp)}<span class="zh">${esc(v.ex.zh)}</span></div>`:""}
     </div>`).join("")}
     </div></section>`;
 
   /* grammar */
-  html += `<section class="block"><h2>🔧 文法 · 语法精讲</h2>
-    ${L.grammar.map(g=>`<div class="gram">
+  html += `<section class="block"><h2>${T("🔧 文法 · 语法精讲","🔧 Grammar")}</h2>
+    ${L.grammar.map(g=>{ const ge=(E.gramEn&&E.gramEn[g.point])||{}; return `<div class="gram">
       <h3>${esc(g.point)}</h3>
       <div class="label">${esc(g.label||"")}</div>
-      <div class="exp">${linkTerms(g.zh)}</div>
-      ${g.examples.map(ex=>`<div class="ex" data-jp="${esc(ex.jp)}">${toRuby(ex.jp)}<span class="zh">${esc(ex.zh)}</span></div>`).join("")}
-    </div>`).join("")}
+      <div class="exp">${LANG==="en"&&ge.exp ? esc(ge.exp) : linkTerms(g.zh)}</div>
+      ${g.examples.map((ex,k)=>`<div class="ex" data-jp="${esc(ex.jp)}">${toRuby(ex.jp)}<span class="zh">${esc(zhen(ex.zh,(ge.ex||[])[k]))}</span></div>`).join("")}
+    </div>`; }).join("")}
   </section>`;
 
   /* conversation */
-  html += `<section class="block"><h2>💬 会話で使う · 日常对话用法</h2>
-    ${L.conversation.map(c=>`<div class="conv-item" data-jp="${esc(c.jp)}">${toRuby(c.jp)}<span class="zh">${esc(c.zh)}</span></div>`).join("")}
+  html += `<section class="block"><h2>${T("💬 会話で使う · 日常对话用法","💬 In Conversation")}</h2>
+    ${L.conversation.map((c,i)=>`<div class="conv-item" data-jp="${esc(c.jp)}">${toRuby(c.jp)}<span class="zh">${esc(zhen(c.zh,(E.convEn||[])[i]))}</span></div>`).join("")}
   </section>`;
 
   /* extended */
   if(L.extended){
-    html += `<section class="block"><h2>🌱 ${esc(L.extended.title)}</h2>
-      <ul class="ext-list">${L.extended.items.map(it=>`<li>${linkTerms(it)}</li>`).join("")}</ul></section>`;
+    html += `<section class="block"><h2>🌱 ${esc(zhen(L.extended.title, T(null,"Extended · synonyms & related")))}</h2>
+      <ul class="ext-list">${L.extended.items.map((it,i)=>`<li>${LANG==="en"&&(E.extEn||[])[i]?esc(E.extEn[i]):linkTerms(it)}</li>`).join("")}</ul></section>`;
   }
   body.innerHTML=html;
 
@@ -619,7 +629,7 @@ function renderNoon(L){
   L.paragraph.forEach((s,idx)=>{
     const el=document.createElement("span");
     el.className="sent";
-    el.innerHTML=toRuby(s.jp)+`<span class="zh">${esc(s.zh)}</span>`;
+    el.innerHTML=toRuby(s.jp)+`<span class="zh">${esc(zhen(s.zh,(E.paraEn||[])[idx]))}</span>`;
     el.onclick=()=>speakSequence([{text:s.jp,node:el,audioKey:audioKeyFor(L.day,idx)}]);
     para2.appendChild(el);
   });
@@ -636,15 +646,16 @@ function renderNoon(L){
 /* ----------------------------- NIGHT ----------------------------- */
 function renderNight(L){
   const body=$("#panel-body");
+  const E=ENL(L.day);
   body.innerHTML = `
-    <div class="session-hint">${SESSIONS.night.hint}</div>
+    <div class="session-hint">${zhen(SESSIONS.night.hint, SESSIONS.night.hintEn)}</div>
     <div class="write-modes">
-      <button data-m="type" class="${STATE.writeMode==='type'?'active':''}">⌨️ 输入核对 Type & Check</button>
-      <button data-m="hide" class="${STATE.writeMode==='hide'?'active':''}">🙈 遮挡默写 Hide & Recall</button>
+      <button data-m="type" class="${STATE.writeMode==='type'?'active':''}">${T("⌨️ 输入核对 Type & Check","⌨️ Type & Check")}</button>
+      <button data-m="hide" class="${STATE.writeMode==='hide'?'active':''}">${T("🙈 遮挡默写 Hide & Recall","🙈 Hide & Recall")}</button>
     </div>
     <div id="write-area"></div>
-    <section class="block" style="margin-top:30px"><h2>🪞 反思 · 反思问题</h2>
-      <ul class="reflect-list">${L.reflect.map(r=>`<li>${esc(r)}</li>`).join("")}</ul>
+    <section class="block" style="margin-top:30px"><h2>${T("🪞 反思 · 反思问题","🪞 Reflection")}</h2>
+      <ul class="reflect-list">${L.reflect.map((r,i)=>`<li>${esc(zhen(r,(E.reflectEn||[])[i]))}</li>`).join("")}</ul>
     </section>
   `;
   body.querySelectorAll(".write-modes button").forEach(b=>b.onclick=()=>{ STATE.writeMode=b.dataset.m; renderNight(L); });
