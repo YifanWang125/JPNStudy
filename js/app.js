@@ -13,6 +13,15 @@ const STATE = {
   writeMode: "type",         // type | hide
   rate: 1.0,                 // natural speed for the real voice; slider can slow it for shadowing
 };
+/* ---------- i18n: explanation language (learner's native language) ---------- */
+function getLang(){ try{ return localStorage.getItem("jpn-lang")||"zh"; }catch(e){ return "zh"; } }
+let LANG = getLang();
+function setLang(l){ LANG=(l==="en"?"en":"zh"); try{ localStorage.setItem("jpn-lang", LANG); }catch(e){} }
+/* UI string: T("中文","English") → picks by LANG (falls back to zh if no en given) */
+function T(zh, en){ return (LANG==="en" && en!=null) ? en : zh; }
+/* data field: show the English value when in en-mode AND it exists; else the Chinese */
+function zhen(zh, en){ return (LANG==="en" && en!=null && en!=="") ? en : (zh!=null?zh:""); }
+
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 const SESSIONS = {
   morning:{ emoji:"🌅", name:"朝の朗読", sub:"Morning · 读 & 跟读", hint:"专注「读」。先听标准发音，再跟读。默认隐藏译文——这一节只练读音和节奏，听不懂没关系。" },
@@ -810,13 +819,16 @@ function buildFabMenu(){
 function getTheme(){ try{ return localStorage.getItem("jpn-theme")||"dark"; }catch(e){ return "dark"; } }
 function resolvedTheme(t){ return t==="auto" ? ((window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark") : t; }
 function applyTheme(t){
-  document.documentElement.setAttribute("data-theme", resolvedTheme(t));
+  const r=resolvedTheme(t);
+  document.documentElement.setAttribute("data-theme", r);
   const b=$("#theme-btn");
-  if(b){ b.textContent = t==="auto"?"🖥":(resolvedTheme(t)==="light"?"☀️":"🌙");
-    b.title = "外观："+(t==="auto"?"跟随系统":(t==="light"?"浅色":"深色"))+"（点击切换）"; }
+  // header button shows the CURRENT mode's icon (☀️ light / 🌙 dark) — never 🖥, to avoid confusion.
+  if(b){ b.textContent = r==="light"?"☀️":"🌙";
+    b.title = (r==="light"?T("浅色模式","Light mode"):T("深色模式","Dark mode"))+(t==="auto"?T("（跟随系统）","(auto)"):"")+T("，点击切换",", click to switch"); }
 }
 function setTheme(t){ try{ localStorage.setItem("jpn-theme", t); }catch(e){} applyTheme(t); }
-function cycleTheme(){ const c=getTheme(); setTheme(c==="dark"?"light":(c==="light"?"auto":"dark")); }
+/* header quick toggle: binary flip of the CURRENT appearance — always changes in one click (auto lives in ⚙) */
+function toggleLightDark(){ const r=document.documentElement.getAttribute("data-theme")||resolvedTheme(getTheme()); setTheme(r==="light"?"dark":"light"); }
 
 function makeDraggable(el, key, onTap){
   try{ const p=JSON.parse(localStorage.getItem(key)); if(p&&p.left!=null){ el.style.left=p.left+"px"; el.style.top=p.top+"px"; el.style.right="auto"; el.style.bottom="auto"; } }catch(e){}
@@ -1295,7 +1307,7 @@ function init(){
   $("#gear-btn").onclick=openSettings;
   applyTheme(getTheme());
   buildFabMenu();
-  if($("#theme-btn")) $("#theme-btn").onclick=cycleTheme;
+  if($("#theme-btn")) $("#theme-btn").onclick=toggleLightDark;
   if(window.matchMedia){ try{ matchMedia("(prefers-color-scheme: light)").addEventListener("change",()=>{ if(getTheme()==="auto") applyTheme("auto"); }); }catch(e){} }
   document.querySelectorAll("#page-nav button").forEach(b=>b.onclick=()=>showPage(b.dataset.p));
 
