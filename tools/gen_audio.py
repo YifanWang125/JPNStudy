@@ -39,10 +39,18 @@ import argparse, hashlib, json, os, re, subprocess, sys, urllib.parse, urllib.re
 
 ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LESSONS   = os.path.join(ROOT, "js", "lessons.js")
+SCENARIOS = os.path.join(ROOT, "js", "scenarios.js")
+DAILY     = os.path.join(ROOT, "js", "daily.js")
 AUDIO_DIR = os.path.join(ROOT, "audio")
 VOCAB_DIR = os.path.join(AUDIO_DIR, "vocab")
 MANIFEST  = os.path.join(AUDIO_DIR, "manifest.json")
 ENGINE    = os.environ.get("VOICEVOX_URL", "http://localhost:50021")
+
+# Per-role VOICEVOX speakers for scenario dialogue (two clearly contrasting voices
+# so the learner can tell who is talking): the learner's side (customer/guest/patient)
+# is a calm adult male; the staff side (reception/clerk/doctor/front desk) is a polite
+# adult female. Run --list-speakers to see ids on your engine.
+SCN_VOICE = {"c": 11, "s": 16}   # 11 玄野武宏/ノーマル(男) · 16 九州そら/ノーマル(女)
 
 # ---- furigana / normalization (mirrors app.js toPlain + speechNorm) ----
 BRACKET = re.compile(r"\[[^\]]+\]")
@@ -92,6 +100,26 @@ def load_lessons():
         extra = re.findall(r'jp\s*:\s*"((?:[^"\\]|\\.)*)"', after_para)
         days.append({"day": day, "sents": sents, "readings": readings, "extra": extra})
     return days
+
+def _load_js_array(path):
+    """Read a `window.X = [ ... ];` data file and JSON-parse the array literal."""
+    src = open(path, encoding="utf-8").read()
+    return json.loads(src[src.index("["): src.rindex("]") + 1])
+
+def load_scenarios():
+    """[{id, vocab:[{w,r}], dialogue:[{jp, sp}]}] from js/scenarios.js."""
+    try:
+        return _load_js_array(SCENARIOS)
+    except Exception as e:
+        print(f"  (skip scenarios: {e})"); return []
+
+def load_daily():
+    """每日一句 lines from js/daily.js — phrase jp + example ex.jp (regex; JS not JSON)."""
+    try:
+        src = open(DAILY, encoding="utf-8").read()
+    except OSError:
+        return []
+    return re.findall(r'jp\s*:\s*"((?:[^"\\]|\\.)*)"', src)
 
 # ---- VOICEVOX HTTP API ----
 def vv_post(path, params=None, data=None):
@@ -212,7 +240,7 @@ def main():
     ext = "wav" if args.wav else "mp3"
     made = skipped = 0
 
-    def emit(key, text, out_path):
+    def emit(key, text, out_path, speaker=None):
         nonlocal made, skipped
         spoken = speech_norm(text)
         if not spoken:
@@ -220,7 +248,7 @@ def main():
         rel_path = os.path.relpath(out_path, ROOT).replace(os.sep, "/")
         if os.path.exists(out_path):
             manifest[key] = rel_path; skipped += 1; return
-        wav = synth_wav(spoken, args.speaker)
+        wav = synth_wav(spoken, args.speaker if speaker is None else speaker)
         if args.wav:
             open(out_path, "wb").write(wav)
         else:
@@ -255,6 +283,37 @@ def main():
             seen.add(spoken)
             h = hashlib.sha1(spoken.encode("utf-8")).hexdigest()[:12]
             emit(f"x_{spoken}", jp, os.path.join(ex_d, f"{h}.{ext}"))
+
+    # ---- scenarios + 每日一句 (default voice only; alt voices fall back to these) ----
+    if not args.voice_dir:
+        scn_d = os.path.join(base, "scn")
+        os.makedirs(scn_d, exist_ok=True)
+        for s in load_scenarios():
+            sid = s.get("id", "scn")
+            # vocab: neutral/default voice, keyed v_<reading> (shared with lesson vocab)
+            if not args.no_vocab:
+                for v in s.get("vocab", []):
+                    spoken = speech_norm(v.get("r") or v.get("w") or "")
+                    if not spoken:
+                        continue
+                    h = hashlib.sha1(spoken.encode("utf-8")).hexdigest()[:12]
+                    emit(f"v_{spoken}", v.get("r") or v.get("w"),
+                         os.path.join(vocab_d, f"{h}.{ext}"))
+            # dialogue: positional key scn_<id>_<i>, per-role speaker baked in.
+            # strip a leading speaker label ("患者：…") so the voice doesn't read it aloud.
+            for i, d in enumerate(s.get("dialogue", [])):
+                spk = SCN_VOICE.get(d.get("sp"), args.speaker)
+                line = re.sub(r"^[^：:\n]{1,8}[：:]\s*", "", d.get("jp", ""))
+                emit(f"scn_{sid}_{i}", line,
+                     os.path.join(scn_d, f"{sid}_{i}.{ext}"), speaker=spk)
+        # 每日一句: phrase + example lines, keyed x_<text> (shared example namespace)
+        if not args.no_ex:
+            for jp in load_daily():
+                spoken = speech_norm(jp)
+                if not spoken:
+                    continue
+                h = hashlib.sha1(spoken.encode("utf-8")).hexdigest()[:12]
+                emit(f"x_{spoken}", jp, os.path.join(ex_d, f"{h}.{ext}"))
 
     json.dump(manifest, open(manifest_path, "w", encoding="utf-8"), ensure_ascii=False, indent=0)
     if not args.voice_dir:

@@ -827,6 +827,39 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .scn-v .v-word{font-family:var(--serif-jp);font-size:1.12rem;color:var(--jp)}
 .scn-v .v-read{color:var(--accent-2);font-size:.86rem}
 .scn-v .v-mean{color:var(--ink-dim);font-size:.92rem;margin-left:auto}
-.scn-dialogue{display:flex;flex-direction:column;gap:8px}
+.scn-v .tap-spk{opacity:.28;font-size:.85rem;flex:0 0 auto}
+.scn-v:hover .tap-spk{opacity:.85}
+.scn-v.speaking{background:rgba(228,87,46,.16);border-color:var(--accent)}
+
+/* tap-to-hear hint banner */
+.tap-hint{margin-top:8px;font-size:.85rem;color:var(--accent-2);background:var(--panel);border:1px dashed var(--line);border-radius:8px;padding:6px 10px;display:inline-block}
+
+/* dialogue header + play-all */
+.scn-dh{display:flex;align-items:center;gap:12px;margin:16px 0 8px}
+.scn-dh .scn-h{margin:0}
+.scn-playall{font-size:.82rem;padding:4px 12px;border-radius:999px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;white-space:nowrap}
+.scn-playall:hover{background:var(--accent);color:#fff}
+
+/* chat-bubble dialogue: staff left, you (customer) right */
+.scn-dialogue{display:flex;flex-direction:column;gap:10px}
+.scn-line{display:flex;flex-direction:column;max-width:84%;cursor:pointer}
+.scn-line.sp-s{align-self:flex-start;align-items:flex-start}
+.scn-line.sp-c{align-self:flex-end;align-items:flex-end}
+.scn-spk{font-size:.72rem;color:var(--ink-faint);margin:0 6px 2px;font-family:var(--sans-jp)}
+.scn-bubble{position:relative;padding:9px 13px;border-radius:14px;border:1px solid var(--line);font-family:var(--serif-jp);font-size:1.06rem;line-height:1.9;transition:border-color .15s,background .15s}
+.scn-line.sp-s .scn-bubble{background:var(--panel);border-bottom-left-radius:4px}
+.scn-line.sp-c .scn-bubble{background:rgba(228,87,46,.08);border-bottom-right-radius:4px}
+.scn-line:hover .scn-bubble{border-color:var(--accent)}
+.scn-bubble .zh{display:block;font-family:var(--sans-jp);font-size:.84rem;color:var(--zh);margin-top:4px}
+.scn-line.speaking .scn-bubble{background:rgba(228,87,46,.2);border-color:var(--accent);box-shadow:0 0 0 2px rgba(228,87,46,.18)}
 .scn-manners li{line-height:1.8}
-@media (max-width:560px){ .scn-v .v-mean{margin-left:0;width:100%} }
+
+/* brief flash when a clip is missing and TTS fallback is off (tap never feels dead) */
+@keyframes noAudioFlash{0%,100%{background:transparent}30%{background:rgba(150,150,150,.22)}}
+.no-audio,.no-audio .scn-bubble{animation:noAudioFlash .6s ease}
+
+/* settings checkbox row */
+.m-check{display:flex;align-items:flex-start;gap:8px;font-size:.9rem;color:var(--ink-dim);margin:6px 0;cursor:pointer}
+.m-check input{margin-top:3px;flex:0 0 auto}
+
+@media (max-width:560px){ .scn-v .v-mean{margin-left:0;width:100%} .scn-line{max-width:94%} }

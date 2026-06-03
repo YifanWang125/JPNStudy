@@ -96,9 +96,23 @@ function toPlain(text){ return text.replace(/\[[^\]]+\]/g,""); }
  */
 let JA_VOICE=null;
 function pickVoice(){
-  const vs = speechSynthesis.getVoices();
-  JA_VOICE = vs.find(v=>/ja[-_]JP/i.test(v.lang)) || vs.find(v=>/^ja/i.test(v.lang)) || null;
+  const vs = speechSynthesis.getVoices().filter(v=>/^ja\b|ja[-_]JP/i.test(v.lang));
+  // prefer a natural/female voice over the robotic male default (e.g. macOS "Otoya").
+  const score=v=>{ const n=(v.name||"").toLowerCase();
+    if(/otoya|hattori|男/.test(n)) return -2;                 // known robotic/male → avoid
+    if(/(premium|enhanced|neural|siri)/.test(n)) return 3;     // high-quality variants
+    if(/kyoko|o-?ren|sora|haruka|nanami|女/.test(n)) return 2; // pleasant female voices
+    return 0; };
+  JA_VOICE = vs.slice().sort((a,b)=>score(b)-score(a))[0] || null;
 }
+/* System-TTS fallback is OFF by default — the user disliked the robotic system voice,
+   and lessons/vocab/examples/scenarios/每日一句 are all covered by VOICEVOX audio.
+   A ⚙ toggle (jpn-tts="1") re-enables it for any clip without a generated file. */
+function ttsFallbackOn(){ try{ return localStorage.getItem("jpn-tts")==="1"; }catch(e){ return false; } }
+function noAudioFlash(node){ if(node){ node.classList.add("no-audio"); setTimeout(()=>node.classList.remove("no-audio"),600); } }
+/* fallback when a pre-generated clip is missing: TTS only if the user opted in,
+   otherwise a brief visual flash so a tap never feels "broken". */
+function fallbackSpeak(text,node){ return ttsFallbackOn() ? ttsOne(text,node) : (noAudioFlash(node), Promise.resolve()); }
 if("speechSynthesis" in window){
   pickVoice();
   speechSynthesis.onvoiceschanged = pickVoice;
@@ -140,7 +154,7 @@ function ttsOne(text, node){
 }
 function playOne(item){           // {text, node, audioKey}
   const key=item.audioKey, src=key && AUDIO_MANIFEST[key];
-  if(!src) return ttsOne(item.text, item.node);
+  if(!src) return fallbackSpeak(item.text, item.node);
   // candidate sources: selected voice's parallel file first, then the default file,
   // then system TTS. Alternate voices reuse the same filenames under their own prefix,
   // so a missing clip (e.g. examples not generated for that voice) gracefully falls back.
@@ -157,7 +171,7 @@ function playOne(item){           // {text, node, audioKey}
       const advance=()=>{ if(advanced||done) return; advanced=true;
         idx++;
         if(idx<srcs.length){ start(); }           // try the next file (e.g. default voice)
-        else { done=true; unhighlight(); ttsOne(item.text, item.node).then(res); }  // last resort: TTS
+        else { done=true; unhighlight(); fallbackSpeak(item.text, item.node).then(res); }  // last resort (opt-in TTS)
       };
       a.onended=finish;
       a.onerror=advance;                          // file missing/failed → next source
@@ -185,7 +199,7 @@ async function speakSequence(items){
   }
   if(token===SPEAK_TOKEN) clearHighlight();
 }
-function clearHighlight(){ document.querySelectorAll(".sent.speaking").forEach(n=>n.classList.remove("speaking")); }
+function clearHighlight(){ document.querySelectorAll(".speaking").forEach(n=>n.classList.remove("speaking")); }
 function audioKeyFor(day, idx){ return "d"+day+"_s"+idx; }
 
 /* ---------- helpers ---------- */
@@ -1018,9 +1032,9 @@ function renderHome(){
   });
   c.querySelectorAll(".hm-cell[data-day]").forEach(el=>el.onclick=()=>{ STATE.day=parseInt(el.dataset.day,10); STATE.session="morning"; STATE.showZh=false; showPage("daily"); });
   const pj=$(".phrase-jp"), pp=$(".phrase-play"), pe=$(".phrase-ex");
-  if(pp) pp.onclick=(e)=>{ e.stopPropagation(); speakSequence([{text:ph.jp,node:null}]); };
-  if(pe) pe.onclick=()=>speakSequence([{text:ph.ex.jp,node:null}]);
-  c.querySelectorAll(".rv-vocab span[data-jp]").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:null}]));
+  if(pp) pp.onclick=(e)=>{ e.stopPropagation(); speakSequence([{text:ph.jp,node:null,audioKey:"x_"+speechNorm(ph.jp)}]); };
+  if(pe) pe.onclick=()=>speakSequence([{text:ph.ex.jp,node:null,audioKey:"x_"+speechNorm(ph.ex.jp)}]);
+  c.querySelectorAll(".rv-vocab span[data-jp]").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:null,audioKey:"v_"+speechNorm(el.dataset.jp)}]));
 }
 
 /* ============================================================================
@@ -1068,7 +1082,9 @@ function openSettings(){
         <div class="m-actions"><button id="voice-demo">▶ 试听</button><span id="voice-status" class="m-note"></span></div>
       </section>
       <section><h3>🔊 真人音频（VOICEVOX）</h3>
-        <p class="m-note">${Object.keys(AUDIO_MANIFEST).length?`已加载 <b>${Object.keys(AUDIO_MANIFEST).length}</b> 条预生成音频 ✓`:"当前使用系统 TTS（机械音）。"} 要新增声音：启动 VOICEVOX（或 AivisSpeech）引擎后运行 <code>python3 tools/gen_audio.py --voice-dir &lt;名字&gt; --speaker &lt;id&gt;</code>，再在 <code>audio/voices.js</code> 注册即可（详见 README）。需通过本地服务器打开。</p>
+        <p class="m-note">${Object.keys(AUDIO_MANIFEST).length?`已加载 <b>${Object.keys(AUDIO_MANIFEST).length}</b> 条预生成真人音频 ✓ ${T("（课文・单词・例句・每日一句・场景全覆盖）","(lessons, vocab, examples, daily phrases & scenarios all covered)")}`:"当前使用系统 TTS（机械音）。"} 要新增声音：启动 VOICEVOX（或 AivisSpeech）引擎后运行 <code>python3 tools/gen_audio.py --voice-dir &lt;名字&gt; --speaker &lt;id&gt;</code>，再在 <code>audio/voices.js</code> 注册即可（详见 README）。需通过本地服务器打开。</p>
+        <label class="m-check"><input type="checkbox" id="tts-fb"> ${T("缺音频时用系统语音兜底（机械音，默认关闭）","Fall back to the system voice when a clip is missing (robotic; off by default)")}</label>
+        <p class="m-note">${T("默认关闭——你不喜欢那个机械音。现在内容已全部用真人音频，几乎用不到兜底。","Off by default — you disliked the robotic voice. All content now uses real-voice audio, so the fallback is rarely needed.")}</p>
       </section>
     </div></div>`;
   $("#modal-close").onclick=closeSettings;
@@ -1083,6 +1099,9 @@ function openSettings(){
   $("#imp-prog").onclick=()=>$("#imp-file").click();
   $("#imp-file").onchange=importProgress;
   if(window.Assistant) window.Assistant.bindSettings();
+  // system-TTS fallback toggle (default off)
+  if($("#tts-fb")){ $("#tts-fb").checked=ttsFallbackOn();
+    $("#tts-fb").onchange=()=>{ try{ localStorage.setItem("jpn-tts", $("#tts-fb").checked?"1":"0"); }catch(e){} }; }
   // voice picker
   const vdesc=()=>{ const v=VOICES.find(x=>x.id===$("#voice-sel").value)||VOICES[0]; if($("#voice-desc")) $("#voice-desc").textContent=v?v.desc||"":""; };
   if($("#voice-sel")){
@@ -1213,24 +1232,44 @@ function renderGeneral(){
 /* ============================================================================
  *  SCENARIOS PAGE (situational Japanese)
  * ==========================================================================*/
+/* split a dialogue line into an optional speaker label + the spoken body.
+   "患者：すみません…" → {label:"患者", body:"すみません…"}; unlabeled → {label:"", body:jp} */
+function scnSplit(jp){
+  const m=(jp||"").match(/^([^：:\n]{1,8})[：:]\s*([\s\S]*)$/);
+  return m ? {label:m[1], body:m[2]} : {label:"", body:jp||""};
+}
 function renderScenarios(){
   const c=$("#page-scenarios"); if(!c) return;
   const list=(typeof window!=="undefined"&&window.SCENARIOS)||[];
-  let html=`<div class="ref-intro"><h1>${T("🗺️ 場面 · 场景日语","🗺️ Scenarios · Real-life Japanese")}</h1><p>${T("按真实生活场景学：实用对话、关键词、礼仪与文化贴士。点标题展开/收起；日语句可点击朗读。","Learn by real-life scene: practical dialogue, key words, and etiquette/culture tips. Tap a heading to expand/collapse; tap a Japanese line to hear it.")}</p></div>`;
+  const roleTag=(sp,label)=>{ if(label) return esc(label);
+    return sp==="s" ? T("店員","Staff") : T("あなた","You"); };
+  let html=`<div class="ref-intro"><h1>${T("🗺️ 場面 · 场景日语","🗺️ Scenarios · Real-life Japanese")}</h1>
+    <p>${T("按真实生活场景学：实用对话、关键词、礼仪与文化贴士。","Learn by real-life scene: practical dialogue, key words, and etiquette/culture tips.")}</p>
+    <p class="tap-hint">🔊 ${T("点标题展开/收起 · 点任意单词或对话即可听真人发音（VOICEVOX）","Tap a heading to expand · tap any word or line to hear it in a real voice (VOICEVOX)")}</p></div>`;
   if(!list.length) html+=`<p class="hc-empty">${T("场景内容尚未加载。","Scenario content not loaded yet.")}</p>`;
   list.forEach((s,i)=>{
+    const dlg=s.dialogue||[];
     html+=`<div class="ref-section${i===0?" open":""}" data-id="scn-${esc(s.id)}">
       <div class="ref-head"><span class="r-emoji">${s.icon||"🗺️"}</span><h2>${esc(s.title)} <span class="r-zh">${esc(LANG==="en"?(s.titleEn||s.titleZh||""):(s.titleZh||""))}</span></h2><span class="r-arrow">▸</span></div>
       <div class="ref-body">
         ${s.intro?`<p class="scn-intro">${esc(zhen(s.intro.zh,s.intro.en))}</p>`:""}
-        ${(s.vocab&&s.vocab.length)?`<h4 class="scn-h">${T("🔑 キーワード","🔑 Key words")}</h4><div class="scn-vocab">${s.vocab.map(v=>`<div class="scn-v" data-jp="${esc(v.r||v.w)}"><b class="v-word">${esc(v.w)}</b><span class="v-read">${esc(v.r||"")}</span><span class="v-mean">${esc(zhen(v.zh,v.en))}</span></div>`).join("")}</div>`:""}
-        ${(s.dialogue&&s.dialogue.length)?`<h4 class="scn-h">${T("💬 会話","💬 Dialogue")}</h4><div class="scn-dialogue">${s.dialogue.map(d=>`<div class="conv-item scn-line" data-jp="${esc(d.jp)}">${toRuby(d.jp)}<span class="zh">${esc(zhen(d.zh,d.en))}</span></div>`).join("")}</div>`:""}
+        ${(s.vocab&&s.vocab.length)?`<h4 class="scn-h">${T("🔑 キーワード","🔑 Key words")}</h4><div class="scn-vocab">${s.vocab.map(v=>`<div class="scn-v tappable" data-jp="${esc(v.r||v.w)}" data-key="v_${esc(speechNorm(v.r||v.w))}" title="${T('点击朗读','tap to hear')}"><b class="v-word">${esc(v.w)}</b><span class="v-read">${esc(v.r||"")}</span><span class="v-mean">${esc(zhen(v.zh,v.en))}</span><span class="tap-spk">🔊</span></div>`).join("")}</div>`:""}
+        ${dlg.length?`<div class="scn-dh"><h4 class="scn-h">${T("💬 会話","💬 Dialogue")}</h4><button class="scn-playall" data-scn="${esc(s.id)}">▶ ${T("全部播放","Play all")}</button></div>
+          <div class="scn-dialogue">${dlg.map((d,di)=>{const p=scnSplit(d.jp);return `<div class="scn-line sp-${d.sp==="s"?"s":"c"}" data-key="scn_${esc(s.id)}_${di}" title="${T('点击朗读','tap to hear')}"><span class="scn-spk">${roleTag(d.sp,p.label)}</span><div class="scn-bubble">${toRuby(p.body)}<span class="zh">${esc(zhen(d.zh,d.en))}</span></div></div>`;}).join("")}</div>`:""}
         ${(s.manners&&s.manners.length)?`<h4 class="scn-h">${T("🎎 マナー・文化","🎎 Manners & Culture")}</h4><ul class="r-rules scn-manners">${s.manners.map(m=>`<li>${rubyMd(zhen(m.zh,m.en))}</li>`).join("")}</ul>`:""}
       </div></div>`;
   });
   c.innerHTML=html;
   c.querySelectorAll(".ref-head").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("open"));
-  c.querySelectorAll("[data-jp]").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:el}]));
+  // vocab + single dialogue line → play that one clip, highlighting the element
+  c.querySelectorAll(".scn-v,.scn-line").forEach(el=>el.onclick=()=>
+    speakSequence([{text:el.dataset.jp||"",node:el,audioKey:el.dataset.key}]));
+  // play the whole conversation, each line highlighting as it speaks
+  c.querySelectorAll(".scn-playall").forEach(btn=>btn.onclick=(e)=>{
+    e.stopPropagation();
+    const sec=btn.closest(".ref-section"), lines=[...sec.querySelectorAll(".scn-line")];
+    speakSequence(lines.map(el=>({text:el.dataset.jp||"",node:el,audioKey:el.dataset.key})));
+  });
 }
 
 /* ============================================================================
