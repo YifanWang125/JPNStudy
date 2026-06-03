@@ -4,8 +4,29 @@ A Tamagotchi-style companion that **grows from real study progress**, not random
 The goal: a daily reason to come back, an emotional stake in studying, and — once grown —
 a chat buddy that makes studying feel less lonely. Collectible, randomized, cute/cool.
 
-> Status: **DESIGN / PROPOSAL**. Nothing built yet. v1.0 (scenarios audio, speed,
-> adult mode) is done. This is the v1.1 plan to review before building.
+> Status: **Phase A BUILT & live** (js/pet.js — procedural creature, egg-of-fate, care,
+> sickness/death, home rail). **Growth v2 BUILT** (progress-weighted, §3). The "alive"
+> layer (diary/autonomy/conversation/evolution-as-language, §5b–5c) is DESIGNED below,
+> not yet built. v1.0 (scenarios audio, speed, adult mode) is done.
+
+---
+
+## 0. North star — the pet is a STUDY TOOL, not a game
+
+**Every pet mechanic must earn its place by serving Japanese learning.** This is an
+interactive, engaging *practice tool* wearing a game's clothes — not a game bolted onto a
+study site. The mapping is explicit and non-negotiable:
+
+| Pet mechanic            | The learning function it actually serves                        |
+|-------------------------|-----------------------------------------------------------------|
+| Activity log + diary (all 日本語) | **Reading practice** — you must read JP to know your pet's life |
+| Pet starts conversation | **Conversation practice** — daily, low-stakes, on/off topic     |
+| Evolution               | **Exposure to a new register/dialect** of Japanese (see §5c)    |
+| Growth bar              | **Motivation tied to real progress** (not clock-watching)       |
+| Home with friends/party | More voices → more registers, more reading/listening surface    |
+| Care loop               | A 20-second daily habit that pulls you into the app             |
+
+If a feature is fun but teaches nothing, it gets cut or reshaped until it teaches.
 
 ---
 
@@ -49,31 +70,40 @@ Rendering: 32×32 or 48×48 logical grid, `image-rendering:pixelated`, scaled up
 
 ---
 
-## 3. Lifecycle & growth (tied to study)
+## 3. Lifecycle & growth v2 — EFFORT + real PROGRESS  ✅ BUILT
 
 ```
 🥚 Egg → 🐣 Hatchling → 🐤 Child → 🦊 Teen → 🦁 Adult → 🧓 Elder
 ```
 
-**Growth currency = Study XP (SXP)**, earned ONLY from real study events the app already records:
+The critical principle (your emphasis): **growth tracks real learning, not activity.**
+Marking a session "done" is weak & gameable; *improving* is the strong signal. So
+`studySXP = EFFORT + PROGRESS`, with **progress weighted far higher**:
 
-| Study action (already tracked)                | SXP |
-|-----------------------------------------------|-----|
-| Complete a session (morning/noon/night)       | +10 |
-| Finish all 3 sessions of a day                | +20 bonus |
-| Daily streak tick (active today)              | +15 |
-| Finish a test (per %)                          | +0.5×score% |
-| New vocab/grammar reviewed (per item, capped) | +1  |
-| Hit the home "daily goal"                      | +25 |
+- **EFFORT (small floor — "showing up"):** `sessions×5 + full-days×10 + active-days×4`.
+  Gets a non-tester to ~child/teen, no further. Can't be the main driver (anti-cheat).
+- **PROGRESS (dominant — real mastery):**
+  - `Σ best-test-score% × 1.2` over the 4 tests, and
+  - `best-pronunciation × 0.8`.
+  - **Best-score is un-gameable & monotonic:** a plateau adds nothing; beating your
+    record adds *exactly* the gain (40→60→90 grows the pet a lot); being **stuck at 60**
+    keeps the pet small ("unacceptable" — correctly reflected); someone content at a
+    real 80 isn't punished (they earned 80). No farmable "improvement deltas."
 
-- Stage thresholds are cumulative SXP gates (e.g. Egg hatches at 30 SXP ≈ a couple of sessions).
-- **Hatching specifically requires study**, not time: the egg shows a crack meter that fills with SXP.
-- SXP is derived/recomputed from existing progress where possible (idempotent), plus an event log
-  so retroactive progress counts when the pet is first adopted.
+*Verified:* effort-only (6 marked days) = 174 SXP; + real progress (test 90%, pron 90) =
+354 (progress ≈ doubles growth); pron-best-80 plateau (346) < pron-best-90 (354).
 
-**Not studying never kills the pet** — only *neglecting care* does (see §4a). Not studying just
-stalls *growth* (no SXP). This keeps stakes real (death is possible) but fair (a busy week of
-quick care-taps keeps it alive even with zero study).
+- **Seeing progress:** every test attempt → `jpn-test-log`, every scored pronunciation →
+  `jpn-pron-log` (timestamped, capped). The pet *notices* the attempt you just made and
+  comments in Japanese — "発音、20点アップ！その調子！" / "今回はちょっと残念…次はいけるよ！"
+  (reading practice + the seed of study-tied conversation, §5b).
+- **Time-on-task (optional, 1a):** not tracked yet; sessions/days are the effort proxy.
+  Could add lightweight active-minute tracking later — but per your call, *progress > time*.
+- **Hatching requires study** (SXP, not the clock); the egg shows a fill meter.
+- All derived & monotonic, so stages never regress; retroactive (counts past progress).
+
+**Not studying never kills the pet** — only *neglecting care* does (§4a). Not studying just
+stalls *growth*. Stakes stay real (death is possible) but fair (20-second care keeps it alive).
 
 ---
 
@@ -175,7 +205,66 @@ growing personality layer on top of it. No state of the pet can ever leave you w
 
 ---
 
-## 6. Collection / breeding / discovery (Typeless-style, later phase)
+## 5b. The pet comes alive — autonomy, diary & a living home (reading + conversation practice)
+
+The pet should feel *self-motivated* (Tamagotchi's randomized events, but readable like the
+"generative agents" idea), and **every bit of its life is narrated in Japanese** so the user
+must read to follow along. This is the engagement engine — and it's all reading/conversation drill.
+
+**(a) Autonomous activity while you're away.** On each return we look at elapsed time and roll a
+randomized set of events (more time away → more events). Events are things that happened *to the
+home*: Cube read a book, went out, **brought a friend over**, they sang カラオケ, ate together,
+**got into a fight and Cube got hurt**, found a coin/item, napped, studied a little on its own…
+Mood/health/relationships shift accordingly (a fight → a scratch + lower health; a good day → mood up).
+
+**(b) Activity log + diary — two reading registers:**
+- **第三者ログ (third-person log):** terse timeline — 「キューブは 本を 読んだ。」「友[とも]だちが 遊[あそ]びに 来[き]た。」 — easy N5/N4 reading.
+- **日記 (first-person diary):** a longer, warmer entry you tap to open — 「今日[きょう]はね、○○が来[き]てくれて…」 — richer N4/N3 reading, leveled to the learner.
+- Optional **furigana toggle + tap-to-hear (VOICEVOX)** so the log doubles as listening practice.
+
+**(c) Pet-initiated conversation (your idea #2).** After you study (or on a cold open) the pet
+starts a chat: 「ねえ、さっき頑張[がんば]ってたね。どうだった？」 — on-topic *or* random, addressed by the
+**user's nickname / character voice** (not always "お父[とう]さん"). Tap to reply → opens the chat
+(§5: Sensei brain / pet personality). Pure low-stakes conversation reps.
+
+**(d) Living home & friends (your party idea → §6/Phase C):** the home can host **2–N pets**
+(a cap by perf). Friends visit, parties happen (eat / karaoke / even a kiss — randomized & gently
+gated by mood/relationship). You can just *watch* the JP unfold, or join the conversation.
+
+**Generation strategy (Claude + fallback):**
+- **With a BYOK key (Sensei online):** Claude generates the diary/log/conversation as *fresh,
+  leveled Japanese* (N-level matched, in the pet's current register/dialect — §5c), grounded in
+  the rolled events + your real study (it can reference "you nailed the pronunciation today").
+- **Without a key:** a templated JP event/diary generator (slot-filled sentences) — less varied,
+  still real reading. The pet always works offline; Claude just makes it richer.
+- **Everything is randomized** (seeded per day so a given day is stable on re-open, but the *roll*
+  is random) — no two days read the same.
+
+---
+
+## 5c. Evolution = a NEW kind of Japanese (the real payoff)
+
+Evolution is **event-driven and Digimon-loose** (no fixed tree): it can trigger from a happy
+streak, a gift from you, a "deep book" it read, a social/romantic event, a fight, prolonged
+neglect (→ an *angry* form), etc. Rare, surprising, randomized.
+
+**What evolution MEANS to the learner = a change in how the pet speaks Japanese.** The sprite
+changes, but the *point* is a new **register / dialect / speech style** to get exposed to:
+
+| Trigger (example)            | Evolution → speech style the pet now uses                    |
+|------------------------------|--------------------------------------------------------------|
+| Met a friend from 大阪        | **関西弁** (なんでやねん／おおきに／ほんま…)                      |
+| Friend from 沖縄              | **沖縄 slang** (めんそーれ／なんくるないさ…)                    |
+| Read "deep books"            | **literary / 硬い** register, kanji-heavy, formal             |
+| Hung out online              | **ネットスラング** (草／それな／〜み…)                          |
+| Lots of polite care/keigo    | **敬語** mode (〜でございます…)                                 |
+| Neglect → angry form         | blunt / rough 男言葉 or ぞんざい speech                        |
+| Baby → child (default)       | plain 標準語, simpler grammar                                  |
+
+So the learner *experiences* that Japanese isn't monolithic — politeness levels, dialects,
+slang, written vs spoken — through who their pet becomes. A `register` field on the pet drives
+both its canned lines and the Claude system prompt. (Kansai content also already exists in the
+Reference section — the pet makes it lived-in.) Evolutions are logged in the 図鑑.
 
 - **図鑑 (Pokédex)**: a collection book of species you've discovered; silhouettes for undiscovered.
 - **Going out & friends:** once Adult, the pet can "go out to play" (a study-gated cooldown).
@@ -237,38 +326,45 @@ growing personality layer on top of it. No state of the pet can ever leave you w
 
 ## 9. Build phases (incremental, each shippable)
 
-- **Phase A — MVP (the heart):** procedural creature renderer + genome; egg→hatch from SXP;
-  4 care meters + feed/wash/clean/poop; **HP + sickness + death** (§4a) with capped offline decay
-  & warning banners; mood-driven expressions; home companion panel filling the gutters; pet speech
-  bubbles tied to state; wire SXP/coins into existing study hooks; backup integration (`jpn-pet`).
-  Sensei (📖) stays exactly as today — untouched and always available. *Delivers the daily ritual,
-  visible study-driven growth, and real stakes.*
-- **Phase B — Brains & book:** full stage ladder; intelligence tiers; **pet chat layer added on
-  top of Sensei** (persona switch in one panel — §5; Sensei always on, pet unlocks at Teen);
-  in-character Claude; 図鑑 collection page + memorial; species archetypes; VOICEVOX pet voice.
-- **Phase C — Social/collection:** going out, friends/yard, **breeding (genome crossover)**,
-  milestone-gated rare eggs, mutations.
+- **Phase A — MVP (the heart) ✅ BUILT.** Procedural creature + genome; egg-of-fate → hatch from
+  SXP; 4 care meters + feed/wash/clean/poop; HP + sickness + permanent death (§4a, forgiving,
+  capped offline decay); mood expressions; home rail filling the gutters; speech tied to state.
+- **Growth v2 ✅ BUILT (§3).** Progress-weighted (effort floor + best-score mastery); test/pron
+  attempt logs; pet notices & comments on the attempt you just made.
+- **Phase B — Alive & smart (NEXT).** The §5b/§5c layer + the chat merge:
+  - B1 **Activity log + JP diary** (autonomous events while away; templated JP now, Claude-rich
+    with a key) — *reading practice.*
+  - B2 **Pet-initiated conversation** + the §5 persona chat (Sensei always on, pet unlocks at
+    Teen) — *conversation practice.*
+  - B3 **Evolution = register/dialect** (§5c): a `register` field driving canned lines + Claude
+    prompt (Kansai / Okinawa / net-slang / keigo / literary / angry) — *language-variety exposure.*
+  - B4 **図鑑 collection + memorial**; species archetypes; VOICEVOX pet voice.
+- **Phase C — Social home.** Multiple pets / friends / parties (watch or join the JP), breeding
+  (genome crossover), milestone-gated rare eggs, mutations.
 
-Recommend building **Phase A** first, reviewing the feel, then B, then C.
+Recommended B order: **B1 (diary) → B2 (conversation) → B3 (evolution) → B4 (図鑑)** — each is a
+self-contained reading/speaking surface, and B1 gives the most "alive" feel per unit of work.
 
 ---
 
-## 10. Decisions locked (✓) & remaining
+## 10. Decisions locked (✓) & open
 
-- ✓ **Art:** procedural pixel creatures (seed→genome), HD-2D sprite-sheet swap kept as a later
-  upgrade path.
-- ✓ **Care stakes:** real — pet **can die** (permanent), **never runs away**; sickness & mood
-  are first-class; fairness via care≠growth + capped offline decay + warnings (§4 / §4a).
-- ✓ **AI contradiction resolved:** "Sensei is the brain, the pet is the heart" — Sensei (📖) is
-  always-on tutoring regardless of pet state; the pet is an additive, growing chat persona that
-  defers to Sensei while young (§5). Help is never gated on the pet.
-- ✓ **Next step:** refine design first (this pass) — not building yet.
+- ✓ **North star:** the pet is a *study/practice tool*; every mechanic maps to a learning function (§0).
+- ✓ **Art:** procedural pixel creatures (seed→genome); HD-2D sprite swap kept as a later upgrade.
+- ✓ **Growth:** effort floor + **progress-weighted, un-gameable best-score mastery** (§3). BUILT.
+- ✓ **Care stakes:** real — **can die** (permanent), **never runs away**; sickness & mood first-class;
+  fair via care≠growth + capped offline decay + warnings (§4/§4a).
+- ✓ **AI:** "Sensei is the brain, the pet is the heart" — Sensei always on; pet is an additive,
+  growing persona (§5).
+- ✓ **Home placement:** side rail filling the gutters + mobile card.
+- ✓ **Difficulty:** forgiving (tunable knobs).
+- ✓ **Starter:** **one egg of fate** (auto-granted; user reverted the pick-from-3).
 
-**Remaining decisions — now LOCKED (✓):**
-1. ✓ **Home placement:** a **side companion panel filling the gutters** of the centered home page
-   (collapses to a card on mobile). Directly fixes the "big empty sides" complaint.
-2. ✓ **Difficulty:** **forgiving** — death needs ~5–7 days of zero care *with visible warnings*;
-   offline catch-up capped ~48 h. All values exposed as `tune` knobs to adjust after playtest.
-3. ✓ **Starter:** **pick from 3 random eggs** (light "starter Pokémon" moment, more ownership).
-
-→ All design decisions are locked. Building **Phase A** (the heart) next.
+**Open questions for Phase B:**
+1. **Diary depth without a key:** how rich should the *templated* (no-Claude) diary be? (A small
+   curated JP event/sentence bank vs minimal one-liners.) Claude makes it rich either way.
+2. **Conversation autonomy:** how proactive should the pet be — only after study, or also random
+   "pings" on cold opens? (Risk of feeling naggy.)
+3. **Evolution rarity & control:** fully random surprise, or a gentle nudge (e.g. a "send it
+   abroad / give a book" action you can choose) so the user can *aim* for a dialect they want?
+4. **Multi-pet cap (Phase C):** how many simultaneous pets/visitors before it's too busy/slow?
