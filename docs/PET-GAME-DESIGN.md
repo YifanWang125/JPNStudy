@@ -266,6 +266,30 @@ slang, written vs spoken — through who their pet becomes. A `register` field o
 both its canned lines and the Claude system prompt. (Kansai content also already exists in the
 Reference section — the pet makes it lived-in.) Evolutions are logged in the 図鑑.
 
+---
+
+## 5d. Personality (nature) — the per-pet character  ✅ BUILT (data layer)
+
+Every pet has a **nature**, like a Pokémon nature, **deterministic from its seed** — so it's
+part of "who fate gave you," and it's the same offline. Personality is a **learning lever, not
+flavor**, driving three things:
+
+1. **Tone / speech style** — how it talks (元気: 「体[からだ]動[うご]かそうぜ！」 vs クール:
+   「ふん、まあまあだな。」 vs 甘えん坊: 「おとうさ〜ん、さみしかった〜！」). Composes with the
+   evolution register (§5c): nature = baseline voice, evolution = dialect/register on top.
+2. **Activity bias + signature events** — a sporty pet plays ball, a quiet one reads & journals,
+   a foodie hunts ramen. The roller merges generic events with the nature's own event set.
+3. **⭐ The Japanese vocabulary DOMAIN it exposes you to** — this is the payoff. A 元気 pet's diary
+   literally teaches sports JP («バスケで タイマン勝負[しょうぶ]した。めっちゃ上手[うま]かった！»),
+   a グルメ teaches food words (ラーメン／こってり／手作[てづく]り), クール teaches calm/observational
+   phrasing, etc. Different pets → different slices of Japanese → "richer learning scenarios."
+
+Built natures: 元気(sporty) · 物静か(bookish) · 食いしん坊(foodie) · やんちゃ(mischief/gaming) ·
+甘えん坊(clingy) · クール(cool). Each has tone + 2 domain-vocab events (jp/zh/en + first-person
+diary fragment). Stored as `p.nature` (retro-safe via `natureOf(seed)`); shown as a header chip.
+*Extensible:* more natures + more domain events are just data; Claude (§A) can also generate
+nature-true events/lines on the fly.
+
 - **図鑑 (Pokédex)**: a collection book of species you've discovered; silhouettes for undiscovered.
 - **Going out & friends:** once Adult, the pet can "go out to play" (a study-gated cooldown).
   It returns with: a **new egg**, a **friend** (NPC creature added to your home yard), or an item.
@@ -368,3 +392,44 @@ self-contained reading/speaking surface, and B1 gives the most "alive" feel per 
 3. **Evolution rarity & control:** fully random surprise, or a gentle nudge (e.g. a "send it
    abroad / give a book" action you can choose) so the user can *aim* for a dialect they want?
 4. **Multi-pet cap (Phase C):** how many simultaneous pets/visitors before it's too busy/slow?
+
+---
+
+## A. Evaluation: "give each pet its own AI Agent"
+
+**Verdict: adopt the *idea*, not the literal implementation.** Each pet *should* feel like it has
+its own mind — stable personality, memory of your shared history, its own voice. Claude can deliver
+that. But a *literal* always-on autonomous agent process per pet is impossible **and unnecessary**
+here, for concrete reasons:
+
+- **No server / no runtime.** This is a static site (GitHub Pages) + browser-only BYOK Claude.
+  There is no place to host a process that "lives" while the app is closed. Tamagotchi and
+  旅行カエル don't really run while away either — they **compute what happened on the next open**
+  from elapsed time + RNG. We already do exactly this (B1's `rollActivity`). So "autonomy" is a
+  *simulation computed on return*, not a background loop — and that's fine; it's the genre's trick.
+- **Cost & redundancy.** A persistent agent burning tokens while nobody's watching is pure waste,
+  and it's the user's own API key. N agents for N pets multiplies that for zero benefit.
+
+**Recommended architecture — "agent-on-demand" (a persona, not a process):**
+Model each pet as `agent = persona spec + memory + a generation function`, invoked only when needed:
+
+1. **Persona spec (cheap, deterministic, always offline):** name, **nature** (§5d), **register/
+   dialect** (§5c evolution), interests/activity-domains, address term for the user. Built from
+   genome+state — no API needed.
+2. **Memory (compact, in localStorage):** a rolling summary of shared history — recent events, your
+   study trajectory (the test/pron deltas we now log), in-jokes, relationship with other pets. Small
+   text blob fed into the prompt so the pet "remembers" you.
+3. **Generation (one Claude call, only with a key, only when something is shown):**
+   - on **return** → the catch-up diary/log, in the pet's voice & register, leveled to your N-level;
+   - on **study** → a proactive line about how it went (uses the real score deltas);
+   - on **chat** → a reply (this is the §5 Sensei/pet merge).
+   One system prompt assembled from persona+memory+context. **Haiku** for cheap flavor (diary,
+   greetings), **Sonnet** when it's actually tutoring.
+4. **Fallback (no key):** the templated, nature-flavored generator already built (B1/§5d). The pet
+   is always alive offline; Claude just makes its language fresh, varied, and N-level-adaptive.
+5. **Multi-pet (Phase C):** generate the **whole household's day in ONE call** (not N calls) — the
+   "agents" share a scene; cheaper and lets them reference each other.
+
+**Net:** "one agent per pet" = **one persona + memory per pet, voiced by on-demand Claude calls
+with a templated offline fallback.** This delivers the autonomy/character you want, fits a static
+BYOK app, costs little, and never breaks offline. This is precisely the plan for **Phase B2**.
