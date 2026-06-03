@@ -457,3 +457,66 @@ Model each pet as `agent = persona spec + memory + a generation function`, invok
 **Net:** "one agent per pet" = **one persona + memory per pet, voiced by on-demand Claude calls
 with a templated offline fallback.** This delivers the autonomy/character you want, fits a static
 BYOK app, costs little, and never breaks offline. This is precisely the plan for **Phase B2**.
+
+---
+
+## B. ⭐ Production exercises (練習) — the missing output skill  ← HIGH PRIORITY, design
+
+**The gap (user's insight):** the site is input-heavy (read, listen, comprehend) and the learner
+can understand ~60–80% (kanji helps Chinese speakers) **but cannot PRODUCE** — build sentences,
+apply grammar/vocab, speak on the spot (the gym situation). Comprehension ≠ production. We need a
+deliberate **output-practice** section that drills *making* Japanese with what was just learned.
+
+**Exercise types (production-focused):**
+1. **語/助詞えらび (cloze)** — sentence with a blank; pick the right word/particle. Auto-graded.
+   Cheap, fast, drills application + particles (a known weak spot).
+2. **並べ替え (sentence building)** — arrange scrambled chunks into a correct sentence. Auto-graded
+   (compare to answer). Trains word order / structure — core production.
+3. **作文 (compose / translate-into-JP)** — prompt in zh/en (or a target grammar point) → learner
+   writes a Japanese sentence. **Claude-graded** (BYOK): correctness + a natural rewrite + furigana
+   + a short tip. Offline fallback: reveal a model answer to self-check.
+4. **場面で言ってみる (say-it-in-context)** — a real scenario ("at the gym, ask where the lockers
+   are") → produce a line. Claude-graded. Directly attacks the real-world transfer gap; reuses the
+   場面/Scenarios themes.
+
+**Where it lives:** a **練習 tab inside the daily lesson** (drills *that day's* grammar+vocab — the
+tightest learn→apply loop), plus a later **mixed-review** mode pulling from all learned days.
+
+**Generation & grading:** prefer **on-demand Claude** (BYOK) — "make 5 production exercises from Day
+N's grammar+vocab, then grade my answers" → infinite, fresh, N-leveled, no authoring burden; reuses
+`Assistant.complete`. Offline/no-key fallback: a small authored cloze/reorder set per day + compose
+with model-answer self-check. Auto-gradable types work offline regardless.
+
+**Ties to the system:** exercise scores log like tests/pron → feed the **progress-XP** growth model
+(production is the hardest skill → high-value signal → the pet grows from genuine output, not just
+reading). The pet can also react ("作文、上手になったね！").
+
+**Open design choices (for the user):** which types to include; per-day vs standalone; on-demand
+Claude vs authored set vs both.
+
+---
+
+## C. Group activity (Phase C, re-scoped) — visitors & a party = group-conversation practice
+
+Locked scope: **one permanent owned pet**; others only **visit temporarily** (≈a day) then leave.
+**No care for visitors. No breeding** (out of scope this version).
+
+- **A friend visits:** occasionally (gated) a visitor pet — its own nature + dialect — shows up for
+  a window (announced; a second small sprite). Brings variety of register/topic.
+- **パーティー (join the group chat):** tap "みんなで はなす" → a group chat with your pet + 1–2
+  visitors, each a distinct Claude persona. They banter in Japanese; **you join by typing.** Claude
+  orchestrates the multi-voice turns. Optionally themed (a welcome party, planning an outing) for
+  goal-oriented talk.
+- **Learning value:** multi-party comprehension (turn-taking, referents), 相槌/reactions, register-
+  switching across speakers, and **low-pressure production** (you must output to join). The complement
+  to 1:1 chat; same BYOK brain, multi-persona. Speaking input (mic) is a *future* upgrade — text now.
+
+---
+
+## D. Community / "your pet as your representative" (FUTURE — next version, not now)
+
+Vision: the pet represents the user socially. It "goes out" and meets *other users'* pets, shows off
+what its owner studied ("うちの主人、今日これ覚えたよ！"), and comes home with news ("パパ、負けてられないよ！")
+— a generative-agent social layer that motivates without becoming a hookup app (the *pet*, not the
+person, is the social surface). Requires a backend/multiuser (the site is currently static, single-user).
+Captured as a future direction; **do not build now.**
