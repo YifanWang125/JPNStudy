@@ -205,7 +205,7 @@
 
   // ---- adoption: fate hands you ONE precious egg (no choosing) ---------------
   function adopt(seed){ const uid="p"+now().toString(36);
-    S.pets[uid]={ uid, seed, species:"sp"+(seed%24), name:null, stage:"egg", found:now(),
+    S.pets[uid]={ uid, seed, nature:natureOf(seed), species:"sp"+(seed%24), name:null, stage:"egg", found:now(),
       adoptSXP:studySXP(), hatchAt:studySXP()+TUNE.hatchCost, bornAt:now(),
       meters:{hunger:100,clean:100,happy:100,energy:100,ts:now()}, hp:100 };
     S.active=uid; S.dex["sp"+(seed%24)]={seen:true}; save(); }
@@ -237,6 +237,8 @@
       if(now()-(p.found||0)<60000) return T("ふしぎなタマゴが届いた…縁だね。大事に育てよう！","A mysterious egg found its way to you… fate. Let's raise it with care!");
       return T("コツコツ勉強すると、生まれるよ…！","Keep studying and I'll hatch…!");
     }
+    const nat=NATURES[petNature(p)];                 // personality-flavored idle line
+    if(nat&&nat.idle) return T(nat.idle.jp, nat.idle.en);
     return T("きょうも えらいね！","You're doing great today!");
   }
 
@@ -258,6 +260,34 @@
     {id:"study", w:2, fx:{happy:5},            jp:"{n}は ひとりで ひらがなを 練習[れんしゅう]していた。", zh:"{n}自己练了平假名。", en:"{n} practiced hiragana on its own.", dia:{jp:"べんきょうも がんばったんだよ！", zh:"我也努力学习了哦！", en:"I studied hard too!"}},
     {id:"coin",  w:1, fx:{coin:2},             jp:"{n}は 道[みち]で コインを 拾[ひろ]った。", zh:"{n}在路上捡到了硬币。", en:"{n} found a coin on the road.", dia:{jp:"コインも ひろっちゃった！ラッキー。", zh:"还捡到了硬币！真幸运。", en:"I even found a coin! Lucky."}},
   ];
+  // ---- PERSONALITY (nature) — drives tone, activity bias & the JP VOCABULARY DOMAIN ----
+  // Like a Pokémon nature: deterministic from the seed. Each nature biases which events
+  // happen and ADDS its own domain-flavored events, so a sporty pet's diary teaches sports
+  // Japanese, a foodie's teaches food words, etc. (the "richer learning scenarios" idea).
+  // idle = the pet's characteristic bubble line; ev = its signature activities w/ domain vocab.
+  const NATURES={
+    genki:{ jp:"元気[げんき]", zh:"活泼·爱运动", en:"Energetic", idle:{jp:"いっしょに 体[からだ]、動[うご]かそうぜ！",en:"Let's get moving together!"}, ev:[
+      {w:9,fx:{happy:8,energy:-6},jp:"{n}は {f}と バスケで タイマン勝負[しょうぶ]した。{f}、めっちゃ上手[うま]かった！",zh:"{n}和{f}打篮球单挑。{f}超厉害！",en:"{n} played 1-on-1 basketball with {f} — {f} was so good!",dia:{jp:"{f}と バスケで タイマンしたよ。負[ま]けたけど 楽[たの]しかった！",zh:"和{f}打篮球单挑了。虽然输了但很开心！",en:"Had a 1-on-1 hoops match with {f}. Lost, but it was fun!"}},
+      {w:7,fx:{energy:-8,happy:6},jp:"{n}は 公園[こうえん]を 全力[ぜんりょく]で 走[はし]り回[まわ]った。",zh:"{n}在公园里拼命地跑。",en:"{n} ran around the park at full speed.",dia:{jp:"きょうは いっぱい 走[はし]ったぞ！",zh:"今天跑了好多！",en:"I ran a ton today!"}} ]},
+    shizuka:{ jp:"物静[ものしず]か", zh:"安静·爱看书", en:"Quiet", idle:{jp:"…おかえり。静[しず]かに 読書[どくしょ]、いいよね。",en:"…Welcome back. A quiet read is nice, isn't it."}, ev:[
+      {w:9,fx:{happy:5},jp:"{n}は 窓辺[まどべ]で 静[しず]かに 小説[しょうせつ]を 読[よ]んでいた。",zh:"{n}在窗边静静地读小说。",en:"{n} read a novel quietly by the window.",dia:{jp:"いい小説[しょうせつ]に 出会[であ]えた。静[しず]かな時間[じかん]が 好[す]き。",zh:"遇到了一本好小说。我喜欢安静的时光。",en:"I found a lovely novel. I love quiet time."}},
+      {w:7,fx:{happy:4},jp:"{n}は カフェで ゆっくり 日記[にっき]を 書[か]いた。",zh:"{n}在咖啡馆慢慢写日记。",en:"{n} wrote in its diary slowly at a café.",dia:{jp:"カフェで 日記[にっき]を 書[か]いたよ。",zh:"在咖啡馆写了日记。",en:"I wrote in my diary at a café."}} ]},
+    gourmet:{ jp:"食[た]いしん坊[ぼう]", zh:"吃货", en:"Foodie", idle:{jp:"ねえ、今日[きょう]は 何[なに] 食[た]べる？",en:"Hey, what are we eating today?"}, ev:[
+      {w:9,fx:{hunger:14,happy:6},jp:"{n}は 話題[わだい]の ラーメン屋[や]に 並[なら]んだ。こってり 最高[さいこう]！",zh:"{n}去排了网红拉面店。浓汤太赞了！",en:"{n} queued at a famous ramen shop. The rich broth was the best!",dia:{jp:"ラーメン、こってりで 最高[さいこう]だった！また 行[い]きたい。",zh:"拉面又浓又香，太棒了！还想再去。",en:"The ramen was rich and amazing! I want to go again."}},
+      {w:7,fx:{hunger:10},jp:"{n}は 自分[じぶん]で おやつを 手作[てづく]りした。",zh:"{n}自己做了点心。",en:"{n} made a snack from scratch.",dia:{jp:"おやつ、手作[てづく]りしてみた！",zh:"试着自己做了点心！",en:"I tried making a snack myself!"}} ]},
+    yancha:{ jp:"やんちゃ", zh:"调皮·爱玩游戏", en:"Mischievous", idle:{jp:"へへっ、なんか おもしろいこと ないかな？",en:"Heheh… anything fun going on?"}, ev:[
+      {w:9,fx:{happy:8,energy:-4},jp:"{n}は ゲームで {f}を 倒[たお]した。「よゆうだぜ！」",zh:"{n}在游戏里打败了{f}。“小菜一碟！”",en:"{n} beat {f} at a game. \"Too easy!\"",dia:{jp:"{f}と 対戦[たいせん]して 勝[か]った！よゆう よゆう♪",zh:"和{f}对战赢了！轻轻松松♪",en:"Beat {f} in a match! Easy peasy ♪"}},
+      {w:7,fx:{happy:6},jp:"{n}は いたずらして {f}を 驚[おどろ]かせた。",zh:"{n}搞恶作剧吓了{f}一跳。",en:"{n} pulled a prank and startled {f}.",dia:{jp:"{f}を びっくりさせちゃった！へへ。",zh:"把{f}吓了一跳！嘿嘿。",en:"I gave {f} a fright! Hehe."}} ]},
+    amaenbo:{ jp:"甘[あま]えん坊[ぼう]", zh:"爱撒娇·黏人", en:"Clingy", idle:{jp:"おとうさ〜ん、さみしかったよ〜！",en:"I missed you so much~!"}, ev:[
+      {w:9,fx:{happy:-2},jp:"{n}は ずっと あなたの 帰[かえ]りを 待[ま]っていた。",zh:"{n}一直在等你回来。",en:"{n} waited and waited for you to come back.",dia:{jp:"ずっと あなたを 待[ま]ってたんだよ。さみしかった…。",zh:"我一直在等你哦。好寂寞…。",en:"I waited for you the whole time. I was lonely…"}},
+      {w:7,fx:{happy:5},jp:"{n}は ぬいぐるみを ぎゅっと 抱[だ]きしめた。",zh:"{n}紧紧抱着布偶。",en:"{n} hugged its plushie tight.",dia:{jp:"ぬいぐるみと ぎゅっとしてた。",zh:"抱着布偶蹭蹭。",en:"I cuddled my plushie."}} ]},
+    cool:{ jp:"クール", zh:"高冷·酷", en:"Cool", idle:{jp:"ふん、まあまあだな。",en:"Hmph. Not bad."}, ev:[
+      {w:9,fx:{happy:3},jp:"{n}は 屋根[やね]の 上[うえ]で 一人[ひとり]、月[つき]を 見[み]ていた。",zh:"{n}一个人在屋顶上看月亮。",en:"{n} watched the moon alone on the roof.",dia:{jp:"屋根[やね]の上[うえ]で 月[つき]を 見[み]てた。…悪[わる]くない。",zh:"在屋顶看月亮。…还不赖。",en:"Watched the moon from the roof. …Not bad."}},
+      {w:7,fx:{energy:4},jp:"{n}は 黙[だま]って コーヒーを 飲[の]んでいた。",zh:"{n}默默地喝着咖啡。",en:"{n} sipped coffee in silence.",dia:{jp:"コーヒーを 飲[の]んで のんびりした。",zh:"喝着咖啡放松了一下。",en:"Had coffee and took it easy."}} ]},
+  };
+  function natureOf(seed){ const k=Object.keys(NATURES); return k[Math.floor(mulberry32((seed^0x7a7a)>>>0)()*k.length)]; }
+  function petNature(p){ return (p&&NATURES[p.nature]) ? p.nature : natureOf((p&&p.seed)||1); }
+  function natLabel(p){ const nt=NATURES[petNature(p)]||{}; return window.LANG==="en"?(nt.en||"") : String(nt.jp||"").replace(/\[[^\]]*\]/g,""); }
   function rng(seed){ return mulberry32((seed>>>0)||1); }
   function fill(s,c){ return s.replace(/{n}/g,c.n).replace(/{f}/g,c.f).replace(/{g}/g,c.g); }
   function wpick(r,arr){ const tot=arr.reduce((s,e)=>s+e.w,0); let x=r()*tot; for(const e of arr){ if((x-=e.w)<0) return e; } return arr[0]; }
@@ -280,7 +310,11 @@
     const r=rng(Math.floor(last/3.6e6)+(p.seed||1));        // stable per absence window
     const n=Math.max(1,Math.min(6,Math.round(gap/(3*3.6e6))));
     const ctx={ n:p.name||"この子", f:FRIENDS[Math.floor(r()*FRIENDS.length)], g:THINGS[Math.floor(r()*THINGS.length)] };
-    const events=[]; for(let i=0;i<n;i++){ const e=wpick(r,EVENTS); applyFx(p,e.fx);
+    const nat=NATURES[petNature(p)];                        // personality biases what happens…
+    const pool=EVENTS.concat(nat&&nat.ev?nat.ev:[]);        // …and adds its domain-vocab events
+    const events=[]; let lastE=null; for(let i=0;i<n;i++){ let e=wpick(r,pool);
+      if(e===lastE) e=wpick(r,pool);                        // avoid back-to-back repeats
+      lastE=e; applyFx(p,e.fx);
       events.push({ jp:fill(e.jp,ctx), zh:fill(e.zh,ctx), en:fill(e.en,ctx),
         dia:{jp:fill(e.dia.jp,ctx),zh:fill(e.dia.zh,ctx),en:fill(e.dia.en,ctx)} }); }
     const happy=(p.meters.happy>=55 && (p.hp==null||p.hp>40));
@@ -303,6 +337,7 @@
     const warn = (p.sick)?`<div class="pet-warn">🤒 ${T("具合が悪いよ。お薬で治してね（成長が止まってる）","Sick — cure it with medicine (growth is paused)")}</div>`:"";
     return `<div class="pet-box" data-uid="${p.uid}">
       <div class="pet-head"><b class="pet-name">${esc(p.name||"…")}</b><span class="pet-stage">${stageLbl[p.stage]||st}</span>
+        ${p.stage!=="egg"?`<span class="pet-nature" title="${T('性格','Nature')}">${esc(natLabel(p))}</span>`:""}
         ${p.stage!=="egg"?`<button class="pet-logbtn${unseenLog()?" unseen":""}" title="${T('日记・活动','Diary & activity')}">📔</button>`:""}
         <span class="pet-coins">🪙 ${coins()}</span></div>
       <div class="pet-stage-wrap"><canvas class="pet-canvas" width="132" height="132"></canvas></div>
