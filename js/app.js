@@ -28,6 +28,9 @@ function T(zh, en){ return (LANG==="en" && en!=null) ? en : zh; }
 function zhen(zh, en){ return (LANG==="en" && en!=null && en!=="") ? en : (zh!=null?zh:""); }
 /* English lesson content (js/i18n-en.js); ENL(day) → that day's en fields or {} */
 function ENL(day){ return (typeof window!=="undefined" && window.EN && window.EN[day]) || {}; }
+/* English data for tests (window.EN_TESTS[id]) */
+function ENT(id){ return (typeof window!=="undefined" && window.EN_TESTS && window.EN_TESTS[id]) || {}; }
+const CAT_EN={ "文法":"Grammar","語彙":"Vocabulary","読解":"Reading" };
 /* part-of-speech labels → English */
 const POS_EN={ "名詞":"noun","動詞":"verb","自動詞":"intransitive verb","他動詞":"transitive verb","な形容詞":"na-adjective","い形容詞":"i-adjective","副詞":"adverb","助詞":"particle","接続詞":"conjunction","接続助詞":"conjunctive particle","連体詞":"adnominal","感動詞":"interjection","補助動詞":"auxiliary verb","代名詞":"pronoun","連語":"phrase","慣用句":"idiom","表現":"expression","接尾":"suffix","接頭":"prefix","接尾辞":"suffix","形容動詞":"na-adjective","数詞":"numeral","する動詞":"suru-verb" };
 function posLabel(pos){ if(!pos) return ""; if(LANG!=="en") return pos;
@@ -598,7 +601,7 @@ function renderNoon(L){
       <div class="vc-head"><span class="v-word">${esc(v.w)}</span><span class="v-read">${esc(v.r)}</span><button class="play-w" data-w="${esc(v.r)}">🔊</button>${v.pos?`<span class="v-pos">${esc(posLabel(v.pos))}</span>`:""}</div>
       <div class="vc-mean">${LANG==="en" ? esc((E.vocabEn&&E.vocabEn[v.w])||v.en||v.zh) : (linkTerms(v.zh)+(v.en?`<span class="v-en"> · ${esc(v.en)}</span>`:""))}</div>
       ${v.parts?`<div class="vc-parts"><span class="vc-tag">${T("🧩 拆解","🧩 Breakdown")}</span>${v.parts.map(p=>`<span class="vc-part" ${p.r?`data-w="${esc(p.r)}"`:""}><b>${esc(p.p)}</b>${p.r?`<i>${esc(p.r)}</i>`:""}＝${esc(LANG==="en"?(POS_EN[p.m]||p.m):p.m)}</span>`).join('<span class="vc-plus">＋</span>')}</div>`:""}
-      ${v.ex?`<div class="vc-ex" data-jp="${esc(v.ex.jp)}"><span class="vc-tag">${T("📝 例","📝 e.g.")}</span>${toRuby(v.ex.jp)}<span class="zh">${esc(v.ex.zh)}</span></div>`:""}
+      ${v.ex?`<div class="vc-ex" data-jp="${esc(v.ex.jp)}"><span class="vc-tag">${T("📝 例","📝 e.g.")}</span>${toRuby(v.ex.jp)}<span class="zh">${esc(zhen(v.ex.zh,(E.vocabExEn&&E.vocabExEn[v.w])))}</span></div>`:""}
     </div>`).join("")}
     </div></section>`;
 
@@ -911,7 +914,9 @@ function renderHome(){
   let rDay=parseInt(localStorage.getItem("jpn-last-day")||"0",10); if(!(rDay>=1&&rDay<=LESSONS.length)) rDay=N;
   let rSess=localStorage.getItem("jpn-last-session")||"morning"; if(!SESSION_LABEL[rSess]) rSess="morning";
   const Lr=lessonByDay(rDay);
-  const ph = DAILY_PHRASES[dayOfYear() % DAILY_PHRASES.length];
+  const phIdx = dayOfYear() % DAILY_PHRASES.length;
+  const ph = DAILY_PHRASES[phIdx];
+  const phEn = ((typeof window!=="undefined"&&window.EN_DAILY&&window.EN_DAILY.phrases)||[])[phIdx]||{};
 
   // --- stats ---
   let done=0,vocabL=0,gramL=0;
@@ -955,9 +960,9 @@ function renderHome(){
       <section class="home-card">
         <h2>${T("💬 每日一句","💬 Phrase of the Day")}</h2>
         <div class="phrase-jp" data-jp="${esc(ph.jp)}">${toRuby(ph.jp)} <button class="phrase-play" title="朗读">🔊</button></div>
-        <div class="phrase-zh">${esc(ph.zh)}</div>
-        <div class="phrase-note">${esc(ph.note)}</div>
-        <div class="phrase-ex" data-jp="${esc(ph.ex.jp)}">「${toRuby(ph.ex.jp)}」<span class="zh">${esc(ph.ex.zh)}</span></div>
+        <div class="phrase-zh">${esc(zhen(ph.zh, phEn.en))}</div>
+        <div class="phrase-note">${esc(zhen(ph.note, phEn.noteEn))}</div>
+        <div class="phrase-ex" data-jp="${esc(ph.ex.jp)}">「${toRuby(ph.ex.jp)}」<span class="zh">${esc(zhen(ph.ex.zh, phEn.exEn))}</span></div>
       </section>
 
       <section class="home-card">
@@ -1116,15 +1121,18 @@ function importProgress(e){
  *  GENERAL / REFERENCE PAGE
  * ==========================================================================*/
 function rubyMd(s){ return toRuby(s).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>"); }
-function renderBlocks(blocks){
-  return blocks.map(b=>{
-    if(b.t==="p") return `<p>${rubyMd(b.zh)}</p>`;
-    if(b.t==="why") return `<div class="r-why"><span class="r-why-tag">🤔 为什么</span>${rubyMd(b.zh)}</div>`;
-    if(b.t==="analogy") return `<div class="r-analogy"><span class="r-an-tag">🔗 类比</span>${rubyMd(b.zh)}</div>`;
-    if(b.t==="note") return `<div class="r-note">${rubyMd(b.zh)}</div>`;
-    if(b.t==="rules") return `<ul class="r-rules">${b.items.map(it=>`<li>${rubyMd(it)}</li>`).join("")}</ul>`;
-    if(b.t==="ex") return b.items.map(e=>`<div class="r-ex" data-jp="${esc(e.jp)}">${toRuby(e.jp)}<span class="zh">${esc(e.zh)}</span></div>`).join("");
-    if(b.t==="table") return `<div class="r-table-wrap"><table class="r-table"><thead><tr>${b.head.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${b.rows.map(r=>`<tr>${r.map(c=>`<td>${toRuby(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+function renderBlocks(blocks, eb){
+  eb=eb||[];
+  return blocks.map((b,i)=>{
+    const e=eb[i]||{};
+    if(b.t==="p") return `<p>${rubyMd(zhen(b.zh,e.en))}</p>`;
+    if(b.t==="why") return `<div class="r-why"><span class="r-why-tag">${T("🤔 为什么","🤔 Why")}</span>${rubyMd(zhen(b.zh,e.en))}</div>`;
+    if(b.t==="analogy") return `<div class="r-analogy"><span class="r-an-tag">${T("🔗 类比","🔗 Analogy")}</span>${rubyMd(zhen(b.zh,e.en))}</div>`;
+    if(b.t==="note") return `<div class="r-note">${rubyMd(zhen(b.zh,e.en))}</div>`;
+    if(b.t==="rules") return `<ul class="r-rules">${b.items.map((it,k)=>`<li>${rubyMd(zhen(it,(e.items||[])[k]))}</li>`).join("")}</ul>`;
+    if(b.t==="ex") return b.items.map((ex,k)=>`<div class="r-ex" data-jp="${esc(ex.jp)}">${toRuby(ex.jp)}<span class="zh">${esc(zhen(ex.zh,(e.items||[])[k]))}</span></div>`).join("");
+    if(b.t==="table"){ const head=(LANG==="en"&&e.head)?e.head:b.head, rows=(LANG==="en"&&e.rows)?e.rows:b.rows;
+      return `<div class="r-table-wrap"><table class="r-table"><thead><tr>${head.map(h=>`<th>${toRuby(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${toRuby(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; }
     return "";
   }).join("");
 }
@@ -1181,11 +1189,13 @@ function grammarIndexSection(){
 }
 function renderGeneral(){
   const c=$("#page-general");
-  let html=`<div class="ref-intro"><h1>📚 基础总览</h1><p>随时回来查阅的通用参考：动词分组与变位、形容词、助词、助数词与特殊读音、敬语速查、全语法索引、关西弁。点标题展开/收起；例句可点击朗读。</p></div>`;
+  const ER=(typeof window!=="undefined"&&window.EN_REF)||{};
+  let html=`<div class="ref-intro"><h1>${T("📚 基础总览","📚 General Reference")}</h1><p>${T("随时回来查阅的通用参考：动词分组与变位、形容词、助词、助数词与特殊读音、敬语速查、全语法索引、关西弁。点标题展开/收起；例句可点击朗读。","A reference to come back to anytime: verb groups & conjugation, adjectives, particles, counters & special readings, a keigo cheat-sheet, the full grammar index, and Kansai dialect. Tap a heading to expand/collapse; tap an example to hear it.")}</p></div>`;
   REFERENCE.forEach((sec,i)=>{
+    const er=ER[sec.id]||{};
     html+=`<div class="ref-section${i===0?" open":""}" data-id="${esc(sec.id)}">
-      <div class="ref-head"><span class="r-emoji">${sec.icon}</span><h2>${esc(sec.title)} <span class="r-zh">${esc(sec.titleZh)}</span></h2><span class="r-arrow">▸</span></div>
-      <div class="ref-body">${renderBlocks(sec.blocks)}</div></div>`;
+      <div class="ref-head"><span class="r-emoji">${sec.icon}</span><h2>${esc(sec.title)} <span class="r-zh">${esc(zhen(sec.titleZh, er.titleEn))}</span></h2><span class="r-arrow">▸</span></div>
+      <div class="ref-body">${renderBlocks(sec.blocks, er.blocks)}</div></div>`;
   });
   html+=glossarySection();
   html+=grammarIndexSection();
@@ -1207,16 +1217,16 @@ function renderTestHome(){
   if(TEST&&TEST.interval) clearInterval(TEST.interval);
   TEST=null;
   const c=$("#page-test"); const best=loadTestBest();
-  let html=`<div class="test-intro"><h1>📝 N2 模拟测试</h1><p>4 套限时测试，全部以 N2 标准评分。每套对应一周的语法重点；交卷后给出<b>分项自评</b>（文法 / 語彙 / 読解）和针对性的复习建议。</p></div><div class="test-grid">`;
+  let html=`<div class="test-intro"><h1>${T("📝 N2 模拟测试","📝 N2 Mock Tests")}</h1><p>${T("4 套限时测试，全部以 N2 标准评分。每套对应一周的语法重点；交卷后给出<b>分项自评</b>（文法 / 語彙 / 読解）和针对性的复习建议。","4 timed tests scored to N2 standard. Each covers one week's grammar; after you submit you get a <b>category self-assessment</b> (Grammar / Vocabulary / Reading) and targeted review tips.")}</p></div><div class="test-grid">`;
   TESTS.forEach(t=>{
-    const b=best[t.id];
+    const b=best[t.id], et=ENT(t.id);
     html+=`<div class="test-card" data-id="${t.id}">
       <span class="tc-lv">${esc(t.level)}</span>
       <h3>${esc(t.title)}</h3>
-      <div class="tc-meta">${esc(t.titleZh)}</div>
-      <div class="tc-meta">⏱ ${t.timeMin} 分钟 · ${t.questions.length} 题</div>
-      <div class="tc-desc">${esc(t.desc)}</div>
-      ${b?`<div class="tc-best">★ 最佳：${b.score}/${b.total}（${Math.round(b.score/b.total*100)}%）</div>`:`<div class="tc-best" style="color:var(--ink-faint)">尚未挑战</div>`}
+      <div class="tc-meta">${esc(zhen(t.titleZh, et.titleEn))}</div>
+      <div class="tc-meta">⏱ ${t.timeMin} ${T("分钟","min")} · ${t.questions.length} ${T("题","Q")}</div>
+      <div class="tc-desc">${esc(zhen(t.desc, et.descEn))}</div>
+      ${b?`<div class="tc-best">${T("★ 最佳：","★ Best: ")}${b.score}/${b.total}（${Math.round(b.score/b.total*100)}%）</div>`:`<div class="tc-best" style="color:var(--ink-faint)">${T("尚未挑战","Not attempted")}</div>`}
     </div>`;
   });
   html+=`</div>`;
@@ -1235,15 +1245,15 @@ function startTest(id){
 
 function renderQuiz(){
   const c=$("#page-test"); const d=TEST.def;
-  let html=`<div class="quiz-bar"><span class="q-title">${esc(d.title)}</span><span class="q-count" id="q-count"></span><span class="timer" id="timer">--:--</span><button id="quit-test">退出</button></div>`;
+  let html=`<div class="quiz-bar"><span class="q-title">${esc(d.title)}</span><span class="q-count" id="q-count"></span><span class="timer" id="timer">--:--</span><button id="quit-test">${T("退出","Quit")}</button></div>`;
   d.questions.forEach((q,i)=>{
     const optsHtml=TEST.order[i].map((origJ,pos)=>`<div class="q-opt" data-i="${i}" data-j="${origJ}"><span class="mark">${"ABCD"[pos]}</span><span>${toRuby(q.options[origJ])}</span></div>`).join("");
-    html+=`<div class="q-card" data-i="${i}"><span class="q-num">問 ${i+1}</span><span class="q-cat">${esc(q.cat)}</span>
+    html+=`<div class="q-card" data-i="${i}"><span class="q-num">${T("問","Q")} ${i+1}</span><span class="q-cat">${esc(LANG==="en"?(CAT_EN[q.cat]||q.cat):q.cat)}</span>
       <div class="q-text">${toRuby(q.q)}</div>
       <div class="q-opts">${optsHtml}</div>
       <div class="q-explain" id="exp-${i}"></div></div>`;
   });
-  html+=`<button class="submit-test" id="submit-test">提出する · 交卷并评分</button>`;
+  html+=`<button class="submit-test" id="submit-test">${T("提出する · 交卷并评分","提出する · Submit & Score")}</button>`;
   c.innerHTML=html;
   c.querySelectorAll(".q-opt").forEach(opt=>opt.onclick=()=>{
     if(TEST.submitted) return;
@@ -1253,11 +1263,11 @@ function renderQuiz(){
     opt.classList.add("sel"); updateCount();
   });
   $("#submit-test").onclick=()=>finishTest(false);
-  $("#quit-test").onclick=()=>{ if(confirm("退出测试？本次进度不会保存。")){ clearInterval(TEST.interval); TEST=null; renderTestHome(); } };
+  $("#quit-test").onclick=()=>{ if(confirm(T("退出测试？本次进度不会保存。","Quit the test? This attempt won't be saved."))){ clearInterval(TEST.interval); TEST=null; renderTestHome(); } };
   updateTimer(); updateCount();
 }
 function updateTimer(){ const t=$("#timer"); if(!t||!TEST) return; const m=Math.floor(TEST.remaining/60), s=TEST.remaining%60; t.textContent=`${m}:${String(s).padStart(2,"0")}`; t.classList.toggle("warn",TEST.remaining<=30); }
-function updateCount(){ const e=$("#q-count"); if(!e||!TEST) return; e.textContent=`已答 ${TEST.answers.filter(a=>a!==null).length}/${TEST.def.questions.length}`; }
+function updateCount(){ const e=$("#q-count"); if(!e||!TEST) return; e.textContent=`${T("已答","Answered")} ${TEST.answers.filter(a=>a!==null).length}/${TEST.def.questions.length}`; }
 
 function finishTest(auto){
   if(!TEST||TEST.submitted) return;
@@ -1272,9 +1282,10 @@ function finishTest(auto){
     });
     const exp=document.getElementById("exp-"+i);
     const got=TEST.answers[i];
-    const okTxt = got===q.answer?'<span style="color:var(--good)">✓ 正解</span>':(got===null?'<span style="color:var(--ink-faint)">— 未作答</span>':'<span style="color:var(--bad)">✗ 不正解</span>');
+    const okTxt = got===q.answer?`<span style="color:var(--good)">✓ ${T("正解","Correct")}</span>`:(got===null?`<span style="color:var(--ink-faint)">— ${T("未作答","Unanswered")}</span>`:`<span style="color:var(--bad)">✗ ${T("不正解","Incorrect")}</span>`);
     const correctLetter="ABCD"[TEST.order[i].indexOf(q.answer)];
-    exp.innerHTML=`<div>${okTxt} · 正解：${correctLetter}</div><div><span class="gp">${esc(q.point)}</span> — ${toRuby(q.explain)} <a data-day="${q.day}">→ 复习 Day ${q.day}</a></div>`;
+    const eq=(ENT(d.id).q||[])[i]||{};
+    exp.innerHTML=`<div>${okTxt} · ${T("正解","Answer")}：${correctLetter}</div><div><span class="gp">${esc(q.point)}</span> — ${toRuby(zhen(q.explain, eq.explainEn))} <a data-day="${q.day}">→ ${T("复习 Day "+q.day,"Review Day "+q.day)}</a></div>`;
     exp.classList.add("show");
   });
   showEvaluation(auto);
@@ -1290,23 +1301,24 @@ function showEvaluation(auto){
   const pct=Math.round(score/total*100), passed=pct>=60;
   const cats={};
   d.questions.forEach((q,i)=>{ const c=q.cat; (cats[c]=cats[c]||{n:0,ok:0,wrong:[]}); cats[c].n++; if(TEST.answers[i]===q.answer) cats[c].ok++; else cats[c].wrong.push({point:q.point,day:q.day}); });
+  const cd=c=>LANG==="en"?(CAT_EN[c]||c):c;
   let catRows="";
-  Object.keys(cats).forEach(c=>{ const o=cats[c], p=Math.round(o.ok/o.n*100); catRows+=`<div class="row"><span class="lab">${esc(c)}</span><div class="bar"><i style="width:${p}%"></i></div><span class="pct">${o.ok}/${o.n}</span></div>`; });
+  Object.keys(cats).forEach(c=>{ const o=cats[c], p=Math.round(o.ok/o.n*100); catRows+=`<div class="row"><span class="lab">${esc(cd(c))}</span><div class="bar"><i style="width:${p}%"></i></div><span class="pct">${o.ok}/${o.n}</span></div>`; });
   const strong=Object.keys(cats).filter(c=>cats[c].ok/cats[c].n>=0.8);
   const weak=Object.keys(cats).filter(c=>cats[c].ok/cats[c].n<0.6);
   let advice="";
-  if(strong.length) advice+=`<p class="good">👍 表现不错：${strong.join("、")}——这些方面已经比较稳。</p>`;
-  if(weak.length) advice+=`<p class="weak">📌 需要加强：${weak.join("、")}。</p>`;
+  if(strong.length) advice+=`<p class="good">${T("👍 表现不错：","👍 Solid: ")}${strong.map(cd).join("、")}${T("——这些方面已经比较稳。","")}</p>`;
+  if(weak.length) advice+=`<p class="weak">${T("📌 需要加强：","📌 Needs work: ")}${weak.map(cd).join("、")}。</p>`;
   const wrong=[]; Object.values(cats).forEach(o=>o.wrong.forEach(w=>wrong.push(w)));
-  if(wrong.length) advice+=`<p>重点复习这些语法点：</p><p>`+wrong.map(w=>`<a data-day="${w.day}">${esc(w.point)}（Day ${w.day}）</a>`).join("　·　")+`</p>`;
-  else advice+=`<p class="good">全部答对！🎉 可以挑战下一套更难的。</p>`;
+  if(wrong.length) advice+=`<p>${T("重点复习这些语法点：","Review these grammar points:")}</p><p>`+wrong.map(w=>`<a data-day="${w.day}">${esc(w.point)}（Day ${w.day}）</a>`).join("　·　")+`</p>`;
+  else advice+=`<p class="good">${T("全部答对！🎉 可以挑战下一套更难的。","All correct! 🎉 Try the next set.")}</p>`;
   const used=d.timeMin*60-Math.max(0,TEST.remaining), tm=Math.floor(used/60), ts=used%60;
   const html=`<div class="eval-box">
     <div class="eval-score"><div class="big ${passed?"pass":"fail"}">${pct}%</div>
-      <div class="sub">${score} / ${total} 正解 · 用时 ${tm}:${String(ts).padStart(2,"0")}${auto?" · ⏰ 时间到，自动交卷":""} · ${passed?"达到合格线 (60%) ✓":"未达合格线 (60%)"}</div></div>
+      <div class="sub">${score} / ${total} ${T("正解","correct")} · ${T("用时","time")} ${tm}:${String(ts).padStart(2,"0")}${auto?T(" · ⏰ 时间到，自动交卷"," · ⏰ time up, auto-submitted"):""} · ${passed?T("达到合格线 (60%) ✓","Passed (60%) ✓"):T("未达合格线 (60%)","Below pass (60%)")}</div></div>
     <div class="eval-cat">${catRows}</div>
     <div class="eval-advice">${advice}</div>
-    <div class="eval-actions"><button class="review" id="ev-review">查看逐题解析 ↓</button><button class="retry" id="ev-retry">重做这套</button></div>
+    <div class="eval-actions"><button class="review" id="ev-review">${T("查看逐题解析 ↓","See per-question review ↓")}</button><button class="retry" id="ev-retry">${T("重做这套","Retry")}</button></div>
   </div>`;
   $("#page-test").insertAdjacentHTML("afterbegin",html);
   $("#ev-retry").onclick=()=>startTest(d.id);
