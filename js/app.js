@@ -17,7 +17,7 @@ const STATE = {
 function getLang(){ try{ return localStorage.getItem("jpn-lang")||"zh"; }catch(e){ return "zh"; } }
 let LANG = getLang();
 function setLang(l){ LANG=(l==="en"?"en":"zh"); try{ localStorage.setItem("jpn-lang", LANG); }catch(e){} }
-const NAV_LABELS={ home:["主页","Home"], daily:["每日","Daily"], general:["基础","Basics"], test:["测试","Tests"], notes:["笔记","Notes"] };
+const NAV_LABELS={ home:["主页","Home"], daily:["每日","Daily"], general:["基础","Basics"], scenarios:["场景","Scenes"], test:["测试","Tests"], notes:["笔记","Notes"] };
 function applyLang(){
   document.querySelectorAll("#page-nav button").forEach(b=>{ const l=NAV_LABELS[b.dataset.p], s=b.querySelector(".pnl"); if(l&&s) s.textContent=" "+(LANG==="en"?l[1]:l[0]); });
   document.documentElement.setAttribute("lang", LANG==="en"?"en":"zh");
@@ -872,6 +872,7 @@ function showPage(p){
   $("#page-home").style.display = p==="home"?"block":"none";
   $("#page-daily").style.display = p==="daily"?"block":"none";
   $("#page-general").style.display = p==="general"?"block":"none";
+  if($("#page-scenarios")) $("#page-scenarios").style.display = p==="scenarios"?"block":"none";
   $("#page-test").style.display = p==="test"?"block":"none";
   if($("#page-notes")) $("#page-notes").style.display = p==="notes"?"block":"none";
   $("#daily-controls").style.display = p==="daily"?"flex":"none";
@@ -880,6 +881,7 @@ function showPage(p){
   if(p==="home") renderHome();
   else if(p==="daily") render();
   else if(p==="general") renderGeneral();
+  else if(p==="scenarios") renderScenarios();
   else if(p==="test") renderTestHome();
   else if(p==="notes" && window.Notes) window.Notes.renderPage();
   if(window.Assistant && window.Assistant.refreshCtx) window.Assistant.refreshCtx();  // R3-2: keep AI panel ctx fresh
@@ -1206,6 +1208,29 @@ function renderGeneral(){
   c.querySelectorAll(".ref-head").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("open"));
   c.querySelectorAll(".r-ex").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:null}]));
   c.querySelectorAll(".gidx-item").forEach(el=>el.onclick=()=>{ STATE.day=parseInt(el.dataset.day,10); STATE.session="noon"; showPage("daily"); });
+}
+
+/* ============================================================================
+ *  SCENARIOS PAGE (situational Japanese)
+ * ==========================================================================*/
+function renderScenarios(){
+  const c=$("#page-scenarios"); if(!c) return;
+  const list=(typeof window!=="undefined"&&window.SCENARIOS)||[];
+  let html=`<div class="ref-intro"><h1>${T("🗺️ 場面 · 场景日语","🗺️ Scenarios · Real-life Japanese")}</h1><p>${T("按真实生活场景学：实用对话、关键词、礼仪与文化贴士。点标题展开/收起；日语句可点击朗读。","Learn by real-life scene: practical dialogue, key words, and etiquette/culture tips. Tap a heading to expand/collapse; tap a Japanese line to hear it.")}</p></div>`;
+  if(!list.length) html+=`<p class="hc-empty">${T("场景内容尚未加载。","Scenario content not loaded yet.")}</p>`;
+  list.forEach((s,i)=>{
+    html+=`<div class="ref-section${i===0?" open":""}" data-id="scn-${esc(s.id)}">
+      <div class="ref-head"><span class="r-emoji">${s.icon||"🗺️"}</span><h2>${esc(s.title)} <span class="r-zh">${esc(LANG==="en"?(s.titleEn||s.titleZh||""):(s.titleZh||""))}</span></h2><span class="r-arrow">▸</span></div>
+      <div class="ref-body">
+        ${s.intro?`<p class="scn-intro">${esc(zhen(s.intro.zh,s.intro.en))}</p>`:""}
+        ${(s.vocab&&s.vocab.length)?`<h4 class="scn-h">${T("🔑 キーワード","🔑 Key words")}</h4><div class="scn-vocab">${s.vocab.map(v=>`<div class="scn-v" data-jp="${esc(v.r||v.w)}"><b class="v-word">${esc(v.w)}</b><span class="v-read">${esc(v.r||"")}</span><span class="v-mean">${esc(zhen(v.zh,v.en))}</span></div>`).join("")}</div>`:""}
+        ${(s.dialogue&&s.dialogue.length)?`<h4 class="scn-h">${T("💬 会話","💬 Dialogue")}</h4><div class="scn-dialogue">${s.dialogue.map(d=>`<div class="conv-item scn-line" data-jp="${esc(d.jp)}">${toRuby(d.jp)}<span class="zh">${esc(zhen(d.zh,d.en))}</span></div>`).join("")}</div>`:""}
+        ${(s.manners&&s.manners.length)?`<h4 class="scn-h">${T("🎎 マナー・文化","🎎 Manners & Culture")}</h4><ul class="r-rules scn-manners">${s.manners.map(m=>`<li>${rubyMd(zhen(m.zh,m.en))}</li>`).join("")}</ul>`:""}
+      </div></div>`;
+  });
+  c.innerHTML=html;
+  c.querySelectorAll(".ref-head").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("open"));
+  c.querySelectorAll("[data-jp]").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:el}]));
 }
 
 /* ============================================================================

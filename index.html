@@ -8,7 +8,7 @@
 <script>(function(){try{var t=localStorage.getItem('jpn-theme')||'dark';var d=t==='auto'?((window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'):t;document.documentElement.setAttribute('data-theme',d);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=20260603l">
+<link rel="stylesheet" href="css/styles.css?v=20260603m">
 </head>
 <body>
 
@@ -19,6 +19,7 @@
       <button data-p="home" class="active">🏠<span class="pnl"> 主页</span></button>
       <button data-p="daily">📖<span class="pnl"> 每日</span></button>
       <button data-p="general">📚<span class="pnl"> 基础</span></button>
+      <button data-p="scenarios">🗺️<span class="pnl"> 场景</span></button>
       <button data-p="test">📝<span class="pnl"> 测试</span></button>
       <button data-p="notes">📓<span class="pnl"> 笔记</span></button>
     </nav>
@@ -60,6 +61,9 @@
 <!-- PAGE: general reference -->
 <main id="page-general" class="wrap" style="display:none"></main>
 
+<!-- PAGE: scenarios (situational Japanese) -->
+<main id="page-scenarios" class="wrap" style="display:none"></main>
+
 <!-- PAGE: test -->
 <main id="page-test" class="wrap" style="display:none"></main>
 
@@ -80,18 +84,19 @@
 <!-- pre-generated audio manifest (VOICEVOX). Loaded as a script so real-voice audio
      works even on file:// (double-click), where fetch() is blocked. Absent until you
      run tools/gen_audio.py — harmless 404 if missing. -->
-<script src="audio/manifest.js?v=20260603l"></script>
+<script src="audio/manifest.js?v=20260603m"></script>
 <!-- selectable voice models for the ⚙ 声音 picker -->
-<script src="audio/voices.js?v=20260603l"></script>
-<script src="js/lessons.js?v=20260603l"></script>
-<script src="js/i18n-en.js?v=20260603l"></script>
-<script src="js/reference.js?v=20260603l"></script>
-<script src="js/tests.js?v=20260603l"></script>
-<script src="js/daily.js?v=20260603l"></script>
-<script src="js/app.js?v=20260603l"></script>
+<script src="audio/voices.js?v=20260603m"></script>
+<script src="js/lessons.js?v=20260603m"></script>
+<script src="js/i18n-en.js?v=20260603m"></script>
+<script src="js/reference.js?v=20260603m"></script>
+<script src="js/scenarios.js?v=20260603m"></script>
+<script src="js/tests.js?v=20260603m"></script>
+<script src="js/daily.js?v=20260603m"></script>
+<script src="js/app.js?v=20260603m"></script>
 <!-- 智能笔记系统 -->
-<script src="js/notes.js?v=20260603l"></script>
+<script src="js/notes.js?v=20260603m"></script>
 <!-- AI 学习助手 (Claude, BYOK) -->
-<script src="js/assistant.js?v=20260603l"></script>
+<script src="js/assistant.js?v=20260603m"></script>
 </body>
 </html>

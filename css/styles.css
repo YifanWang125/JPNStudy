@@ -817,3 +817,16 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 @media (max-width:560px){ .home-intro .hi-items{grid-template-columns:1fr} }
 /* ---- R3-3: scratch "草稿" tag ---- */
 .qn-tag-draft{font-size:.68rem;color:var(--night);border:1px solid var(--night);border-radius:5px;padding:0 6px;margin-left:2px}
+
+/* ---- scenarios page (situational Japanese) ---- */
+.scn-intro{color:var(--ink-dim);font-size:.96rem;line-height:1.8;margin-bottom:14px;background:var(--panel);border-left:3px solid var(--accent);border-radius:8px;padding:10px 14px}
+.scn-h{font-size:.95rem;color:var(--accent-2);margin:16px 0 8px;font-family:var(--serif-jp)}
+.scn-vocab{display:flex;flex-direction:column;gap:4px}
+.scn-v{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:6px 8px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+.scn-v:hover{background:var(--panel);border-color:var(--line)}
+.scn-v .v-word{font-family:var(--serif-jp);font-size:1.12rem;color:var(--jp)}
+.scn-v .v-read{color:var(--accent-2);font-size:.86rem}
+.scn-v .v-mean{color:var(--ink-dim);font-size:.92rem;margin-left:auto}
+.scn-dialogue{display:flex;flex-direction:column;gap:8px}
+.scn-manners li{line-height:1.8}
+@media (max-width:560px){ .scn-v .v-mean{margin-left:0;width:100%} }
