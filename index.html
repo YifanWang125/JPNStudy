@@ -18,6 +18,7 @@
       <button data-p="daily">📖<span class="pnl"> 每日</span></button>
       <button data-p="general">📚<span class="pnl"> 基础</span></button>
       <button data-p="test">📝<span class="pnl"> 测试</span></button>
+      <button data-p="notes">📓<span class="pnl"> 笔记</span></button>
     </nav>
     <div class="top-spacer"></div>
     <span id="daily-controls">
@@ -62,6 +63,9 @@
 <!-- PAGE: home (personalized dashboard) -->
 <main id="page-home" class="wrap" style="display:none"></main>
 
+<!-- PAGE: notes (smart note system, built by notes.js) -->
+<main id="page-notes" class="wrap" style="display:none"></main>
+
 <!-- settings / backup / pronunciation-engine modal (built by app.js) -->
 <div id="modal-overlay" style="display:none"></div>
 
@@ -83,6 +87,8 @@
 <script src="js/tests.js"></script>
 <script src="js/daily.js"></script>
 <script src="js/app.js"></script>
+<!-- 智能笔记系统 -->
+<script src="js/notes.js"></script>
 <!-- AI 学习助手 (Claude, BYOK) -->
 <script src="js/assistant.js"></script>
 </body>

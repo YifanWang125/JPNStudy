@@ -104,13 +104,16 @@ ${courseIndex()}`;
   }
 
   /* ---------------- safe render (escape → markdown-lite → furigana → links) ---------------- */
+  // ruby-ify 漢字[かな] without re-escaping (input already escaped; app's toRuby would
+  // double-escape and break the HTML tags we insert here).
+  function rubyKeep(s){ return s.replace(RUBY_RE, (m,k,r)=>`<ruby>${k}<rt>${r}</rt></ruby>`); }
   function fmt(text){
     let s=esc(text);                                              // 1. neutralize HTML first (XSS-safe)
     s=s.replace(/`([^`]+)`/g, (m,a)=>`<code>${a}</code>`);
     s=s.replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>");
     s=s.replace(/^#{1,6}\s*(.+)$/gm, "<b>$1</b>");
     s=s.replace(/^\s*[-*•]\s+(.+)$/gm, "・$1");
-    s=toRuby(s);                                                  // 2. 漢字[かな] → <ruby> (operates on bracket notation)
+    s=rubyKeep(s);                                                // 2. 漢字[かな] → <ruby>
     s=s.replace(/Day\s?(\d{1,2})/g, (m,n)=>{ const d=+n; return (d>=1&&d<=TOTAL_DAYS)?`<a class="ai-day" data-d="${d}">Day ${d}</a>`:m; });
     return s.replace(/\n/g, "<br>");
   }

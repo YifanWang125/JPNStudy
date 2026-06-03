@@ -786,6 +786,7 @@ function showPage(p){
   $("#page-daily").style.display = p==="daily"?"block":"none";
   $("#page-general").style.display = p==="general"?"block":"none";
   $("#page-test").style.display = p==="test"?"block":"none";
+  if($("#page-notes")) $("#page-notes").style.display = p==="notes"?"block":"none";
   $("#daily-controls").style.display = p==="daily"?"flex":"none";
   if(p!=="daily"){ $("#map-view").classList.remove("show"); $("#day-num").textContent=""; }
   localStorage.setItem("jpn-page",p);
@@ -793,6 +794,7 @@ function showPage(p){
   else if(p==="daily") render();
   else if(p==="general") renderGeneral();
   else if(p==="test") renderTestHome();
+  else if(p==="notes" && window.Notes) window.Notes.renderPage();
   window.scrollTo(0,0);
 }
 
@@ -965,7 +967,7 @@ function openSettings(){
 }
 function closeSettings(){ const ov=$("#modal-overlay"); ov.style.display="none"; ov.innerHTML=""; }
 function exportProgress(){
-  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name"];
+  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name","jpn-notes"];
   const out={ _app:"jpn-n4-n2", _exported:new Date().toISOString(), data:{} };
   keys.forEach(k=>{ const v=localStorage.getItem(k); if(v!==null) out.data[k]=v; });
   const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
@@ -985,6 +987,7 @@ function importProgress(e){
       if(!confirm("导入将覆盖当前进度，确定继续？")){ return; }
       Object.keys(obj.data).forEach(k=>{ if(/^jpn-/.test(k)) localStorage.setItem(k, obj.data[k]); });
       PROG=loadProg();
+      if(window.Notes && window.Notes.reload) window.Notes.reload();
       const last=parseInt(localStorage.getItem("jpn-last-day")||"1",10); STATE.day=(last>=1&&last<=TOTAL_DAYS)?last:1;
       alert("导入成功！进度已恢复。");
       closeSettings(); showPage(STATE.page);
