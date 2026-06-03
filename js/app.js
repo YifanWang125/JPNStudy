@@ -17,6 +17,11 @@ const STATE = {
 function getLang(){ try{ return localStorage.getItem("jpn-lang")||"zh"; }catch(e){ return "zh"; } }
 let LANG = getLang();
 function setLang(l){ LANG=(l==="en"?"en":"zh"); try{ localStorage.setItem("jpn-lang", LANG); }catch(e){} }
+const NAV_LABELS={ home:["主页","Home"], daily:["每日","Daily"], general:["基础","Basics"], test:["测试","Tests"], notes:["笔记","Notes"] };
+function applyLang(){
+  document.querySelectorAll("#page-nav button").forEach(b=>{ const l=NAV_LABELS[b.dataset.p], s=b.querySelector(".pnl"); if(l&&s) s.textContent=" "+(LANG==="en"?l[1]:l[0]); });
+  document.documentElement.setAttribute("lang", LANG==="en"?"en":"zh");
+}
 /* UI string: T("中文","English") → picks by LANG (falls back to zh if no en given) */
 function T(zh, en){ return (LANG==="en" && en!=null) ? en : zh; }
 /* data field: show the English value when in en-mode AND it exists; else the Chinese */
@@ -914,15 +919,15 @@ function renderHome(){
   const seenIntro = (()=>{ try{ return localStorage.getItem("jpn-seen-intro")==="1"; }catch(e){ return true; } })();
   const introBanner = seenIntro ? "" : `
     <div class="home-intro" id="home-intro">
-      <button class="hi-close" id="hi-close" title="知道了">✕</button>
-      <h2>👋 欢迎！这里有几样趁手的工具</h2>
+      <button class="hi-close" id="hi-close" title="${T("知道了","Got it")}">✕</button>
+      <h2>${T("👋 欢迎！这里有几样趁手的工具","👋 Welcome! A few handy tools here")}</h2>
       <div class="hi-items">
-        <span>🔊 <b>真人音色</b>：课文/单词都能点朗读，⚙ 里可换不同声音</span>
-        <span>🤖 <b>AI 提问</b>：右下角随时问任何日语问题（需在 ⚙ 填 Claude Key）</span>
-        <span>🗒️ <b>速记本</b>：学习时随手记，自动保存，可存成笔记</span>
-        <span>☀️ <b>浅/深色</b>：右上角一键切换主题</span>
+        <span>🔊 <b>${T("真人音色","Real voices")}</b>：${T("课文/单词都能点朗读，⚙ 里可换不同声音","tap any sentence/word to hear it; switch voices in ⚙")}</span>
+        <span>🤖 <b>${T("AI 提问","Ask AI")}</b>：${T("右下角随时问任何日语问题（需在 ⚙ 填 Claude Key）","ask any Japanese question, bottom-right (add a Claude key in ⚙)")}</span>
+        <span>🗒️ <b>${T("速记本","Quick notes")}</b>：${T("学习时随手记，自动保存，可存成笔记","jot as you study — auto-saved, savable as notes")}</span>
+        <span>☀️ <b>${T("浅/深色","Light/Dark")}</b>：${T("右上角一键切换主题","toggle the theme, top-right")}</span>
       </div>
-      <button class="hi-ok" id="hi-ok">知道了，开始学习 →</button>
+      <button class="hi-ok" id="hi-ok">${T("知道了，开始学习 →","Got it — start learning →")}</button>
     </div>`;
   c.innerHTML=introBanner+`
     <div class="home-hero">
@@ -1048,7 +1053,7 @@ function openSettings(){
   $("#modal-close").onclick=closeSettings;
   ov.onclick=(e)=>{ if(e.target===ov) closeSettings(); };
   $("#theme-pick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ setTheme(b.dataset.themeVal); $("#theme-pick").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); });
-  $("#lang-pick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ if(getLang()===b.dataset.langVal) return; setLang(b.dataset.langVal); showPage(STATE.page); openSettings(); });
+  $("#lang-pick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ if(getLang()===b.dataset.langVal) return; setLang(b.dataset.langVal); applyLang(); showPage(STATE.page); openSettings(); });
   $("#name-save").onclick=()=>{ const v=$("#usr-name").value.trim(); if(v) localStorage.setItem("jpn-name",v); else localStorage.removeItem("jpn-name"); $("#name-status").textContent="已保存 ✓"; };
   $("#az-save").onclick=()=>{ const key=$("#az-key").value.trim(), region=$("#az-region").value.trim(); if(key&&region){ localStorage.setItem("jpn-azure-cfg",JSON.stringify({key,region})); $("#az-status").textContent="已保存 ✓ 发音评估将用 Azure"; } else { $("#az-status").textContent="Key 和 Region 都要填"; } };
   $("#az-clear").onclick=()=>{ localStorage.removeItem("jpn-azure-cfg"); $("#az-key").value=""; $("#az-region").value=""; $("#az-status").textContent="已清除，将用浏览器识别"; const cc=$("#az-conn"); if(cc){ cc.className="conn-status"; cc.textContent=""; } };
@@ -1313,6 +1318,7 @@ function init(){
   $("#map-toggle").onclick=()=>toggleMap(!$("#map-view").classList.contains("show"));
   $("#gear-btn").onclick=openSettings;
   applyTheme(getTheme());
+  applyLang();
   buildFabMenu();
   if($("#theme-btn")) $("#theme-btn").onclick=toggleLightDark;
   if(window.matchMedia){ try{ matchMedia("(prefers-color-scheme: light)").addEventListener("change",()=>{ if(getTheme()==="auto") applyTheme("auto"); }); }catch(e){} }
