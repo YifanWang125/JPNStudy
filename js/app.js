@@ -925,6 +925,7 @@ function openSettings(){
         <label>名字 / Name <input type="text" id="usr-name" value="${esc(getName())}" placeholder="例如 Bob / 王"></label>
         <div class="m-actions"><button id="name-save" class="primary">保存</button><span id="name-status" class="m-note"></span></div>
       </section>
+      ${window.Assistant?window.Assistant.settingsHTML():""}
       <section><h3>🎤 发音评估引擎</h3>
         <p class="m-note">不填则用浏览器识别（近似）。填入 Azure 语音服务的 <b>Key + Region</b> 可获得逐音素＋语调评分（免费层每月 5 小时）。仅存于本机浏览器，不上传。</p>
         <label>Azure Key <input type="password" id="az-key" value="${esc(cfg.key||"")}" placeholder="Speech 资源的密钥"></label>
@@ -953,6 +954,7 @@ function openSettings(){
   $("#exp-prog").onclick=exportProgress;
   $("#imp-prog").onclick=()=>$("#imp-file").click();
   $("#imp-file").onchange=importProgress;
+  if(window.Assistant) window.Assistant.bindSettings();
   // voice picker
   const vdesc=()=>{ const v=VOICES.find(x=>x.id===$("#voice-sel").value)||VOICES[0]; if($("#voice-desc")) $("#voice-desc").textContent=v?v.desc||"":""; };
   if($("#voice-sel")){

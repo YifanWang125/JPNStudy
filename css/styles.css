@@ -596,3 +596,56 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
   .top-row{flex-wrap:wrap}
   .tabs button{min-width:0}
 }
+
+/* ============================================================================
+ *  AI 学习助手 (assistant.js)
+ * ==========================================================================*/
+#ai-fab{position:fixed;right:20px;bottom:20px;width:56px;height:56px;border-radius:50%;
+  border:none;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;
+  font-size:1.6rem;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.45);z-index:900;transition:transform .15s}
+#ai-fab:hover{transform:scale(1.08)}
+#ai-panel{position:fixed;right:0;top:0;height:100%;width:min(420px,100vw);background:var(--panel);
+  border-left:1px solid var(--line);box-shadow:-8px 0 30px rgba(0,0,0,.5);z-index:950;
+  display:flex;flex-direction:column;transform:translateX(105%);transition:transform .25s ease}
+#ai-panel.show{transform:translateX(0)}
+.ai-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.ai-head b{font-size:1.02rem}
+.ai-head .ai-ctx{margin-left:auto;font-size:.74rem;color:var(--noon);background:var(--panel-2);border-radius:6px;padding:2px 8px}
+.ai-head #ai-close{background:none;border:none;color:var(--ink-faint);font-size:1.1rem;cursor:pointer}
+.ai-msgs{flex:1;overflow-y:auto;padding:14px 14px 4px;display:flex;flex-direction:column;gap:12px}
+.ai-msg{max-width:92%;font-size:.95rem;line-height:1.75}
+.ai-msg .ai-body{padding:10px 13px;border-radius:12px}
+.ai-msg.user{align-self:flex-end}
+.ai-msg.user .ai-body{background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.ai-msg.assistant{align-self:flex-start}
+.ai-msg.assistant .ai-body{background:var(--panel-2);border:1px solid var(--line);border-bottom-left-radius:4px}
+.ai-msg .ai-body code{background:#0d1016;border-radius:4px;padding:1px 5px;font-size:.85em}
+.ai-msg .ai-body ruby rt{color:var(--accent-2);font-size:.62em}
+.ai-msg b{color:var(--jp)}
+.ai-typing{letter-spacing:2px;color:var(--ink-faint);animation:aiblink 1s steps(3) infinite}
+@keyframes aiblink{50%{opacity:.4}}
+.ai-err{color:var(--bad)}
+.ai-note{margin-top:8px;font-size:.82rem;color:var(--ink-dim);background:#0d1016;border:1px dashed var(--line);border-radius:8px;padding:7px 10px}
+.ai-note a,.ai-msg a#ai-go-set{color:var(--accent-2);cursor:pointer;text-decoration:underline}
+.ai-day{color:var(--accent-2);cursor:pointer;border-bottom:1px dotted var(--accent-2);white-space:nowrap}
+.ai-tips{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.ai-tip{text-align:left;background:#0d1016;border:1px solid var(--line);border-radius:8px;color:var(--ink-dim);
+  padding:6px 10px;font-size:.85rem;cursor:pointer}
+.ai-tip:hover{border-color:var(--accent-2);color:var(--ink)}
+.ai-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.ai-actions button,.ai-speak{background:#0d1016;border:1px solid var(--line);border-radius:7px;color:var(--ink-dim);
+  font-size:.8rem;padding:3px 9px;cursor:pointer}
+.ai-actions button:hover,.ai-speak:hover{border-color:var(--accent-2);color:var(--ink)}
+.ai-sel{padding:7px 14px;font-size:.82rem;color:var(--ink-dim);border-top:1px solid var(--line);background:var(--panel-2)}
+.ai-sel button{margin-left:6px;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:2px 8px;cursor:pointer}
+.ai-inputbar{display:flex;gap:7px;padding:10px 12px;border-top:1px solid var(--line);align-items:flex-end}
+.ai-inputbar textarea{flex:1;resize:none;background:#0d1016;border:1px solid var(--line);border-radius:9px;
+  color:var(--ink);padding:8px 10px;font:inherit;font-size:.92rem;max-height:120px}
+.ai-inputbar #ai-mic{background:none;border:1px solid var(--line);border-radius:9px;color:var(--ink-dim);
+  font-size:1rem;cursor:pointer;padding:6px 9px}
+.ai-inputbar #ai-mic.rec{color:#fff;background:var(--bad);border-color:var(--bad);animation:aiblink .8s infinite}
+.ai-inputbar #ai-send{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:8px 14px;cursor:pointer}
+.ai-inputbar #ai-send:disabled{opacity:.5;cursor:default}
+.ai-foot{padding:6px 14px 10px;font-size:.72rem;color:var(--ink-faint);text-align:center}
+.ai-foot a{color:var(--ink-faint);cursor:pointer;text-decoration:underline}
+@media (max-width:560px){ #ai-fab{width:50px;height:50px;right:14px;bottom:14px} }
