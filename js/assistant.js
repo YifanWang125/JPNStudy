@@ -103,6 +103,22 @@ ${courseIndex()}`;
     return full;
   }
 
+  /* ---------------- general one-shot completion (reused by the pet's agent) ----------------
+     Non-streaming; takes a CUSTOM system prompt (not the tutor one). Cheap model by default. */
+  async function complete({ system, messages, model:mdl, max_tokens }){
+    const c=cfg(); if(!c.key) throw new Error("no API key");
+    const resp=await fetch(API_URL, {
+      method:"POST",
+      headers:{ "content-type":"application/json", "x-api-key":c.key,
+        "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true" },
+      body: JSON.stringify({ model: mdl||model(), max_tokens: max_tokens||400,
+        system: system||"", messages: messages||[] }),
+    });
+    if(!resp.ok){ let d=""; try{ const j=await resp.json(); d=(j.error&&j.error.message)||""; }catch(e){} throw new Error(`${resp.status} ${d}`.slice(0,300)); }
+    const j=await resp.json();
+    return (j.content && j.content[0] && j.content[0].text) || "";
+  }
+
   /* ---------------- safe render (escape → markdown-lite → furigana → links) ---------------- */
   /* ---------- connection test (lightweight non-streaming ping) ---------- */
   async function ping(key, mdl){
@@ -311,7 +327,8 @@ ${courseIndex()}`;
     };
   }
 
-  window.Assistant={ injectUI, settingsHTML, bindSettings, open, refreshCtx:setCtx, get last(){ return last; } };
+  window.Assistant={ injectUI, settingsHTML, bindSettings, open, refreshCtx:setCtx, get last(){ return last; },
+    complete, hasKey };   // reused by js/pet.js (agent-on-demand)
   if(document.readyState!=="loading") injectUI();
   else document.addEventListener("DOMContentLoaded", injectUI);
 })();

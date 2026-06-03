@@ -218,6 +218,7 @@
     if(m.energy<15) return "sleepy"; if(avg<35||m.hunger<20) return "sad"; if(avg>70) return "happy"; return "ok"; }
   let JUST_STUDIED=0;
   function says(p){ const m=p.meters;
+    if(AI_SAY && now()-AI_SAY.ts<12000 && AI_SAY.text) return AI_SAY.text;   // pet's agent spoke
     if(JUST_STUDIED && now()-JUST_STUDIED<9000){
       const tl=J("jpn-test-log",[]), pl=J("jpn-pron-log",[]);   // react to whichever was JUST done
       const usePron=(pl.length?pl[pl.length-1].ts:0) >= (tl.length?tl[tl.length-1].ts:0);
@@ -324,6 +325,57 @@
   }
   function unseenLog(){ return (S.activity&&S.activity.length) ? (S.activity[0].ts>(S.logSeen||0)) : false; }
 
+  // ---- B2: agent-on-demand — persona + memory → Claude writes the diary & a line ----
+  // Not a running process: a persona spec (nature/stage/nickname) + the activity log as
+  // memory, fed to ONE cheap Claude call when something is shown. Templated B1 stays as the
+  // offline/no-key fallback. Uses the shared BYOK config via window.Assistant.complete.
+  let AI_SAY=null;                                  // transient AI-written speech override
+  function aiOn(){ return !!(window.Assistant && window.Assistant.hasKey && window.Assistant.hasKey()); }
+  function nickname(){ try{ return (localStorage.getItem("jpn-name")||"").trim(); }catch(e){ return ""; } }
+  function personaSystem(p){
+    const nat=NATURES[petNature(p)]||{}, nick=nickname();
+    const stageJ={hatchling:"赤[あか]ちゃん",child:"こども",teen:"わかもの",adult:"おとな",elder:"長老[ちょうろう]"}[p.stage]||"";
+    return [
+      `あなたは「${p.name||"この子"}」という名前の、ユーザーが大切に育てている小さな生きものです。ゲームのキャラクターになりきってください。`,
+      `性格は「${(nat.jp||"").replace(/\[[^\]]*\]/g,"")}」（${nat.zh||nat.en||""}）。口調・話題・興味はこの性格に合わせる。`,
+      `成長段階は「${stageJ}」。${(p.stage==="hatchling"||p.stage==="child")?"まだ幼いので、やさしくて短い言葉で話す。":""}`,
+      nick?`飼[か]い主[ぬし]のことは「${nick}」と呼[よ]ぶ（性格しだいで甘[あま]えた呼び方でもよい）。`:`飼[か]い主[ぬし]のことは親[した]しみを込[こ]めて呼[よ]ぶ。`,
+      `飼い主は中国語が母語で、JLPT N2 を目指して日本語を勉強している学習者。`,
+      `【出力ルール｜厳守】日本語だけで書く。漢字には必ず「漢字[かんじ]」の形でふりがなを付ける。N4〜N3 のやさしい日本語。キャラクターになりきって、短く、自然に。説明や前置きは書かない。`,
+    ].join("\n");
+  }
+  function petMemory(p){
+    const ev=((S.activity[0]&&S.activity[0].events)||[]).map(e=>"・"+(window.toPlain?toPlain(e.jp):e.jp)).join("\n")||"・（とくに何もなかった）";
+    const m=p.meters;
+    return `【さっきまでのできごと】\n${ev}\n【${p.name||"この子"}のいまの様子】気分:${moodOf(p)}／おなか:${Math.round(m.hunger)}／元気:${Math.round(m.energy)}`;
+  }
+  function studyDeltaJP(){
+    const tl=J("jpn-test-log",[]), pl=J("jpn-pron-log",[]);
+    const usePron=(pl.length?pl[pl.length-1].ts:0)>=(tl.length?tl[tl.length-1].ts:0);
+    const g=usePron?recentGain("jpn-pron-log",x=>x.score||0):recentGain("jpn-test-log",x=>x.total?x.score/x.total*100:0);
+    const what=usePron?"発音の練習":"テスト";
+    if(g>=5) return `飼い主は ${what} で前より ${g} 点ものびた（成長している！）。`;
+    if(g<=-5) return `飼い主は ${what} の点が前より下がってしまった（やさしくはげまして）。`;
+    return `飼い主は さっき 勉強をがんばった。`;
+  }
+  function generateDiary(batch,p){
+    if(!aiOn()||!batch||batch.ai||batch._aip) return;
+    batch._aip=true;
+    const langName=(window.LANG==="en")?"英語":"中国語";
+    const user=`${petMemory(p)}\n\n上のできごとをもとに、${p.name||"わたし"}の一人称の「日記[にっき]」を3〜4文で書いて。\nそのあと、改行して「===」だけの行を入れ、改行して${langName}の訳を書いて。`;
+    window.Assistant.complete({ system:personaSystem(p), messages:[{role:"user",content:user}], model:"claude-haiku-4-5", max_tokens:430 })
+      .then(txt=>{ const parts=String(txt).split(/\n?===\n?/); batch.ai={ jp:(parts[0]||"").trim(), tr:(parts[1]||"").trim() }; delete batch._aip; save();
+        const ov=document.getElementById("pet-log-ov"); if(ov&&ov.style.display!=="none") renderLog(ov); })
+      .catch(()=>{ delete batch._aip; });
+  }
+  function generateStudyLine(p){
+    if(!aiOn()||!p||p.stage==="egg"||p.diedAt) return;
+    const user=`${studyDeltaJP()}\n${p.name||"あなた"}として、飼い主にひとこと、短く声をかけて（1文だけ、日本語、ふりがな付き、キャラクターらしく）。`;
+    window.Assistant.complete({ system:personaSystem(p), messages:[{role:"user",content:user}], model:"claude-haiku-4-5", max_tokens:120 })
+      .then(txt=>{ AI_SAY={ text:String(txt).trim().replace(/\s*\n\s*/g," "), ts:now() }; refresh(); })
+      .catch(()=>{});
+  }
+
   // ---- panel UI -------------------------------------------------------------
   function bar(label,v,cls){ return `<div class="pet-meter"><span>${label}</span><i class="${cls}"><b style="width:${Math.round(clamp(v))}%"></b></i></div>`; }
   function panelHTML(){
@@ -406,7 +458,10 @@
     if(!acts.length){ html+=`<p class="pet-sub">${T("まだ 記録[きろく]が ないよ。少[すこ]し 時間[じかん]が経[た]つと、できごとが 増[ふ]えるよ。","Nothing logged yet — come back after a while and there'll be activity.")}</p>`; }
     else {
       const latest=acts[0];
-      html+=`<div class="plog-diary"><div class="plog-jp" data-jp="${esc(latest.diary.jp)}">${ruby(latest.diary.jp)}</div>${LOG_TR?`<div class="plog-tr">${esc(trv(latest.diary))}</div>`:""}</div>
+      if(aiOn() && !latest.ai) generateDiary(latest,p);                  // agent writes it (async)
+      const diaJp=(latest.ai&&latest.ai.jp)||latest.diary.jp, diaTr=(latest.ai&&latest.ai.tr)||trv(latest.diary);
+      const aiBadge=latest.ai?`<span class="plog-ai">✨AI</span>`:(latest._aip?`<span class="plog-ai">✨…</span>`:"");
+      html+=`<div class="plog-diary"><div class="plog-jp" data-jp="${esc(diaJp)}">${ruby(diaJp)}</div>${LOG_TR?`<div class="plog-tr">${esc(diaTr)}</div>`:""}${aiBadge}</div>
         <h4 class="plog-h">🕑 ${T("できごと","What happened")}</h4><ul class="plog-events">`;
       acts.slice(0,6).forEach(b=>b.events.forEach(e=>{ html+=`<li><div class="plog-jp" data-jp="${esc(e.jp)}">${ruby(e.jp)}</div>${LOG_TR?`<div class="plog-tr">${esc(trv(e))}</div>`:""}</li>`; }));
       html+=`</ul>`;
@@ -450,7 +505,8 @@
   function showRail(on){ const rail=document.getElementById(RAIL_ID); if(rail) rail.classList.toggle("show",!!on); }
 
   // study event hook (called from app.js markSession / test finish)
-  function onStudy(){ JUST_STUDIED=now(); const p=pet(); if(p) decay(p); save(); refresh(); }
+  function onStudy(){ JUST_STUDIED=now(); AI_SAY=null; const p=pet(); if(p) decay(p); save(); refresh();
+    if(p) generateStudyLine(p); }   // agent writes a reaction (async) when a key is set
 
   window.Pet={ mountHome, refresh, onStudy, showRail,
     _debug:{ studySXP, state:()=>S, reset:()=>{ S=fresh(); save(); refresh(); },
