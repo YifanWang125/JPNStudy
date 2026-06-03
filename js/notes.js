@@ -156,7 +156,7 @@
     const blHTML=bls.length?`<div class="np-backlinks"><h4>⇠ 被这些笔记引用</h4>${bls.map(b=>`<a class="note-nlink" data-nid="${b.id}">${esc(b.title||"（无标题）")}</a>`).join("")}</div>`:"";
     const prov=n.provenance&&n.provenance.kind==="ai-qa"?`<div class="np-prov">🤖 由 AI 问答生成${n.provenance.ai&&n.provenance.ai.studyContext?`（当时在 Day ${n.provenance.ai.studyContext.day}）`:""}</div>`:"";
     return `<div class="np-detail">
-      <div class="np-dhead"><button id="np-back">← 返回</button>${isNew?"<span class='np-newtag'>新笔记</span>":badge(n)}<div class="np-dactions"><button id="np-save" class="primary">保存</button>${isNew?"":'<button id="np-del" class="np-danger">删除</button>'}</div></div>
+      <div class="np-dhead"><button id="np-back">← 返回</button>${badge(n)}<div class="np-dactions"><span class="np-autosave" id="np-autosave">自动保存</span><button id="np-del" class="np-danger">删除</button><button id="np-save" class="primary">完成</button></div></div>
       ${prov}
       <input id="np-title" class="np-title" placeholder="标题…" value="${esc(n.title||"")}">
       <div class="np-toolbar">
@@ -192,11 +192,13 @@
     const q=document.getElementById("np-q"); if(q) q.oninput=()=>{ N.q=q.value; const list=r.querySelector(".np-list"); if(list){ /* re-render list only */ renderPage(); document.getElementById("np-q").focus(); document.getElementById("np-q").setSelectionRange(q.value.length,q.value.length); } };
     const fl=document.getElementById("np-filter"); if(fl) fl.onchange=()=>{ N.filter=fl.value; renderPage(); };
     r.querySelectorAll(".np-item").forEach(it=>it.onclick=()=>{ N.open=it.dataset.open; renderPage(); });
-    // detail
-    const back=document.getElementById("np-back"); if(back) back.onclick=()=>{ persistDetail(); N.open=null; renderPage(); };
+    // detail — auto-saves while you type; "完成" just returns to the list
+    const finish=()=>{ persistDetail(); cleanupIfEmpty(); N.open=null; renderPage(); };
+    const back=document.getElementById("np-back"); if(back) back.onclick=finish;
+    const title=document.getElementById("np-title"); if(title) title.oninput=autosave;
     const body=document.getElementById("np-body");
-    if(body){ const prev=document.getElementById("np-preview"); body.oninput=()=>{ prev.innerHTML=renderBody(body.value); }; }
-    const save=document.getElementById("np-save"); if(save) save.onclick=()=>{ const id=persistDetail(); save.textContent="已保存 ✓"; setTimeout(()=>{ if(document.getElementById("np-save")) document.getElementById("np-save").textContent="保存"; },1200); renderPage(); if(id){ N.open=id; renderPage(); } };
+    if(body){ const prev=document.getElementById("np-preview"); body.oninput=()=>{ prev.innerHTML=renderBody(body.value); autosave(); }; }
+    const save=document.getElementById("np-save"); if(save) save.onclick=finish;
     const del=document.getElementById("np-del"); if(del) del.onclick=()=>{ if(confirm("删除这条笔记？")){ deleteNote(N.open); N.open=null; renderPage(); } };
     const cs=document.getElementById("np-course"); if(cs) cs.onchange=()=>{ const v=cs.value; if(!v) return; const [id,label]=v.split("|"); const ref=CINDEX.byId[id]; const text=label||(ref?ref.display:id); insertAtCursor(document.getElementById("np-body"), `[[course:${id}|${text}]]`); document.getElementById("np-preview").innerHTML=renderBody(document.getElementById("np-body").value); cs.value=""; };
     // link clicks (delegate within page-notes)
@@ -206,6 +208,90 @@
       const bk=e.target.closest(".note-broken[data-newtitle]"); if(bk){ persistDetail(); N.open=createNote({ title:bk.dataset.newtitle, body:"" }); renderPage(); return; }
     });
   }
+
+  let _asT;
+  function autosave(){ clearTimeout(_asT); _asT=setTimeout(()=>{ persistDetail(); const a=document.getElementById("np-autosave"); if(a){ a.textContent="已保存 ✓"; setTimeout(()=>{ if(a&&a.textContent==="已保存 ✓") a.textContent="自动保存"; },1200); } }, 500); }
+  function cleanupIfEmpty(){ const n=getNote(N.open); if(n && !(n.title||"").trim() && !(n.body||"").trim()){ deleteNote(N.open); } }
+
+  /* ---------- quick-notes side panel (always at hand; auto-saves a scratchpad) ---------- */
+  function getScratch(){ return STORE.scratch||""; }
+  let _scratchT;
+  function qOpen(){
+    injectQuick();
+    const p=document.getElementById("qn-panel"); p.classList.add("show");
+    const l=LESSONS[STATE.day-1];
+    document.getElementById("qn-ctx").textContent=l?`Day ${l.day}`:"";
+    document.getElementById("qn-assoc-day").textContent=l?`Day ${l.day}`:"";
+    const ta=document.getElementById("qn-scratch"); ta.value=getScratch(); renderRecent();
+    setTimeout(()=>ta.focus(),60);
+  }
+  function qClose(){ const p=document.getElementById("qn-panel"); if(p) p.classList.remove("show"); }
+  function qStatus(html){ const s=document.getElementById("qn-status"); if(!s) return; s.innerHTML=html; }
+  function saveSection(){
+    const ta=document.getElementById("qn-scratch"); const text=(ta.value||"").trim();
+    if(!text){ qStatus("草稿是空的，先写点什么吧。"); return; }
+    const assoc=document.getElementById("qn-assoc").checked, day=STATE.day, theme=(LESSONS[day-1]||{}).theme||"";
+    const first=text.split("\n").find(x=>x.trim())||"";
+    const body=text + (assoc?`\n\n关联：[[course:d:${day}|Day ${day} · ${theme}]]`:"");
+    const id=createNote({ title:first.slice(0,28)||("速记 "+new Date().toISOString().slice(0,10)),
+      body, tags:assoc?["速记","Day"+day]:["速记"], provenance:{kind:"manual", source:"scratch"} });
+    renderRecent();
+    qStatus(`已存为 Section ✓ <a class="qn-view" data-nid="${id}">查看</a> · <a class="qn-clear">清空草稿</a>`);
+  }
+  function renderRecent(){
+    const box=document.getElementById("qn-recent"); if(!box) return;
+    const items=allNotes().slice(0,5);
+    box.innerHTML=`<div class="qn-recent-h">最近的笔记</div>`+(items.length
+      ? items.map(n=>`<a class="qn-rec-item" data-nid="${n.id}">${badge(n)} ${esc(n.title||"（无标题）")}</a>`).join("")
+      : `<div class="qn-empty">还没有笔记。</div>`);
+  }
+  function injectQuick(){
+    if(document.getElementById("qn-fab")) return;
+    const fab=document.createElement("button"); fab.id="qn-fab"; fab.type="button"; fab.textContent="🗒️"; fab.title="速记本（可拖动）";
+    document.body.appendChild(fab);
+    const p=document.createElement("div"); p.id="qn-panel";
+    p.innerHTML=`<div class="qn-head"><b>🗒️ 速记本</b><span class="qn-ctx" id="qn-ctx"></span><button id="qn-close">✕</button></div>
+      <div class="qn-hint">随手记，<b>自动保存</b>。整理好后「保存为 Section」存成一条正式笔记，可选择是否关联当前课。</div>
+      <textarea id="qn-scratch" placeholder="在这里随手记下疑问、心得、想背的句子…（自动保存）"></textarea>
+      <div class="qn-saverow">
+        <label class="qn-assoc"><input type="checkbox" id="qn-assoc" checked> 关联当前课 <b id="qn-assoc-day"></b></label>
+        <button id="qn-section" class="primary">保存为 Section</button>
+      </div>
+      <div class="qn-status" id="qn-status"></div>
+      <div class="qn-recent" id="qn-recent"></div>
+      <div class="qn-foot"><a id="qn-manage">管理全部笔记 →</a></div>`;
+    document.body.appendChild(p);
+    if(window.makeDraggable) makeDraggable(fab,"jpn-qnfab-pos",qOpen); else fab.onclick=qOpen;
+    document.getElementById("qn-close").onclick=qClose;
+    const ta=document.getElementById("qn-scratch"); ta.value=getScratch();
+    ta.addEventListener("input",()=>{ clearTimeout(_scratchT); _scratchT=setTimeout(()=>{ STORE.scratch=ta.value; save(STORE); qStatus("已自动保存 ✓"); setTimeout(()=>{ const s=document.getElementById("qn-status"); if(s&&s.textContent==="已自动保存 ✓") s.textContent=""; },1200); },400); });
+    document.getElementById("qn-section").onclick=saveSection;
+    document.getElementById("qn-manage").onclick=()=>{ qClose(); showPage("notes"); };
+    p.addEventListener("click",(e)=>{
+      const v=e.target.closest(".qn-view,.qn-rec-item"); if(v){ N.open=v.dataset.nid; qClose(); showPage("notes"); return; }
+      if(e.target.classList.contains("qn-clear")){ document.getElementById("qn-scratch").value=""; STORE.scratch=""; save(STORE); qStatus("已清空草稿"); }
+    });
+  }
+
+  /* ---------- home card ---------- */
+  function homeCardHTML(){
+    const items=allNotes().slice(0,3);
+    const list=items.length
+      ? items.map(n=>`<a class="np-home-item" data-nid="${n.id}">${badge(n)} ${esc(n.title||"（无标题）")}</a>`).join("")
+      : `<p class="hc-empty">还没有笔记。学习时点右下角 🗒️ 随手记，自动保存。</p>`;
+    return `<section class="home-card">
+      <h2>🗒️ 速记本 <span class="np-count">${allNotes().length}</span></h2>
+      <p class="np-home-tip">手边的笔记：随时记下疑问与心得，自动保存；可整理成与课程关联的 Section。</p>
+      <div class="np-home-list">${list}</div>
+      <div class="np-home-actions"><button class="np-home-open">✍️ 打开速记本</button><a class="np-home-all">管理全部 →</a></div>
+    </section>`;
+  }
+  // delegated handlers for the home card (home is re-rendered by app.js)
+  document.addEventListener("click",(e)=>{
+    if(e.target.closest(".np-home-open")){ qOpen(); return; }
+    if(e.target.closest(".np-home-all")){ showPage("notes"); return; }
+    const it=e.target.closest(".np-home-item"); if(it){ N.open=it.dataset.nid; showPage("notes"); }
+  });
 
   /* ---------- AI assistant integration ---------- */
   function saveBtnHTML(){ return `<button class="note-save-ai">📝 存为笔记</button>`; }
@@ -225,5 +311,9 @@
     };
   }
 
-  window.Notes={ renderPage, saveBtnHTML, bindSaveBtn, count:()=>allNotes().length, reload:()=>{ STORE=load(); } };
+  window.Notes={ renderPage, saveBtnHTML, bindSaveBtn, homeCardHTML, openQuick:qOpen,
+    count:()=>allNotes().length, reload:()=>{ STORE=load(); } };
+  window.QuickNotes={ open:qOpen, close:qClose };
+  if(document.readyState!=="loading") injectQuick();
+  else document.addEventListener("DOMContentLoaded", injectQuick);
 })();

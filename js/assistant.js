@@ -229,7 +229,8 @@ ${courseIndex()}`;
       </div>
       <div class="ai-foot">仅限日语学习 · 解释由 AI 生成仅供参考 · <a id="ai-clear">清空</a></div>`;
     document.body.appendChild(panel);
-    fab.onclick=open;
+    if(window.makeDraggable) makeDraggable(fab, "jpn-aifab-pos", open); else fab.onclick=open;
+    fab.title="AI 学习助手（可拖动）";
     $id("ai-close").onclick=close;
     $id("ai-send").onclick=()=>send();
     $id("ai-clear").onclick=resetMsgs;
@@ -253,6 +254,16 @@ ${courseIndex()}`;
       <label>API Key <input type="password" id="ai-key" value="${esc(c.key||"")}" placeholder="sk-ant-..."></label>
       <label>模型 <select id="ai-model">${MODELS.map(m=>`<option value="${m.id}"${(c.model||MODELS[0].id)===m.id?" selected":""}>${esc(m.name)}</option>`).join("")}</select></label>
       <div class="m-actions"><button id="ai-save" class="primary">保存</button><button id="ai-clear-key">清除</button><span id="ai-key-status" class="m-note"></span></div>
+      <details class="ai-guide"><summary>📘 怎么获取 API Key？（点开看图文步骤）</summary>
+        <ol>
+          <li>打开 <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>，注册 / 登录（支持邮箱、Google）。</li>
+          <li>首次需要在 <b>Billing（账单）</b> 里充值一点额度（最低约 $5；按用量计费，问答很便宜，几乎用不完）。</li>
+          <li>左侧进入 <b>API Keys</b> → <b>Create Key</b>，给它起个名字（如 <code>jpn-study</code>），点 <b>Copy</b> 复制（形如 <code>sk-ant-...</code>，只显示一次）。</li>
+          <li><b>强烈建议</b>：在 <b>Limits / Usage limits</b> 给这个 Key 设一个每月上限（如 $5），防止意外超支。</li>
+          <li>回到这里，把 Key 粘进上面的输入框 → <b>保存</b>。完成！点右下角 🤖 就能用了。</li>
+        </ol>
+        <p class="m-note">完整图文版见仓库 <code>docs/API-KEY-GUIDE.md</code>。Key 只存在你这台电脑的浏览器里，直接发往 Anthropic，不经过任何第三方。</p>
+      </details>
       <p class="m-note">提示：助手会自动结合你“当前所在那一课”的课文、单词、语法来回答，并标注知识点最早出现在第几天（可点 Day N 跳转）。若提示模型不存在，改这里的模型名即可。</p>
     </section>`;
   }

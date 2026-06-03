@@ -87,6 +87,14 @@ function setVoice(id){
   try{ localStorage.setItem("jpn-voice", v?v.id:"default"); }catch(e){}
 }
 function currentVoiceId(){ try{ return localStorage.getItem("jpn-voice")||"default"; }catch(e){ return "default"; } }
+function voiceOptionsHTML(){
+  const cur=currentVoiceId(), groups={};
+  VOICES.forEach(v=>{ const c=v.char||v.name||"声音"; (groups[c]=groups[c]||[]).push(v); });
+  return Object.keys(groups).map(c=>
+    `<optgroup label="${esc(c)}">`+groups[c].map(v=>
+      `<option value="${esc(v.id)}"${v.id===cur?" selected":""}>${esc(v.style||v.tag||v.name)}</option>`).join("")+`</optgroup>`
+  ).join("");
+}
 
 /* normalize text for TTS / file lookup: drop furigana, 「〜」placeholder, edge punct */
 function speechNorm(text){ return toPlain(text).replace(/[〜～]/g,"").replace(/^[、。・「」『』\s]+|[、。・「」『』\s]+$/g,"").trim(); }
@@ -778,6 +786,20 @@ function toggleMap(show){
 /* ============================================================================
  *  PAGE ROUTING
  * ==========================================================================*/
+/* make a floating element drag-anywhere; remembers position; calls onTap on a click (no drag) */
+function makeDraggable(el, key, onTap){
+  try{ const p=JSON.parse(localStorage.getItem(key)); if(p&&p.left!=null){ el.style.left=p.left+"px"; el.style.top=p.top+"px"; el.style.right="auto"; el.style.bottom="auto"; } }catch(e){}
+  let sx,sy,ox,oy,moved=false,down=false;
+  const move=(e)=>{ if(!down) return; const dx=e.clientX-sx, dy=e.clientY-sy; if(Math.abs(dx)>4||Math.abs(dy)>4) moved=true;
+    let nx=Math.max(4,Math.min(innerWidth-el.offsetWidth-4, ox+dx)), ny=Math.max(4,Math.min(innerHeight-el.offsetHeight-4, oy+dy));
+    el.style.left=nx+"px"; el.style.top=ny+"px"; el.style.right="auto"; el.style.bottom="auto"; };
+  const end=()=>{ if(!down) return; down=false; document.removeEventListener("pointermove",move); document.removeEventListener("pointerup",end);
+    if(moved){ try{ localStorage.setItem(key,JSON.stringify({left:parseInt(el.style.left,10),top:parseInt(el.style.top,10)})); }catch(e){} }
+    else if(onTap) onTap(); };
+  el.addEventListener("pointerdown",(e)=>{ down=true; moved=false; sx=e.clientX; sy=e.clientY; const r=el.getBoundingClientRect(); ox=r.left; oy=r.top;
+    document.addEventListener("pointermove",move); document.addEventListener("pointerup",end); });
+}
+
 function showPage(p){
   STATE.page=p;
   stopSpeak(); if(PRON && PRON.recording) stopRec();
@@ -881,6 +903,8 @@ function renderHome(){
         <h2>✅ 今日のタスク</h2>
         <ul class="todo-list">${todo}</ul>
       </section>
+
+      ${window.Notes ? window.Notes.homeCardHTML() : ""}
     </div>
 
     <section class="home-card">
@@ -939,8 +963,8 @@ function openSettings(){
         <div class="m-actions"><button id="exp-prog" class="primary">导出进度 JSON</button><button id="imp-prog">导入进度…</button><input type="file" id="imp-file" accept="application/json" style="display:none"><span id="bk-status" class="m-note"></span></div>
       </section>
       <section><h3>🎙️ 声音模型 / Voice</h3>
-        <p class="m-note">选择朗读用的声音。切换后全站的真人语音都会用它。带「核心」标记的声音覆盖课文与单词；个别未生成的句子会自动回退到标准音。</p>
-        <label>声音 <select id="voice-sel">${VOICES.map(v=>`<option value="${esc(v.id)}"${v.id===currentVoiceId()?" selected":""}>${esc(v.name)} · ${esc(v.tag)}${v.core?"（核心）":""}</option>`).join("")}</select></label>
+        <p class="m-note">选择朗读用的声音。每个角色都有「普通版」和「有意思版」，切换后全站真人语音都会用它。</p>
+        <label>声音 <select id="voice-sel">${voiceOptionsHTML()}</select></label>
         <p class="m-note" id="voice-desc"></p>
         <div class="m-actions"><button id="voice-demo">▶ 试听</button><span id="voice-status" class="m-note"></span></div>
       </section>
