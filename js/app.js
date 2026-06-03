@@ -11,7 +11,7 @@ const STATE = {
   furi: true,                // furigana visible
   showZh: false,             // translations under paragraph (morning hides by default)
   writeMode: "type",         // type | hide
-  rate: 0.8,
+  rate: 1.0,                 // natural speed for the real voice; slider can slow it for shadowing
 };
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 const SESSIONS = {
@@ -157,16 +157,22 @@ function playOne(item){           // {text, node, audioKey}
     ? [VOICE_PREFIX + src.replace(/^audio\//,""), src] : [src];
   return new Promise(res=>{
     if(item.node) item.node.classList.add("speaking");
-    const clear=()=>{ if(item.node) item.node.classList.remove("speaking"); if(CURRENT_AUDIO===a) CURRENT_AUDIO=null; };
-    let a;
-    const tryAt=(i)=>{
-      if(i>=srcs.length){ clear(); ttsOne(item.text, item.node).then(res); return; }
-      a=new Audio(srcs[i]); CURRENT_AUDIO=a; a.playbackRate=STATE.rate;
-      a.onended=()=>{ clear(); res(); };
-      a.onerror=()=>tryAt(i+1);
-      a.play().catch(()=>tryAt(i+1));
+    let done=false, idx=0, a=null;
+    const unhighlight=()=>{ if(item.node) item.node.classList.remove("speaking"); };
+    const finish=()=>{ if(done) return; done=true; unhighlight(); if(CURRENT_AUDIO===a) CURRENT_AUDIO=null; res(); };
+    const start=()=>{
+      a=new Audio(srcs[idx]); CURRENT_AUDIO=a; a.playbackRate=STATE.rate;
+      let advanced=false;                         // ensure this source advances at most ONCE
+      const advance=()=>{ if(advanced||done) return; advanced=true;
+        idx++;
+        if(idx<srcs.length){ start(); }           // try the next file (e.g. default voice)
+        else { done=true; unhighlight(); ttsOne(item.text, item.node).then(res); }  // last resort: TTS
+      };
+      a.onended=finish;
+      a.onerror=advance;                          // file missing/failed → next source
+      a.play().catch(advance);                    // play rejected → next source (guarded, won't double-fire)
     };
-    tryAt(0);
+    start();
   });
 }
 /* one-off speak (vocab readings, single examples) */
@@ -593,11 +599,10 @@ function renderNoon(L){
   html += `<section class="block"><h2>📝 本文と訳 · 课文与翻译</h2><div class="para" id="para2"></div></section>`;
 
   /* vocab — cards: word + reading + 🔊 + 词性 + 释义(术语可点) + 拆解 + 例句 */
-  html += `<section class="block"><h2>📚 単語 · 词汇 <span class="blk-hint">点术语看解释 · 🔊朗读 · 📈音高线(上高下低·红点=降调) · 📝例句</span></h2>
+  html += `<section class="block"><h2>📚 単語 · 词汇 <span class="blk-hint">点术语看解释 · 🔊朗读 · 📝例句</span></h2>
     <div class="vcards">
     ${L.vocab.map(v=>`<div class="vcard">
       <div class="vc-head"><span class="v-word">${esc(v.w)}</span><span class="v-read">${esc(v.r)}</span><button class="play-w" data-w="${esc(v.r)}">🔊</button>${v.pos?`<span class="v-pos">${esc(v.pos)}</span>`:""}</div>
-      ${(p=>p?`<div class="vc-pitch">${p}</div>`:"")(pitchHTML("v_"+speechNorm(v.r), v.r))}
       <div class="vc-mean">${linkTerms(v.zh)}${v.en?`<span class="v-en"> · ${esc(v.en)}</span>`:""}</div>
       ${v.parts?`<div class="vc-parts"><span class="vc-tag">🧩 拆解</span>${v.parts.map(p=>`<span class="vc-part" ${p.r?`data-w="${esc(p.r)}"`:""}><b>${esc(p.p)}</b>${p.r?`<i>${esc(p.r)}</i>`:""}＝${esc(p.m)}</span>`).join('<span class="vc-plus">＋</span>')}</div>`:""}
       ${v.ex?`<div class="vc-ex" data-jp="${esc(v.ex.jp)}"><span class="vc-tag">📝 例</span>${toRuby(v.ex.jp)}<span class="zh">${esc(v.ex.zh)}</span></div>`:""}
@@ -1276,12 +1281,8 @@ function init(){
   } else if(typeof fetch==="function" && location.protocol!=="file:"){
     fetch("audio/manifest.json").then(r=>r.ok?r.json():{}).then(m=>{ AUDIO_MANIFEST=m||{}; }).catch(()=>{ AUDIO_MANIFEST={}; });
   }
-  // pre-computed pitch-accent contours (same loading strategy as the audio manifest)
-  if(typeof window!=="undefined" && window.PITCH){
-    PITCH = window.PITCH;
-  } else if(typeof fetch==="function" && location.protocol!=="file:"){
-    fetch("audio/pitch.json").then(r=>r.ok?r.json():{}).then(p=>{ PITCH=p||{}; }).catch(()=>{ PITCH={}; });
-  }
+  // (pitch-accent contour was retired from the UI; gen_audio.py --pitch + audio/pitch.js
+  //  remain in the repo if we ever revisit it. PITCH stays empty and pitchHTML() returns "".)
   // voice models (registry script-loaded). Always include a built-in default first.
   VOICES = (typeof window!=="undefined" && Array.isArray(window.VOICES) && window.VOICES.length)
     ? window.VOICES
