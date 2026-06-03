@@ -321,7 +321,7 @@
     const happy=(p.meters.happy>=55 && (p.hp==null||p.hp>40));
     S.activity=S.activity||[]; S.activity.unshift({ ts:now(), span:[last,now()], events, diary:composeDiary(events,happy) });
     while(S.activity.length>30) S.activity.pop();
-    S.activityTs=now(); save();
+    S.activityTs=now(); S.chatNudge=now(); save();   // it has news → nudge the 💬
   }
   function unseenLog(){ return (S.activity&&S.activity.length) ? (S.activity[0].ts>(S.logSeen||0)) : false; }
 
@@ -345,7 +345,7 @@
     ].join("\n");
   }
   function petMemory(p){
-    const ev=((S.activity[0]&&S.activity[0].events)||[]).map(e=>"・"+(window.toPlain?toPlain(e.jp):e.jp)).join("\n")||"・（とくに何もなかった）";
+    const ev=((S.activity&&S.activity[0]&&S.activity[0].events)||[]).map(e=>"・"+(window.toPlain?toPlain(e.jp):e.jp)).join("\n")||"・（とくに何もなかった）";
     const m=p.meters;
     return `【さっきまでのできごと】\n${ev}\n【${p.name||"この子"}のいまの様子】気分:${moodOf(p)}／おなか:${Math.round(m.hunger)}／元気:${Math.round(m.energy)}`;
   }
@@ -376,6 +376,67 @@
       .catch(()=>{});
   }
 
+  // ---- B2: dedicated PET CHAT (conversation practice; pet stays front-and-center) ----
+  // Talking unlocks at TEEN (the "it got smart!" payoff). Younger = cute canned baby-talk
+  // that defers hard stuff to 📖 Sensei. No key = canned + a hint. Real chat = Claude in the
+  // pet persona + its memory; replies are Japanese w/ furigana = conversation reading drill.
+  let CHAT_BUSY=false;
+  function canChat(p){ return aiOn() && ["teen","adult","elder"].indexOf(p.stage)>=0; }
+  function chatHistory(p){ p.chat=p.chat||[]; return p.chat; }
+  function pushChat(p,role,text){ const h=chatHistory(p); h.push({role,text}); while(h.length>16) h.shift(); save(); }
+  function unseenChat(){ return (S.chatNudge||0) > (S.chatSeen||0); }
+  function petCanned(p){
+    const nat=NATURES[petNature(p)]||{};
+    const bank=[ T("うー、まだ よく わかんない…！","Uhh, I don't get it yet…!"),
+      T("むずかしいことは 先生[せんせい]（📖）に 聞[き]いてみて！","For hard stuff, ask Sensei (📖)!"),
+      T("でも、いっしょに いるの たのしい！","But being with you is fun!"),
+      T("はやく おっきく なって、いっぱい おしゃべりしたいな！","I wanna grow up and chat lots!"),
+      nat.idle?T(nat.idle.jp,nat.idle.en):T("えへへ。","Hehe.") ];
+    return bank[Math.floor(Math.random()*bank.length)];
+  }
+  function greeting(p){ const nat=NATURES[petNature(p)]||{}; return nat.idle?T(nat.idle.jp,nat.idle.en):T("やっほー！","Hi!"); }
+  function openChat(){ const p=pet(); if(!p||p.diedAt||p.stage==="egg") return;
+    p.meters.happy=clamp(p.meters.happy+4); S.chatSeen=now();
+    if(!chatHistory(p).length) pushChat(p,"pet",greeting(p)); else save();
+    let ov=document.getElementById("pet-chat-ov");
+    if(!ov){ ov=document.createElement("div"); ov.id="pet-chat-ov"; ov.className="pet-chat-ov";
+      ov.addEventListener("click",e=>{ if(e.target===ov) closeChat(); }); document.body.appendChild(ov); }
+    renderChat(ov); ov.style.display="flex";
+    const inp=ov.querySelector(".pchat-input"); if(inp) inp.focus(); refresh();
+  }
+  function closeChat(){ const ov=document.getElementById("pet-chat-ov"); if(ov) ov.style.display="none"; }
+  function renderChat(ov){ const p=pet(); if(!p) return; const ruby=s=>window.toRuby?toRuby(s):esc(s);
+    const young=!canChat(p)&&aiOn();
+    const msgs=chatHistory(p).map(m=> m.role==="user"
+      ? `<div class="pchat-msg me">${esc(m.text)}</div>`
+      : `<div class="pchat-msg pet">${ruby(m.text)}</div>`).join("");
+    const note = !aiOn() ? `<div class="pchat-note">${T("⚙ で API キーを入れると、日本語で おしゃべりできるよ。","Add an API key in ⚙ to chat in Japanese.")}</div>`
+      : young ? `<div class="pchat-note">${T("この子はまだ小[ちい]さいので、かんたんな話[はなし]だけ。むずかしいことは 📖 先生[せんせい]に！","Still little — simple chat only. For hard questions, ask 📖 Sensei!")}</div>` : "";
+    ov.innerHTML=`<div class="pet-chat"><button class="pchat-close" title="${T('閉じる','Close')}">✕</button>
+      <div class="pchat-head"><canvas class="pet-canvas pchat-face" width="44" height="44"></canvas><b>${esc(p.name||"")}</b><span class="pet-nature">${esc(natLabel(p))}</span></div>
+      <div class="pchat-msgs">${msgs}<div class="pchat-typing" style="display:none">…</div></div>${note}
+      <div class="pchat-bar"><input class="pchat-input" placeholder="${T('日本語で話しかけてみよう…','Say something in Japanese…')}" maxlength="200"><button class="pchat-send">${T('送信','Send')}</button><button class="pchat-sensei" title="${T('先生に聞く','Ask Sensei')}">📖</button></div></div>`;
+    ov.querySelector(".pchat-close").onclick=closeChat;
+    ov.querySelector(".pchat-sensei").onclick=()=>{ closeChat(); if(window.Assistant&&window.Assistant.open) window.Assistant.open(); };
+    const inp=ov.querySelector(".pchat-input"), send=ov.querySelector(".pchat-send");
+    const go=()=>{ const v=inp.value; inp.value=""; sendChat(v); };
+    send.onclick=go; inp.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); go(); } };
+    const box=ov.querySelector(".pchat-msgs"); if(box) box.scrollTop=box.scrollHeight;
+  }
+  function sendChat(text){ text=(text||"").trim(); if(!text||CHAT_BUSY) return; const p=pet(); if(!p) return;
+    pushChat(p,"user",text); let ov=document.getElementById("pet-chat-ov"); renderChat(ov);
+    if(!canChat(p)){ pushChat(p,"pet",petCanned(p)); renderChat(ov); return; }   // young / no key
+    CHAT_BUSY=true; const t=ov.querySelector(".pchat-typing"); if(t) t.style.display="block";
+    const box=ov.querySelector(".pchat-msgs"); if(box) box.scrollTop=box.scrollHeight;
+    const sys=personaSystem(p)+"\n\n"+petMemory(p)+"\n\n【会話モード】飼い主とカジュアルに雑談する。返事は短く（1〜3文）、キャラクターらしく、ときどき あなたから 質問[しつもん]を返[かえ]す。飼い主が日本語で書いて まちがいがあれば、さりげなく 直[なお]してあげてもよい。文法[ぶんぽう]のむずかしい質問は「先生[せんせい]に聞[き]いてみて！」と言ってよい。";
+    const msgs=chatHistory(p).slice(-10).map(m=>({ role:m.role==="user"?"user":"assistant", content:m.text }));
+    // Promise.resolve(...) wraps any SYNCHRONOUS throw (e.g. complete() with no key) into a
+    // rejection so .catch always runs and CHAT_BUSY can never get stuck true.
+    Promise.resolve().then(()=>window.Assistant.complete({ system:sys, messages:msgs, max_tokens:320 }))
+      .then(txt=>{ CHAT_BUSY=false; pushChat(p,"pet",String(txt).trim()||petCanned(p)); renderChat(document.getElementById("pet-chat-ov")); })
+      .catch(()=>{ CHAT_BUSY=false; pushChat(p,"pet",petCanned(p)); renderChat(document.getElementById("pet-chat-ov")); });
+  }
+
   // ---- panel UI -------------------------------------------------------------
   function bar(label,v,cls){ return `<div class="pet-meter"><span>${label}</span><i class="${cls}"><b style="width:${Math.round(clamp(v))}%"></b></i></div>`; }
   function panelHTML(){
@@ -390,6 +451,7 @@
     return `<div class="pet-box" data-uid="${p.uid}">
       <div class="pet-head"><b class="pet-name">${esc(p.name||"…")}</b><span class="pet-stage">${stageLbl[p.stage]||st}</span>
         ${p.stage!=="egg"?`<span class="pet-nature" title="${T('性格','Nature')}">${esc(natLabel(p))}</span>`:""}
+        ${p.stage!=="egg"?`<button class="pet-chatbtn${unseenChat()?" unseen":""}" title="${T('話す','Talk')}">💬</button>`:""}
         ${p.stage!=="egg"?`<button class="pet-logbtn${unseenLog()?" unseen":""}" title="${T('日记・活动','Diary & activity')}">📔</button>`:""}
         <span class="pet-coins">🪙 ${coins()}</span></div>
       <div class="pet-stage-wrap"><canvas class="pet-canvas" width="132" height="132"></canvas></div>
@@ -437,7 +499,9 @@
     root.querySelectorAll(".pet-newegg").forEach(b=>b.onclick=welcomeNewEgg);
     root.querySelectorAll(".pet-actions button").forEach(b=>b.onclick=()=>act(b.dataset.act));
     root.querySelectorAll(".pet-logbtn").forEach(b=>b.onclick=openLog);
-    const cv=root.querySelector(".pet-canvas"); if(cv) cv.onclick=()=>{ const p=pet(); if(p&&!p.diedAt){ p.meters.happy=clamp(p.meters.happy+6); save(); } };
+    root.querySelectorAll(".pet-chatbtn").forEach(b=>b.onclick=openChat);
+    const cv=root.querySelector(".pet-canvas"); if(cv) cv.onclick=openChat;        // tap the pet → talk to it
+    const sb=root.querySelector(".pet-speech"); if(sb){ sb.classList.add("tappable"); sb.onclick=openChat; }  // tap its bubble → reply
   }
 
   // ---- B1 log/diary overlay (Japanese reading surface) ----------------------
@@ -505,7 +569,7 @@
   function showRail(on){ const rail=document.getElementById(RAIL_ID); if(rail) rail.classList.toggle("show",!!on); }
 
   // study event hook (called from app.js markSession / test finish)
-  function onStudy(){ JUST_STUDIED=now(); AI_SAY=null; const p=pet(); if(p) decay(p); save(); refresh();
+  function onStudy(){ JUST_STUDIED=now(); AI_SAY=null; S.chatNudge=now(); const p=pet(); if(p) decay(p); save(); refresh();
     if(p) generateStudyLine(p); }   // agent writes a reaction (async) when a key is set
 
   window.Pet={ mountHome, refresh, onStudy, showRail,
