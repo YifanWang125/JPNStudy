@@ -64,7 +64,7 @@
   // recent improvement (for the pet to NOTICE & comment) — last two distinct attempts
   function recentGain(log,valFn){ const a=J(log,[]); if(a.length<2) return 0;
     return Math.round((valFn(a[a.length-1]) - valFn(a[a.length-2]))); }
-  function coins(){ return Math.max(0, Math.floor(studySXP()*TUNE.coinsPerSXP) - (S.spent||0)); }
+  function coins(){ return Math.max(0, Math.floor(studySXP()*TUNE.coinsPerSXP) + (S.bonus||0) - (S.spent||0)); }
   function spend(n){ if(coins()<n) return false; S.spent=(S.spent||0)+n; save(); return true; }
 
   // ---- deterministic genome (seed → traits) ---------------------------------
@@ -240,6 +240,56 @@
     return T("きょうも えらいね！","You're doing great today!");
   }
 
+  // ---- B1: autonomous activity while away → JP log + diary (reading practice) ----
+  // Everything the pet "did" is narrated in Japanese, so following its life IS reading
+  // drill. Events roll on return, weighted by how long you were gone; seeded by the
+  // absence window so a given visit's log is stable on re-open. Templated & offline;
+  // Claude can enrich later (Phase B2). Slots: {n}=pet, {f}=friend, {g}=thing.
+  const FRIENDS=["ポチ","タマ","くるみ","だんご","ぷりん","こてつ","あおい","モカ"];
+  const THINGS=["マンガ","絵本[えほん]","図鑑[ずかん]","小説[しょうせつ]"];
+  const EVENTS=[
+    {id:"read",  w:3, fx:{happy:4},            jp:"{n}は {g}を 読[よ]んでいた。", zh:"{n}在读{g}。", en:"{n} was reading {g}.", dia:{jp:"{g}を よんだよ。", zh:"读了{g}。", en:"I read {g}."}},
+    {id:"walk",  w:3, fx:{energy:-4,happy:3},  jp:"{n}は お散歩[さんぽ]に 行[い]ってきた。", zh:"{n}出去散步了。", en:"{n} went for a walk.", dia:{jp:"おさんぽ、たのしかった。", zh:"散步很开心。", en:"The walk was fun."}},
+    {id:"friend",w:3, fx:{happy:8},            jp:"{f}が 遊[あそ]びに 来[き]た。", zh:"{f}来玩了。", en:"{f} came over to play.", dia:{jp:"{f}が きてくれて うれしかった！", zh:"{f}来了，好开心！", en:"{f} came over — I was so happy!"}},
+    {id:"karaoke",w:2,fx:{happy:10,energy:-5}, jp:"{n}と {f}は カラオケで 歌[うた]った。", zh:"{n}和{f}唱了卡拉OK。", en:"{n} and {f} sang karaoke.", dia:{jp:"カラオケで いっぱい うたった♪", zh:"在卡拉OK唱了好多♪", en:"We sang a ton of karaoke ♪"}},
+    {id:"eat",   w:3, fx:{hunger:10},          jp:"{n}は おやつを 食[た]べた。", zh:"{n}吃了点心。", en:"{n} had a snack.", dia:{jp:"おやつ、おいしかった！", zh:"点心好好吃！", en:"The snack was yummy!"}},
+    {id:"fight", w:1, fx:{health:-6,happy:-6}, jp:"{n}は {f}と けんかして、ちょっと 怪我[けが]を した。", zh:"{n}和{f}吵架了，受了点小伤。", en:"{n} squabbled with {f} and got a little hurt.", dia:{jp:"でも ちょっと けんかして、いたかった…。", zh:"不过吵了架，有点痛…。", en:"But we had a little fight… it hurt."}},
+    {id:"nap",   w:2, fx:{energy:12},          jp:"{n}は ひなたで ひるねを した。", zh:"{n}在阳光下午睡了。", en:"{n} napped in the sun.", dia:{jp:"ひるね、きもちよかった〜。", zh:"午睡好舒服～。", en:"That nap felt so good~"}},
+    {id:"study", w:2, fx:{happy:5},            jp:"{n}は ひとりで ひらがなを 練習[れんしゅう]していた。", zh:"{n}自己练了平假名。", en:"{n} practiced hiragana on its own.", dia:{jp:"べんきょうも がんばったんだよ！", zh:"我也努力学习了哦！", en:"I studied hard too!"}},
+    {id:"coin",  w:1, fx:{coin:2},             jp:"{n}は 道[みち]で コインを 拾[ひろ]った。", zh:"{n}在路上捡到了硬币。", en:"{n} found a coin on the road.", dia:{jp:"コインも ひろっちゃった！ラッキー。", zh:"还捡到了硬币！真幸运。", en:"I even found a coin! Lucky."}},
+  ];
+  function rng(seed){ return mulberry32((seed>>>0)||1); }
+  function fill(s,c){ return s.replace(/{n}/g,c.n).replace(/{f}/g,c.f).replace(/{g}/g,c.g); }
+  function wpick(r,arr){ const tot=arr.reduce((s,e)=>s+e.w,0); let x=r()*tot; for(const e of arr){ if((x-=e.w)<0) return e; } return arr[0]; }
+  function applyFx(p,fx){ if(!fx) return; const m=p.meters;
+    if(fx.hunger) m.hunger=clamp(m.hunger+fx.hunger); if(fx.happy) m.happy=clamp(m.happy+fx.happy);
+    if(fx.energy) m.energy=clamp(m.energy+fx.energy); if(fx.health) p.hp=clamp((p.hp==null?100:p.hp)+fx.health);
+    if(fx.coin) S.bonus=(S.bonus||0)+fx.coin; }
+  function composeDiary(events,happy){
+    const open = happy ? {jp:"今日[きょう]は たのしい 一日[いちにち]だった！",zh:"今天过得很开心！",en:"Today was a fun day!"}
+                       : {jp:"今日[きょう]は ふつうの 一日[いちにち]。",zh:"今天很平常。",en:"Today was an ordinary day."};
+    const close = {jp:"また あした、あそんでね！",zh:"明天也陪我玩哦！",en:"Play with me again tomorrow!"};
+    const frags = events.slice(0,4).map(e=>e.dia);
+    const build = k => [open[k], ...frags.map(f=>f[k]), close[k]].join(" ");
+    return { jp:build("jp"), zh:build("zh"), en:build("en") };
+  }
+  function rollActivity(){
+    const p=pet(); if(!p||p.diedAt||p.stage==="egg") return;
+    const last=S.activityTs||p.bornAt||now(); const gap=now()-last;
+    if(gap < 2*3.6e6) return;                              // need ≥2h away to "live a little"
+    const r=rng(Math.floor(last/3.6e6)+(p.seed||1));        // stable per absence window
+    const n=Math.max(1,Math.min(6,Math.round(gap/(3*3.6e6))));
+    const ctx={ n:p.name||"この子", f:FRIENDS[Math.floor(r()*FRIENDS.length)], g:THINGS[Math.floor(r()*THINGS.length)] };
+    const events=[]; for(let i=0;i<n;i++){ const e=wpick(r,EVENTS); applyFx(p,e.fx);
+      events.push({ jp:fill(e.jp,ctx), zh:fill(e.zh,ctx), en:fill(e.en,ctx),
+        dia:{jp:fill(e.dia.jp,ctx),zh:fill(e.dia.zh,ctx),en:fill(e.dia.en,ctx)} }); }
+    const happy=(p.meters.happy>=55 && (p.hp==null||p.hp>40));
+    S.activity=S.activity||[]; S.activity.unshift({ ts:now(), span:[last,now()], events, diary:composeDiary(events,happy) });
+    while(S.activity.length>30) S.activity.pop();
+    S.activityTs=now(); save();
+  }
+  function unseenLog(){ return (S.activity&&S.activity.length) ? (S.activity[0].ts>(S.logSeen||0)) : false; }
+
   // ---- panel UI -------------------------------------------------------------
   function bar(label,v,cls){ return `<div class="pet-meter"><span>${label}</span><i class="${cls}"><b style="width:${Math.round(clamp(v))}%"></b></i></div>`; }
   function panelHTML(){
@@ -252,7 +302,9 @@
     const stageLbl={egg:T("たまご","Egg"),hatchling:T("赤ちゃん","Baby"),child:T("こども","Child"),teen:T("わかもの","Teen"),adult:T("おとな","Adult"),elder:T("長老","Elder")};
     const warn = (p.sick)?`<div class="pet-warn">🤒 ${T("具合が悪いよ。お薬で治してね（成長が止まってる）","Sick — cure it with medicine (growth is paused)")}</div>`:"";
     return `<div class="pet-box" data-uid="${p.uid}">
-      <div class="pet-head"><b class="pet-name">${esc(p.name||"…")}</b><span class="pet-stage">${stageLbl[p.stage]||st}</span><span class="pet-coins">🪙 ${coins()}</span></div>
+      <div class="pet-head"><b class="pet-name">${esc(p.name||"…")}</b><span class="pet-stage">${stageLbl[p.stage]||st}</span>
+        ${p.stage!=="egg"?`<button class="pet-logbtn${unseenLog()?" unseen":""}" title="${T('日记・活动','Diary & activity')}">📔</button>`:""}
+        <span class="pet-coins">🪙 ${coins()}</span></div>
       <div class="pet-stage-wrap"><canvas class="pet-canvas" width="132" height="132"></canvas></div>
       <div class="pet-speech">${window.toRuby?toRuby(says(p)):esc(says(p))}</div>
       ${warn}
@@ -297,7 +349,38 @@
   function bind(root){
     root.querySelectorAll(".pet-newegg").forEach(b=>b.onclick=welcomeNewEgg);
     root.querySelectorAll(".pet-actions button").forEach(b=>b.onclick=()=>act(b.dataset.act));
+    root.querySelectorAll(".pet-logbtn").forEach(b=>b.onclick=openLog);
     const cv=root.querySelector(".pet-canvas"); if(cv) cv.onclick=()=>{ const p=pet(); if(p&&!p.diedAt){ p.meters.happy=clamp(p.meters.happy+6); save(); } };
+  }
+
+  // ---- B1 log/diary overlay (Japanese reading surface) ----------------------
+  let LOG_TR=false;
+  const trv=o=>(window.LANG==="en"?o.en:o.zh);
+  function openLog(){ const p=pet(); if(!p) return; S.logSeen=now(); save();
+    let ov=document.getElementById("pet-log-ov");
+    if(!ov){ ov=document.createElement("div"); ov.id="pet-log-ov"; ov.className="pet-log-ov";
+      ov.addEventListener("click",e=>{ if(e.target===ov) closeLog(); }); document.body.appendChild(ov); }
+    renderLog(ov); ov.style.display="flex"; refresh();   // refresh clears the unseen dot
+  }
+  function closeLog(){ const ov=document.getElementById("pet-log-ov"); if(ov) ov.style.display="none"; }
+  function renderLog(ov){
+    const p=pet(); const acts=S.activity||[]; const ruby=s=>window.toRuby?toRuby(s):esc(s);
+    let html=`<div class="pet-log"><button class="plog-close" title="${T('閉じる','Close')}">✕</button>
+      <h3>📔 ${esc(p.name||"")} ${T("の日記","'s diary")}</h3>
+      <button class="plog-trtoggle">${LOG_TR?T("訳を隠[かく]す","Hide meaning"):T("💡 意味を見る","💡 Show meaning")}</button>`;
+    if(!acts.length){ html+=`<p class="pet-sub">${T("まだ 記録[きろく]が ないよ。少[すこ]し 時間[じかん]が経[た]つと、できごとが 増[ふ]えるよ。","Nothing logged yet — come back after a while and there'll be activity.")}</p>`; }
+    else {
+      const latest=acts[0];
+      html+=`<div class="plog-diary"><div class="plog-jp" data-jp="${esc(latest.diary.jp)}">${ruby(latest.diary.jp)}</div>${LOG_TR?`<div class="plog-tr">${esc(trv(latest.diary))}</div>`:""}</div>
+        <h4 class="plog-h">🕑 ${T("できごと","What happened")}</h4><ul class="plog-events">`;
+      acts.slice(0,6).forEach(b=>b.events.forEach(e=>{ html+=`<li><div class="plog-jp" data-jp="${esc(e.jp)}">${ruby(e.jp)}</div>${LOG_TR?`<div class="plog-tr">${esc(trv(e))}</div>`:""}</li>`; }));
+      html+=`</ul>`;
+    }
+    html+=`<p class="pet-sub plog-tip">${T("日本語[にほんご]を 読[よ]む 練習[れんしゅう]だよ。文[ぶん]を タップすると 読[よ]み上[あ]げ（音声[おんせい]がオンのとき）。","Reading practice! Tap a line to hear it (when audio fallback is on).")}</p></div>`;
+    ov.innerHTML=html;
+    ov.querySelector(".plog-close").onclick=closeLog;
+    ov.querySelector(".plog-trtoggle").onclick=()=>{ LOG_TR=!LOG_TR; renderLog(ov); };
+    ov.querySelectorAll(".plog-jp[data-jp]").forEach(el=>el.onclick=()=>{ if(window.speakSequence) speakSequence([{text:el.dataset.jp,node:null}]); });
   }
   function renderInto(el){ if(!el) return;
     if(!S.mourning) ensureEgg();              // fate grants one egg the first time
@@ -315,6 +398,7 @@
   // ---- public mount points --------------------------------------------------
   const RAIL_ID="pet-rail";
   function mountHome(homeContainer){
+    if(!S.mourning){ ensureEgg(); rollActivity(); }   // live a little while you were away
     // 1) fixed left-gutter rail (wide screens) — fills the empty side space
     let rail=document.getElementById(RAIL_ID);
     if(!rail){ rail=document.createElement("aside"); rail.id=RAIL_ID; rail.className="pet-rail"; document.body.appendChild(rail); }
