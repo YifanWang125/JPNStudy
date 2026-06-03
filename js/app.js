@@ -65,7 +65,7 @@ let PROG = loadProg();      // { "3":{morning:true,noon:false,night:true}, ... }
 function dayDone(day){ const d=PROG[day]; return d && d.morning && d.noon && d.night; }
 function markSession(day,session,val){
   PROG[day]=PROG[day]||{}; PROG[day][session]=val; saveProg(PROG);
-  if(val) recordActivity();
+  if(val){ recordActivity(); if(window.Pet) Pet.onStudy(); }   // feed the pet's study XP
 }
 function todayISO(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function recordActivity(){ try{ const k="jpn-active-dates"; const s=JSON.parse(localStorage.getItem(k))||[]; const t=todayISO(); if(!s.includes(t)){ s.push(t); localStorage.setItem(k,JSON.stringify(s)); } }catch(e){} }
@@ -909,6 +909,7 @@ function showPage(p){
   else if(p==="test") renderTestHome();
   else if(p==="notes" && window.Notes) window.Notes.renderPage();
   if(window.Assistant && window.Assistant.refreshCtx) window.Assistant.refreshCtx();  // R3-2: keep AI panel ctx fresh
+  if(window.Pet) Pet.showRail(p==="home");   // pet rail only on the home page
   window.scrollTo(0,0);
 }
 
@@ -1045,6 +1046,7 @@ function renderHome(){
   if(pp) pp.onclick=(e)=>{ e.stopPropagation(); speakSequence([{text:ph.jp,node:null,audioKey:"x_"+speechNorm(ph.jp)}]); };
   if(pe) pe.onclick=()=>speakSequence([{text:ph.ex.jp,node:null,audioKey:"x_"+speechNorm(ph.ex.jp)}]);
   c.querySelectorAll(".rv-vocab span[data-jp]").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:null,audioKey:"v_"+speechNorm(el.dataset.jp)}]));
+  if(window.Pet) Pet.mountHome(c);   // 🥚 study pet — side companion fills the home gutters
 }
 
 /* ============================================================================
@@ -1122,7 +1124,7 @@ function openSettings(){
 }
 function closeSettings(){ const ov=$("#modal-overlay"); ov.style.display="none"; ov.innerHTML=""; }
 function exportProgress(){
-  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name","jpn-notes"];
+  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name","jpn-notes","jpn-pet","jpn-rate"];
   const out={ _app:"jpn-n4-n2", _exported:new Date().toISOString(), data:{} };
   keys.forEach(k=>{ const v=localStorage.getItem(k); if(v!==null) out.data[k]=v; });
   const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});

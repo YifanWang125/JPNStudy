@@ -264,10 +264,11 @@ Recommend building **Phase A** first, reviewing the feel, then B, then C.
   defers to Sensei while young (§5). Help is never gated on the pet.
 - ✓ **Next step:** refine design first (this pass) — not building yet.
 
-**Remaining to confirm before Phase A build:**
-1. **Where the pet lives on home:** a right-rail/side companion panel filling the gutters, vs a
-   hero band across the top of the home page, vs a new 🥚 nav tab. (Affects layout work.)
-2. **Difficulty feel:** how punishing should death be? Suggested default — neglect must persist
-   **~5–7 days of zero care with visible warnings** before death; offline catch-up capped at ~48 h.
-3. **One starter or a choice:** start everyone on a single random egg, vs let the user pick from
-   3 random eggs (more ownership, light "starter Pokémon" moment).
+**Remaining decisions — now LOCKED (✓):**
+1. ✓ **Home placement:** a **side companion panel filling the gutters** of the centered home page
+   (collapses to a card on mobile). Directly fixes the "big empty sides" complaint.
+2. ✓ **Difficulty:** **forgiving** — death needs ~5–7 days of zero care *with visible warnings*;
+   offline catch-up capped ~48 h. All values exposed as `tune` knobs to adjust after playtest.
+3. ✓ **Starter:** **pick from 3 random eggs** (light "starter Pokémon" moment, more ownership).
+
+→ All design decisions are locked. Building **Phase A** (the heart) next.
