@@ -131,7 +131,7 @@
         <h1>📓 我的笔记 <span class="np-count">${allNotes().length}</span></h1>
         <button id="np-new" class="primary">＋ 新建笔记</button>
       </div>
-      <p class="np-intro">这里记「你真正想通的东西」，区别于课程大纲。用 <code>[[标题]]</code> 链接其它笔记，用「关联课程」把笔记接回某一课，并能溯源到知识点最早出现的那天。AI 问答也能一键存成笔记。</p>
+      <p class="np-intro">这里是你的<b>笔记库</b>（正式笔记），区别于课程大纲。用 <code>[[标题]]</code> 链接其它笔记，用「关联课程」把笔记接回某一课，并能溯源到知识点最早出现的那天。<br>💡 想<b>随手记</b>？用右下角 <b>🗒️ 速记本</b>（自动保存草稿），整理好按「保存为 Section」就会出现在这里。AI 问答也能一键存成笔记。</p>
       <div class="np-bar">
         <input id="np-q" placeholder="🔍 搜索标题 / 正文 / 标签" value="${esc(N.q)}">
         <select id="np-filter">
@@ -250,8 +250,8 @@
     const fab=document.createElement("button"); fab.id="qn-fab"; fab.type="button"; fab.textContent="🗒️"; fab.title="速记本（可拖动）";
     document.body.appendChild(fab);
     const p=document.createElement("div"); p.id="qn-panel";
-    p.innerHTML=`<div class="qn-head"><b>🗒️ 速记本</b><span class="qn-ctx" id="qn-ctx"></span><button id="qn-close">✕</button></div>
-      <div class="qn-hint">随手记，<b>自动保存</b>。整理好后「保存为 Section」存成一条正式笔记，可选择是否关联当前课。</div>
+    p.innerHTML=`<div class="qn-head"><b>🗒️ 速记本</b><span class="qn-tag-draft">草稿</span><span class="qn-ctx" id="qn-ctx"></span><button id="qn-close">✕</button></div>
+      <div class="qn-hint">随手记，<b>自动保存</b>。这是<b>草稿箱</b>；整理好按「保存为 Section」存成一条正式笔记（进入顶部 📓 笔记库），并可选择是否关联当前课。</div>
       <textarea id="qn-scratch" placeholder="在这里随手记下疑问、心得、想背的句子…（自动保存）"></textarea>
       <div class="qn-saverow">
         <label class="qn-assoc"><input type="checkbox" id="qn-assoc" checked> 关联当前课 <b id="qn-assoc-day"></b></label>

@@ -474,7 +474,11 @@ async function scoreAzure(L, target){
   try{
     const cfg=getAzureCfg();
     const sc=SDK.SpeechConfig.fromSubscription(cfg.key,cfg.region); sc.speechRecognitionLanguage="ja-JP";
-    const ac=SDK.AudioConfig.fromDefaultMicrophoneInput();
+    // R3-6: reuse the SAME getUserMedia stream MediaRecorder is using (one mic, not two).
+    // fromStreamInput accepts a browser MediaStream; fall back to the default mic if unavailable.
+    let ac;
+    try{ ac = PRON.stream ? SDK.AudioConfig.fromStreamInput(PRON.stream) : SDK.AudioConfig.fromDefaultMicrophoneInput(); }
+    catch(e){ ac = SDK.AudioConfig.fromDefaultMicrophoneInput(); }
     const pac=new SDK.PronunciationAssessmentConfig(target, SDK.PronunciationAssessmentGradingSystem.HundredMark, SDK.PronunciationAssessmentGranularity.Phoneme, true);
     try{ pac.enableProsodyAssessment=true; }catch(e){}
     const recog=new SDK.SpeechRecognizer(sc,ac); pac.applyTo(recog); PRON.recognizer=recog; PRON._scored=false;
@@ -895,7 +899,20 @@ function renderHome(){
   if(prevDay) todo+=`<li data-go="day:${prevDay}:morning"><span class="tk-box rv">↻</span><span>复习 Day ${prevDay}：朗读一遍、再听一次音频</span></li>`;
   if(prevDay && prevDay%7===0){ const tid=prevDay/7; if(tid>=1&&tid<=4) todo+=`<li data-go="test"><span class="tk-box rv">📝</span><span>第${tid}周学完了——做 模試${tid} 检验一下</span></li>`; }
 
-  c.innerHTML=`
+  const seenIntro = (()=>{ try{ return localStorage.getItem("jpn-seen-intro")==="1"; }catch(e){ return true; } })();
+  const introBanner = seenIntro ? "" : `
+    <div class="home-intro" id="home-intro">
+      <button class="hi-close" id="hi-close" title="知道了">✕</button>
+      <h2>👋 欢迎！这里有几样趁手的工具</h2>
+      <div class="hi-items">
+        <span>🔊 <b>真人音色</b>：课文/单词都能点朗读，⚙ 里可换不同声音</span>
+        <span>🤖 <b>AI 提问</b>：右下角随时问任何日语问题（需在 ⚙ 填 Claude Key）</span>
+        <span>🗒️ <b>速记本</b>：学习时随手记，自动保存，可存成笔记</span>
+        <span>☀️ <b>浅/深色</b>：右上角一键切换主题</span>
+      </div>
+      <button class="hi-ok" id="hi-ok">知道了，开始学习 →</button>
+    </div>`;
+  c.innerHTML=introBanner+`
     <div class="home-hero">
       <div class="hh-top">
         <div class="greet">おかえりなさい${name?('、<b>'+esc(name)+'</b>'):''}！<span class="hh-sub">${toRuby("続[つづ]けることが、何[なに]より大切[たいせつ]です。")}</span></div>
@@ -952,6 +969,9 @@ function renderHome(){
     </section>`;
 
   // --- wire interactions ---
+  const dismissIntro=()=>{ try{ localStorage.setItem("jpn-seen-intro","1"); }catch(e){} const b=$("#home-intro"); if(b) b.remove(); };
+  if($("#hi-close")) $("#hi-close").onclick=dismissIntro;
+  if($("#hi-ok")) $("#hi-ok").onclick=dismissIntro;
   c.querySelectorAll("[data-go]").forEach(el=>el.onclick=()=>{
     const g=el.dataset.go;
     if(g==="test"){ showPage("test"); return; }

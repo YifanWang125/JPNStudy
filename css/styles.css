@@ -805,3 +805,15 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
   .logo{font-size:.92rem}
   .page-nav button{padding:0 7px}
 }
+
+/* ---- R3-5: home onboarding banner ---- */
+.home-intro{position:relative;background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 14%,var(--panel)),var(--panel));
+  border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:18px 0 4px}
+.home-intro h2{font-size:1.1rem;margin-bottom:10px}
+.home-intro .hi-items{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:.9rem;color:var(--ink-dim);line-height:1.6}
+.home-intro .hi-items b{color:var(--ink)}
+.home-intro .hi-ok{margin-top:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-weight:700}
+.home-intro .hi-close{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--ink-faint);font-size:1.1rem;cursor:pointer}
+@media (max-width:560px){ .home-intro .hi-items{grid-template-columns:1fr} }
+/* ---- R3-3: scratch "草稿" tag ---- */
+.qn-tag-draft{font-size:.68rem;color:var(--night);border:1px solid var(--night);border-radius:5px;padding:0 6px;margin-left:2px}
