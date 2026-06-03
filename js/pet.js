@@ -199,9 +199,11 @@
       if(ns!==p.stage){ const ord=["hatchling","child","teen","adult","elder"]; const up=ord.indexOf(ns)>ord.indexOf(p.stage); p.stage=ns; if(up) onStageUp(p); }
     }
   }
+  function milestone(p,label){ p.milestones=p.milestones||[]; p.milestones.push({ts:now(),label}); while(p.milestones.length>50) p.milestones.shift(); }
   function hatch(p){ p.stage="hatchling"; p.hatchBase=studySXP(); p.bornAt=now();
     p.meters={hunger:80,clean:85,happy:95,energy:80,ts:now()}; p.hp=100; p.hasPoop=false;
     p.poopAt=now()+TUNE.poopEveryH*3.6e6; if(!p.name) p.name=NAMES[Math.floor(Math.random()*NAMES.length)];
+    p.milestones=[{ts:now(),label:T("たまごから うまれた！","Hatched from its egg!")}];
     S.dex[p.species]=S.dex[p.species]||{}; S.dex[p.species].hatched=true; save(); }
   function die(p){ p.diedAt=now(); S.memorial.push({name:p.name,seed:p.seed,bornAt:p.bornAt,diedAt:p.diedAt});
     S.active=null; S.mourning=true; save(); }
@@ -320,6 +322,7 @@
     if(!pick) return false;
     p.register=pick; S.dex=S.dex||{}; S.dex.reg=S.dex.reg||{}; S.dex.reg[pick]=true;
     const r=REGISTERS[pick], nm=p.name||"この子";
+    milestone(p, T(`「${String(r.jp).replace(/\[[^\]]*\]/g,"")}」を 話[はな]せるように なった`,`Learned to speak ${r.en}`));
     const evo={ jp:`✨ ${nm}は「${r.jp}」を 話[はな]せるように なった！`, zh:`✨ ${nm}学会了说「${r.zh}」！`, en:`✨ ${nm} learned to speak ${r.en}!` };
     S.activity=S.activity||[]; S.activity.unshift({ ts:now(), span:[now(),now()], evo:true, events:[Object.assign({dia:evo},evo)], diary:evo });
     AI_SAY={ text:(r.idle&&r.idle[0])||evo.jp, ts:now() }; S.chatNudge=now(); save(); return true;
@@ -329,6 +332,7 @@
     const g={ jp:`🌱 ${nm}は「${({hatchling:"あかちゃん",child:"こども",teen:"わかもの",adult:"おとな",elder:"ちょうろう"})[p.stage]||""}」に なった！`,
       zh:`🌱 ${nm}成长了一个阶段！`, en:`🌱 ${nm} grew to a new stage!` };
     S.activity=S.activity||[]; S.activity.unshift({ ts:now(), span:[now(),now()], evo:true, events:[Object.assign({dia:g},g)], diary:g });
+    milestone(p, T(`「${({hatchling:"あかちゃん",child:"こども",teen:"わかもの",adult:"おとな",elder:"ちょうろう"})[p.stage]||""}」に なった`,`Grew into a new stage`));
     if(Math.random()<0.55){ evolveRegister(p, S.evoBias); S.evoBias=null; }   // evolving often = a new way of speaking
     save();
   }
@@ -513,7 +517,7 @@
       <div class="pet-foot">
         <button class="pet-chatbtn">はなす</button>
         <button class="pet-logbtn${unseenLog()?" unseen":""}">にっき</button>
-        <button class="pet-dexbtn">ずかん</button>
+        <button class="pet-dexbtn">きろく</button>
         <span class="pet-coins" title="${T('コイン','Coins')}">◆ ${coins()}</span>
       </div>`}
     </div>`;
@@ -585,26 +589,29 @@
     ov.querySelector(".plog-trtoggle").onclick=()=>{ LOG_TR=!LOG_TR; renderLog(ov); };
     ov.querySelectorAll(".plog-jp[data-jp]").forEach(el=>el.onclick=()=>{ if(window.speakSequence) speakSequence([{text:el.dataset.jp,node:null}]); });
   }
-  // ---- B4: 図鑑 (collection book) + 思い出 (memorial) ----
-  function openDex(){ let ov=document.getElementById("pet-dex-ov");
+  // ---- B4 (reframed): 成長きろく — this ONE pet's life trail (not a collection) ----
+  function openDex(){ let ov=document.getElementById("pet-dex-ov");   // (id kept; it's the growth-record now)
     if(!ov){ ov=document.createElement("div"); ov.id="pet-dex-ov"; ov.className="pet-log-ov";
       ov.addEventListener("click",e=>{ if(e.target===ov) ov.style.display="none"; }); document.body.appendChild(ov); }
     renderDex(ov); ov.style.display="flex"; }
+  function fmtDate(ts){ try{ const d=new Date(ts); return (d.getMonth()+1)+"/"+d.getDate(); }catch(e){ return ""; } }
   function renderDex(ov){
-    const en=window.LANG==="en"; const lab=(o)=>en?(o.en||""):String(o.jp||"").replace(/\[[^\]]*\]/g,"");
-    const regs=Object.keys(REGISTERS).map(k=>{ const got=(k==="std")||(S.dex&&S.dex.reg&&S.dex.reg[k]);
-      return `<span class="dex-chip${got?" got":""}">${got?esc(lab(REGISTERS[k])):"？？？"}</span>`; }).join("");
-    const nats=Object.keys(NATURES).map(k=>{ const got=S.dex&&S.dex.nat&&S.dex.nat[k];
-      return `<span class="dex-chip${got?" got":""}">${got?esc(lab(NATURES[k])):"？？？"}</span>`; }).join("");
+    const p=pet(); const en=window.LANG==="en";
+    const stageJ={egg:"たまご",hatchling:"あかちゃん",child:"こども",teen:"わかもの",adult:"おとな",elder:"ちょうろう"};
+    const days = p&&p.bornAt ? Math.max(0,Math.floor((now()-p.bornAt)/86400000)) : 0;
+    const ms = (p&&p.milestones||[]).slice().reverse();   // newest first
+    const trail = ms.length ? ms.map(m=>`<li><span class="rec-d">${fmtDate(m.ts)}</span><span class="rec-l">${window.toRuby?toRuby(m.label):esc(m.label)}</span></li>`).join("")
+      : `<li><span class="rec-l">${T("これから、たくさんの 思い出を つくろうね！","Lots of memories to make together!")}</span></li>`;
     const mem=(S.memorial||[]).slice().reverse();
-    const grave = mem.length ? `<h4 class="plog-h">${T("思い出[おもいで]","In memory")}</h4><div class="dex-grave">${
+    const grave = mem.length ? `<h4 class="plog-h">${T("これまでの なかま","Companions before")}</h4><div class="dex-grave">${
       mem.map(m=>`<div class="dex-tomb"><canvas class="dex-c" width="56" height="56" data-seed="${m.seed||1}"></canvas><b>${esc(m.name||"?")}</b></div>`).join("")}</div>` : "";
-    ov.innerHTML=`<div class="pet-log pet-dex"><button class="plog-close">✕</button>
-      <h3>📖 ${T("ずかん・思[おも]い出[で]","Collection")}</h3>
-      <h4 class="plog-h">${T("ことば の コレクション","Speech styles")}</h4><div class="dex-row">${regs}</div>
-      <h4 class="plog-h">${T("せいかく","Natures")}</h4><div class="dex-row">${nats}</div>
+    const head = p ? `${esc(p.name||"")} · ${en?"":stageJ[p.stage]||""}${en?"":" · "}${T("うまれて "+days+" 日","day "+days)}` : "";
+    ov.innerHTML=`<div class="pet-log pet-rec"><button class="plog-close">✕</button>
+      <h3>🌱 ${T("せいちょうの きろく","Growth record")}</h3>
+      <p class="pet-sub rec-head">${esc(head)}</p>
+      <ul class="rec-trail">${trail}</ul>
       ${grave}
-      <p class="pet-sub">${T("「ことば」は、しんか（おくりもの や せいちょう）で 増[ふ]える。日本語[にほんご]には いろんな 話[はな]し方[かた]が あるんだよ。","Your speech-style collection grows as the pet evolves — Japanese has many ways of speaking!")}</p></div>`;
+      <p class="pet-sub">${T("この子が 歩[あゆ]んできた 道[みち]だよ。勉強[べんきょう]を つづけると、もっと 成長[せいちょう]する。","This is the path your companion has walked. Keep studying and it grows further.")}</p></div>`;
     ov.querySelector(".plog-close").onclick=()=>{ ov.style.display="none"; };
     ov.querySelectorAll(".dex-c[data-seed]").forEach(cv=>drawCreature(cv, genome(+cv.dataset.seed), "adult", "happy", 0));
   }
