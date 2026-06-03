@@ -170,6 +170,7 @@ const $ = sel => document.querySelector(sel);
  * ==========================================================================*/
 function render(){
   stopSpeak();
+  if(window.Assistant && window.Assistant.refreshCtx) window.Assistant.refreshCtx();  // R3-2
   localStorage.setItem("jpn-last-day", STATE.day);
   localStorage.setItem("jpn-last-session", STATE.session);   // remember which sub-page (morning/noon/night) for "继续学习"
   const L = lessonByDay(STATE.day);
@@ -785,6 +786,22 @@ function toggleMap(show){
  *  PAGE ROUTING
  * ==========================================================================*/
 /* make a floating element drag-anywhere; remembers position; calls onTap on a click (no drag) */
+/* ---- mobile FAB launcher: collapse 🤖 + 🗒️ into one expandable button on phones ---- */
+function buildFabMenu(){
+  if(document.getElementById("fab-menu")) return;
+  const wrap=document.createElement("div"); wrap.id="fab-menu";
+  wrap.innerHTML=`<div class="fab-actions">
+      <button class="fab-act" data-act="ai">🤖 <span>提问</span></button>
+      <button class="fab-act" data-act="note">🗒️ <span>速记</span></button>
+    </div><button class="fab-main" id="fab-main" title="工具">✦</button>`;
+  document.body.appendChild(wrap);
+  const setOpen=(on)=>wrap.classList.toggle("open", on);
+  document.getElementById("fab-main").onclick=(e)=>{ e.stopPropagation(); setOpen(!wrap.classList.contains("open")); };
+  wrap.querySelectorAll(".fab-act").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); setOpen(false);
+    if(b.dataset.act==="ai"){ window.Assistant&&window.Assistant.open(); } else { window.QuickNotes&&window.QuickNotes.open(); } });
+  document.addEventListener("click",()=>setOpen(false));
+}
+
 /* ---- theme: light / dark / auto (follow system) ---- */
 function getTheme(){ try{ return localStorage.getItem("jpn-theme")||"dark"; }catch(e){ return "dark"; } }
 function resolvedTheme(t){ return t==="auto" ? ((window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark") : t; }
@@ -827,6 +844,7 @@ function showPage(p){
   else if(p==="general") renderGeneral();
   else if(p==="test") renderTestHome();
   else if(p==="notes" && window.Notes) window.Notes.renderPage();
+  if(window.Assistant && window.Assistant.refreshCtx) window.Assistant.refreshCtx();  // R3-2: keep AI panel ctx fresh
   window.scrollTo(0,0);
 }
 
@@ -1256,6 +1274,7 @@ function init(){
   $("#map-toggle").onclick=()=>toggleMap(!$("#map-view").classList.contains("show"));
   $("#gear-btn").onclick=openSettings;
   applyTheme(getTheme());
+  buildFabMenu();
   if($("#theme-btn")) $("#theme-btn").onclick=cycleTheme;
   if(window.matchMedia){ try{ matchMedia("(prefers-color-scheme: light)").addEventListener("change",()=>{ if(getTheme()==="auto") applyTheme("auto"); }); }catch(e){} }
   document.querySelectorAll("#page-nav button").forEach(b=>b.onclick=()=>showPage(b.dataset.p));

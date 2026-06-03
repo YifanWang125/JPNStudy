@@ -174,10 +174,10 @@ ${courseIndex()}`;
     showPage("daily"); window.scrollTo(0,0);
   }
 
+  function setCtx(){ const l=LESSONS[STATE.day-1], c=$id("ai-ctx"); if(c) c.textContent = l ? `Day ${l.day} · ${(SESSIONS[STATE.session]||{}).name||""}` : ""; }
   function open(){
     $id("ai-panel").classList.add("show");
-    const l=LESSONS[STATE.day-1];
-    $id("ai-ctx").textContent = l ? `Day ${l.day} · ${(SESSIONS[STATE.session]||{}).name||""}` : "";
+    setCtx();
     if(!$id("ai-msgs").innerHTML.trim()) resetMsgs();
     // if the user had text selected on the page, offer a one-tap "ask about this"
     const sel=(window.getSelection && String(window.getSelection()).trim())||"";
@@ -197,14 +197,18 @@ ${courseIndex()}`;
     const q=(preset!=null?preset:ta.value).trim(); if(!q) return;
     if(!hasKey()){ bubble("assistant", greetingNeedsKey()); wireGreeting(); return; }
     ta.value=""; autoGrow(ta);
+    setCtx();                                    // R3-2: keep the "current lesson" label in sync with STATE
     bubble("user", esc(q).replace(/\n/g,"<br>"));
     MSGS.push({ role:"user", content:q });
+    // R3-7: cap history — only send the last ~8 exchanges (16 msgs), starting on a user turn.
+    let hist=MSGS.slice(-16); while(hist.length && hist[0].role!=="user") hist=hist.slice(1);
     busy=true; $id("ai-send").disabled=true;
     const node=bubble("assistant", `<span class="ai-typing">●●●</span>`);
     const body=node.querySelector(".ai-body");
     try{
-      const full=await callClaude(MSGS, (sofar)=>{ body.innerHTML=fmt(sofar); scrollBot(); });
+      const full=await callClaude(hist, (sofar)=>{ body.innerHTML=fmt(sofar); scrollBot(); });
       MSGS.push({ role:"assistant", content:full });
+      if(MSGS.length>24) MSGS=MSGS.slice(-24);   // keep in-memory history bounded
       Object.assign(last, { q, a:full, day:STATE.day, session:STATE.session });
       body.innerHTML=fmt(full)+`<div class="ai-actions">${speakBtn(full)}${(window.Notes&&window.Notes.saveBtnHTML)?window.Notes.saveBtnHTML():""}</div>`;
       if(window.Notes && window.Notes.bindSaveBtn) window.Notes.bindSaveBtn(node, { q, a:full, day:STATE.day, session:STATE.session });
@@ -307,7 +311,7 @@ ${courseIndex()}`;
     };
   }
 
-  window.Assistant={ injectUI, settingsHTML, bindSettings, open, get last(){ return last; } };
+  window.Assistant={ injectUI, settingsHTML, bindSettings, open, refreshCtx:setCtx, get last(){ return last; } };
   if(document.readyState!=="loading") injectUI();
   else document.addEventListener("DOMContentLoaded", injectUI);
 })();

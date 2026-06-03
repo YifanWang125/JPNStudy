@@ -785,3 +785,23 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .theme-pick button{background:var(--panel-2);border:1px solid var(--line);color:var(--ink-dim);border-radius:10px;padding:8px 14px;font-size:.9rem}
 .theme-pick button.on{border-color:var(--accent);color:var(--ink);background:var(--panel)}
 .theme-pick button:hover{border-color:var(--accent-2)}
+
+/* ---- R3-4: mobile FAB launcher (combines 🤖 + 🗒️) + tighter header ---- */
+#fab-menu{display:none}
+@media (max-width:560px){
+  #ai-fab,#qn-fab{display:none!important}
+  #fab-menu{display:block;position:fixed;right:14px;bottom:14px;z-index:960}
+  #fab-menu .fab-main{width:52px;height:52px;border-radius:50%;border:none;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font-size:1.5rem;
+    box-shadow:0 6px 18px var(--shadow);cursor:pointer}
+  #fab-menu .fab-actions{position:absolute;right:2px;bottom:62px;display:flex;flex-direction:column;gap:10px;
+    opacity:0;pointer-events:none;transform:translateY(8px);transition:.18s}
+  #fab-menu.open .fab-actions{opacity:1;pointer-events:auto;transform:none}
+  #fab-menu .fab-act{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
+    color:var(--ink);border-radius:22px;padding:9px 15px;font-size:.92rem;box-shadow:0 4px 12px var(--shadow);white-space:nowrap;cursor:pointer}
+}
+@media (max-width:480px){
+  .top-row{padding:9px 12px;gap:6px}
+  .logo{font-size:.92rem}
+  .page-nav button{padding:0 7px}
+}
