@@ -921,11 +921,11 @@ function renderHome(){
   // --- to-do for current day ---
   const p=PROG[N]||{};
   let todo="";
-  [["morning","🌅 朝の朗読（听 & 跟读）"],["noon","☀️ 昼の理解（词汇 & 语法）"],["night","🌙 夜の反思（抄写 & 反思）"]].forEach(([s,label])=>{
+  [["morning",T("🌅 朝の朗読（听 & 跟读）","🌅 Morning · Read & Shadow")],["noon",T("☀️ 昼の理解（词汇 & 语法）","☀️ Noon · Understand & Grammar")],["night",T("🌙 夜の反思（抄写 & 反思）","🌙 Night · Write & Reflect")]].forEach(([s,label])=>{
     todo+=`<li class="${p[s]?'tdone':''}" data-go="day:${N}:${s}"><span class="tk-box">${p[s]?'✓':''}</span><span>Day ${N} · ${label}</span></li>`;
   });
-  if(prevDay) todo+=`<li data-go="day:${prevDay}:morning"><span class="tk-box rv">↻</span><span>复习 Day ${prevDay}：朗读一遍、再听一次音频</span></li>`;
-  if(prevDay && prevDay%7===0){ const tid=prevDay/7; if(tid>=1&&tid<=4) todo+=`<li data-go="test"><span class="tk-box rv">📝</span><span>第${tid}周学完了——做 模試${tid} 检验一下</span></li>`; }
+  if(prevDay) todo+=`<li data-go="day:${prevDay}:morning"><span class="tk-box rv">↻</span><span>${T("复习 Day "+prevDay+"：朗读一遍、再听一次音频","Review Day "+prevDay+": read it once, listen again")}</span></li>`;
+  if(prevDay && prevDay%7===0){ const tid=prevDay/7; if(tid>=1&&tid<=4) todo+=`<li data-go="test"><span class="tk-box rv">📝</span><span>${T("第"+tid+"周学完了——做 模試"+tid+" 检验一下","Week "+tid+" done — try Mock Test "+tid)}</span></li>`; }
 
   const seenIntro = (()=>{ try{ return localStorage.getItem("jpn-seen-intro")==="1"; }catch(e){ return true; } })();
   const introBanner = seenIntro ? "" : `
@@ -944,16 +944,16 @@ function renderHome(){
     <div class="home-hero">
       <div class="hh-top">
         <div class="greet">おかえりなさい${name?('、<b>'+esc(name)+'</b>'):''}！<span class="hh-sub">${toRuby("続[つづ]けることが、何[なに]より大切[たいせつ]です。")}</span></div>
-        <div class="hh-streak">🔥 <b>${streak}</b> 日連続</div>
+        <div class="hh-streak">🔥 <b>${streak}</b> ${T("日連続","day streak")}</div>
       </div>
       ${ allDone
-        ? `<div class="continue-cta done"><span class="cc-main">🎉 30 天全部完成！</span><small>復習やテストで仕上げよう · 点此回顾</small></div>`
-        : `<button class="continue-cta" data-go="day:${rDay}:${rSess}"><span class="cc-main">▶ 继续学习 · Day ${rDay} · ${SESSION_LABEL[rSess]}</span><small>${esc(Lr.theme)}</small></button>` }
+        ? `<div class="continue-cta done"><span class="cc-main">${T("🎉 30 天全部完成！","🎉 All 30 days complete!")}</span><small>${T("復習やテストで仕上げよう · 点此回顾","Polish with review & tests · tap to revisit")}</small></div>`
+        : `<button class="continue-cta" data-go="day:${rDay}:${rSess}"><span class="cc-main">${T("▶ 继续学习","▶ Continue")} · Day ${rDay} · ${LANG==="en"?({morning:"Morning",noon:"Noon",night:"Night"}[rSess]):SESSION_LABEL[rSess]}</span><small>${esc(Lr.theme)}</small></button>` }
     </div>
 
     <div class="home-grid">
       <section class="home-card">
-        <h2>💬 每日一句</h2>
+        <h2>${T("💬 每日一句","💬 Phrase of the Day")}</h2>
         <div class="phrase-jp" data-jp="${esc(ph.jp)}">${toRuby(ph.jp)} <button class="phrase-play" title="朗读">🔊</button></div>
         <div class="phrase-zh">${esc(ph.zh)}</div>
         <div class="phrase-note">${esc(ph.note)}</div>
@@ -961,19 +961,19 @@ function renderHome(){
       </section>
 
       <section class="home-card">
-        <h2>📌 ${prevDay?`昨日の復習 · Day ${prevDay}`:'はじめの一歩'}</h2>
+        <h2>📌 ${prevDay?(T("昨日の復習","Yesterday's Review")+` · Day ${prevDay}`):T("はじめの一歩","First Step")}</h2>
         ${ Lprev ? `
           <div class="rv-theme">${esc(Lprev.theme)}</div>
-          <div class="rv-label">要记牢的语法点：</div>
+          <div class="rv-label">${T("要记牢的语法点：","Grammar to remember:")}</div>
           <ul class="rv-list">${(Lprev.grammar||[]).slice(0,4).map(g=>`<li>${esc(g.point)}</li>`).join("")}</ul>
-          <div class="rv-label">重点词：</div>
+          <div class="rv-label">${T("重点词：","Key words:")}</div>
           <div class="rv-vocab">${(Lprev.vocab||[]).slice(0,6).map(v=>`<span data-jp="${esc(v.r)}">${esc(v.w)}<i>${esc(v.r)}</i></span>`).join("")}</div>
-          <button class="rv-go" data-go="day:${prevDay}:noon">↻ 打开 Day ${prevDay} 复习</button>
-        ` : `<p class="hc-empty">还没有学过的内容。从今天的 Day ${N} 开始你的第一步吧！每天坚持，30 天后回头看，你会惊讶于自己的变化。</p>` }
+          <button class="rv-go" data-go="day:${prevDay}:noon">${T("↻ 打开 Day "+prevDay+" 复习","↻ Review Day "+prevDay)}</button>
+        ` : `<p class="hc-empty">${T("还没有学过的内容。从今天的 Day "+N+" 开始你的第一步吧！每天坚持，30 天后回头看，你会惊讶于自己的变化。","Nothing studied yet. Start with Day "+N+" today! Keep at it daily — in 30 days you'll be amazed at the difference.")}</p>` }
       </section>
 
       <section class="home-card">
-        <h2>✅ 今日のタスク</h2>
+        <h2>${T("✅ 今日のタスク","✅ Today's Tasks")}</h2>
         <ul class="todo-list">${todo}</ul>
       </section>
 
@@ -981,17 +981,17 @@ function renderHome(){
     </div>
 
     <section class="home-card">
-      <h2>🗓️ 30 天全景</h2>
+      <h2>${T("🗓️ 30 天全景","🗓️ 30-Day Map")}</h2>
       ${heatmapHTML()}
     </section>
 
     <section class="home-card">
-      <h2>📊 我的数据</h2>
+      <h2>${T("📊 我的数据","📊 My Stats")}</h2>
       <div class="dash-stats">
-        <div class="stat big"><div class="num">🔥 ${streak}</div><div class="lbl">连续学习天数</div></div>
-        <div class="stat"><div class="num">${done}<span style="font-size:.5em;color:var(--ink-faint)">/${total}</span></div><div class="lbl">完成的小节</div></div>
-        <div class="stat"><div class="num">${vocabL}</div><div class="lbl">已学词条</div></div>
-        <div class="stat"><div class="num">${gramL}</div><div class="lbl">已学语法点</div></div>
+        <div class="stat big"><div class="num">🔥 ${streak}</div><div class="lbl">${T("连续学习天数","day streak")}</div></div>
+        <div class="stat"><div class="num">${done}<span style="font-size:.5em;color:var(--ink-faint)">/${total}</span></div><div class="lbl">${T("完成的小节","sessions done")}</div></div>
+        <div class="stat"><div class="num">${vocabL}</div><div class="lbl">${T("已学词条","words learned")}</div></div>
+        <div class="stat"><div class="num">${gramL}</div><div class="lbl">${T("已学语法点","grammar points")}</div></div>
       </div>
       <div class="dash-stats" style="margin-top:6px">${TESTS.map(t=>{const b=best[t.id];return `<div class="stat"><div class="num" style="font-size:1.3rem">${b?Math.round(b.score/b.total*100)+'%':'—'}</div><div class="lbl">${esc(t.title.split('—')[0].trim())}</div></div>`;}).join("")}</div>
     </section>`;
