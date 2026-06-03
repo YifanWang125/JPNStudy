@@ -304,6 +304,35 @@ function loadAzureSDK(){
   });
   return _azureSDK;
 }
+/* "测试连接" for the Azure key: a tiny synth round-trip confirms key+region auth
+   (same Speech resource as pronunciation assessment). No audible playback (pull stream). */
+function testAzureConn(){
+  const key=$("#az-key").value.trim(), region=$("#az-region").value.trim();
+  const box=$("#az-conn"); if(!box) return;
+  if(!key||!region){ box.className="conn-status bad"; box.textContent="✗ Key 和 Region 都要填（如 japaneast）"; return; }
+  box.className="conn-status testing"; box.textContent="🔌 正在连接 Azure 语音…（首次需联网下载 SDK）";
+  const btn=$("#az-test"); if(btn) btn.disabled=true;
+  const done=()=>{ if(btn) btn.disabled=false; };
+  const t0=Date.now();
+  loadAzureSDK().then(SDK=>{
+    const cfg=SDK.SpeechConfig.fromSubscription(key, region);
+    cfg.speechSynthesisVoiceName="ja-JP-NanamiNeural";
+    const out=SDK.AudioConfig.fromStreamOutput(SDK.AudioOutputStream.createPullStream());
+    const synth=new SDK.SpeechSynthesizer(cfg, out);
+    synth.speakTextAsync("テスト", res=>{
+      const ms=Date.now()-t0;
+      try{
+        if(res.reason===SDK.ResultReason.SynthesizingAudioCompleted){
+          box.className="conn-status ok"; box.textContent=`✓ 连接成功 · 用时 ${ms}ms · 发音评估可用。已自动保存。`;
+          localStorage.setItem("jpn-azure-cfg", JSON.stringify({key,region})); $("#az-status").textContent="已验证并保存 ✓";
+        } else {
+          const c=SDK.CancellationDetails.fromResult(res);
+          box.className="conn-status bad"; box.textContent="✗ 失败："+((c&&(c.errorDetails||c.reason))||res.reason);
+        }
+      } finally { try{ synth.close(); }catch(e){} done(); }
+    }, err=>{ box.className="conn-status bad"; box.textContent="✗ 连接出错："+err; try{ synth.close(); }catch(e){} done(); });
+  }).catch(e=>{ box.className="conn-status bad"; box.textContent="✗ 无法加载/连接语音 SDK（需联网）："+e.message; done(); });
+}
 
 /* metric definitions (shown as ⓘ tooltips + used in advice) */
 const METRIC_DEF = {
@@ -956,7 +985,8 @@ function openSettings(){
         <p class="m-note">不填则用浏览器识别（近似）。填入 Azure 语音服务的 <b>Key + Region</b> 可获得逐音素＋语调评分（免费层每月 5 小时）。仅存于本机浏览器，不上传。</p>
         <label>Azure Key <input type="password" id="az-key" value="${esc(cfg.key||"")}" placeholder="Speech 资源的密钥"></label>
         <label>Region <input type="text" id="az-region" value="${esc(cfg.region||"")}" placeholder="如 japaneast / eastus"></label>
-        <div class="m-actions"><button id="az-save" class="primary">保存</button><button id="az-clear">清除</button><span id="az-status" class="m-note"></span></div>
+        <div class="m-actions"><button id="az-test" class="primary">🔌 测试连接</button><button id="az-save">保存</button><button id="az-clear">清除</button><span id="az-status" class="m-note"></span></div>
+        <div class="conn-status" id="az-conn"></div>
       </section>
       <section><h3>💾 进度备份</h3>
         <p class="m-note">进度只存在本机浏览器，清缓存就会丢。考前建议导出一份。</p>
@@ -976,7 +1006,8 @@ function openSettings(){
   ov.onclick=(e)=>{ if(e.target===ov) closeSettings(); };
   $("#name-save").onclick=()=>{ const v=$("#usr-name").value.trim(); if(v) localStorage.setItem("jpn-name",v); else localStorage.removeItem("jpn-name"); $("#name-status").textContent="已保存 ✓"; };
   $("#az-save").onclick=()=>{ const key=$("#az-key").value.trim(), region=$("#az-region").value.trim(); if(key&&region){ localStorage.setItem("jpn-azure-cfg",JSON.stringify({key,region})); $("#az-status").textContent="已保存 ✓ 发音评估将用 Azure"; } else { $("#az-status").textContent="Key 和 Region 都要填"; } };
-  $("#az-clear").onclick=()=>{ localStorage.removeItem("jpn-azure-cfg"); $("#az-key").value=""; $("#az-region").value=""; $("#az-status").textContent="已清除，将用浏览器识别"; };
+  $("#az-clear").onclick=()=>{ localStorage.removeItem("jpn-azure-cfg"); $("#az-key").value=""; $("#az-region").value=""; $("#az-status").textContent="已清除，将用浏览器识别"; const cc=$("#az-conn"); if(cc){ cc.className="conn-status"; cc.textContent=""; } };
+  if($("#az-test")) $("#az-test").onclick=()=>testAzureConn();
   $("#exp-prog").onclick=exportProgress;
   $("#imp-prog").onclick=()=>$("#imp-file").click();
   $("#imp-file").onchange=importProgress;

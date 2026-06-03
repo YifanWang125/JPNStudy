@@ -104,6 +104,24 @@ ${courseIndex()}`;
   }
 
   /* ---------------- safe render (escape → markdown-lite → furigana → links) ---------------- */
+  /* ---------- connection test (lightweight non-streaming ping) ---------- */
+  async function ping(key, mdl){
+    const t0=(window.performance&&performance.now)?performance.now():Date.now();
+    const resp=await fetch(API_URL, {
+      method:"POST",
+      headers:{ "content-type":"application/json", "x-api-key":key,
+        "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true" },
+      body: JSON.stringify({ model:mdl, max_tokens:8, messages:[{role:"user",content:"ping"}] }),
+    });
+    const ms=Math.round(((window.performance&&performance.now)?performance.now():Date.now())-t0);
+    if(!resp.ok){
+      let d=""; try{ const j=await resp.json(); d=(j.error&&j.error.message)||JSON.stringify(j); }catch(e){ d=resp.statusText||("HTTP "+resp.status); }
+      return { ok:false, status:resp.status, ms, error:d };
+    }
+    let j={}; try{ j=await resp.json(); }catch(e){}
+    return { ok:true, ms, model:j.model||mdl };
+  }
+
   // ruby-ify 漢字[かな] without re-escaping (input already escaped; app's toRuby would
   // double-escape and break the HTML tags we insert here).
   function rubyKeep(s){ return s.replace(RUBY_RE, (m,k,r)=>`<ruby>${k}<rt>${r}</rt></ruby>`); }
@@ -253,7 +271,8 @@ ${courseIndex()}`;
       <p class="m-note">填入你自己的 <b>Anthropic (Claude) API Key</b> 即可在学习时随时提问（右下角 🤖）。Key 只存本机浏览器、直接发往 Anthropic，不经过任何中间服务器。建议在 <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a> 给该 Key 设个消费上限。</p>
       <label>API Key <input type="password" id="ai-key" value="${esc(c.key||"")}" placeholder="sk-ant-..."></label>
       <label>模型 <select id="ai-model">${MODELS.map(m=>`<option value="${m.id}"${(c.model||MODELS[0].id)===m.id?" selected":""}>${esc(m.name)}</option>`).join("")}</select></label>
-      <div class="m-actions"><button id="ai-save" class="primary">保存</button><button id="ai-clear-key">清除</button><span id="ai-key-status" class="m-note"></span></div>
+      <div class="m-actions"><button id="ai-test" class="primary">🔌 测试连接</button><button id="ai-save">保存</button><button id="ai-clear-key">清除</button><span id="ai-key-status" class="m-note"></span></div>
+      <div class="conn-status" id="ai-conn"></div>
       <details class="ai-guide"><summary>📘 怎么获取 API Key？（点开看图文步骤）</summary>
         <ol>
           <li>打开 <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>，注册 / 登录（支持邮箱、Google）。</li>
@@ -271,7 +290,21 @@ ${courseIndex()}`;
     const save=$id("ai-save"); if(!save) return;
     save.onclick=()=>{ const key=$id("ai-key").value.trim(), m=$id("ai-model").value;
       saveCfg({ key, model:m }); $id("ai-key-status").textContent = key?"已保存 ✓":"已保存（未填 Key）"; };
-    $id("ai-clear-key").onclick=()=>{ saveCfg({ model:$id("ai-model").value }); $id("ai-key").value=""; $id("ai-key-status").textContent="已清除 Key"; };
+    $id("ai-clear-key").onclick=()=>{ saveCfg({ model:$id("ai-model").value }); $id("ai-key").value=""; $id("ai-key-status").textContent="已清除 Key"; $id("ai-conn").className="conn-status"; $id("ai-conn").textContent=""; };
+    const test=$id("ai-test"); if(test) test.onclick=async()=>{
+      const key=($id("ai-key").value||"").trim()||cfg().key, mdl=$id("ai-model").value;
+      const box=$id("ai-conn");
+      if(!key){ box.className="conn-status bad"; box.textContent="✗ 先填入 API Key 再测试"; return; }
+      box.className="conn-status testing"; box.textContent="🔌 正在连接 Claude…";
+      test.disabled=true;
+      try{
+        const r=await ping(key, mdl);
+        if(r.ok){ box.className="conn-status ok"; box.textContent=`✓ 连接成功！模型 ${r.model} · 响应 ${r.ms}ms。已自动保存，点右下角 🤖 即可使用。`;
+          saveCfg({ key, model:mdl }); $id("ai-key-status").textContent="已验证并保存 ✓"; }
+        else{ box.className="conn-status bad"; box.textContent=`✗ 连接失败（${r.status}）：${r.error}`; }
+      }catch(e){ box.className="conn-status bad"; box.textContent=`✗ 出错：${e.message}（多半是网络问题、Key 写错、或模型名过时）`; }
+      finally{ test.disabled=false; }
+    };
   }
 
   window.Assistant={ injectUI, settingsHTML, bindSettings, open, get last(){ return last; } };
