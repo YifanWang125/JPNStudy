@@ -520,3 +520,47 @@ what its owner studied ("うちの主人、今日これ覚えたよ！"), and co
 — a generative-agent social layer that motivates without becoming a hookup app (the *pet*, not the
 person, is the social surface). Requires a backend/multiuser (the site is currently static, single-user).
 Captured as a future direction; **do not build now.**
+
+---
+
+## E. World & narrative — 言霊 (kotodama)  ✅ intro BUILT
+
+A coherent story that makes the product *believable* and ties every mechanic to studying,
+without distracting from it. Built on a **real, teachable Japanese concept** (言霊 = "word-spirit,"
+the soul of language — so the lore itself teaches culture).
+
+- **The myth:** words carry a spirit, 言霊. As you genuinely learn Japanese, your words begin to
+  *glow* and radiate 言霊. A dormant egg, which **feeds on 言霊**, is drawn to you and hatches/grows
+  only as you deepen your Japanese. You were *chosen*.
+- **Maps onto existing mechanics (re-skins, doesn't add complexity):**
+  - **言霊 = the growth essence** (the existing Study-XP). The growth bar is now labeled 言霊; the
+    more (and more genuinely — progress-weighted) you study, the more it fills → the pet grows.
+  - **Care** keeps it alive; **言霊 (study)** makes it grow — the same care≠growth split, now with a why.
+  - **Evolution** = the creature *absorbing the varieties of Japanese you touch* (Kansai, keigo,
+    net-slang…) — it embodies the breadth of your learning.
+  - **Death** = without 言霊/care the spirit fades. **Diary/chat** = the 言霊 made articulate.
+- **Onboarding:** a one-time cinematic intro tells this story when the egg first appears (§ built).
+- **Room to extend (future):** name the care currency 言の葉 (kotonoha, "word-leaves"); the community
+  version (§D) = pets carrying their owner's 言霊 out to meet others. Keep it flavor, never a gate.
+
+---
+
+## F. OPEN ISSUE — home layout still feels unbalanced (revisit)
+
+User feedback (kept on the radar, not yet resolved): the home page "feels weird — so much on the
+left, very little on the right." Current layout = a centered `[pet 240 | content 880]` flex group
+with equal gutters; mathematically balanced, but it *reads* left-heavy (the dense glowing pet box on
+the left vs. a tall content column; the left gutter empty below the sticky pet).
+
+Ideas to try later (pick after seeing it on the user's screen):
+1. **Pet as a top hero band** on home (full-width card above a single centered content column) →
+   removes left/right asymmetry entirely; the pet still leads.
+2. **True two-rail dashboard** — add a slim right rail (streak / today's goal / quick links) so both
+   gutters are intentionally used and symmetric.
+3. **Tighter max-width** so the centered group's gutters are smaller (less "empty" feel).
+4. **Fill the left column** below the sticky pet (mini activity feed / care reminders) so it isn't
+   "a box then emptiness."
+5. Float the pet as a **corner companion** and let content be a normal single centered column.
+
+Recommendation: try (1) hero-band first — simplest, most likely to feel balanced. Revisit with the
+user before committing.
