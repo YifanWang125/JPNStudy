@@ -300,6 +300,30 @@ nature-true events/lines on the fly.
 
 ---
 
+## 5e. The house & a roaming pet (navigation as a guided tour)  ← NEXT to build
+
+Treat the whole site as the pet's **home**: each page is a room/floor (主页=living room,
+每日=study, 基础=library, 場面=outside, 测试=dojo, 笔记=desk). The pet *roams* it — and its
+movement **guides the user to study different pages**:
+
+- **Hops in to cheer:** when you open a study page, sometimes the pet bounces in from the
+  screen edge, says a short Japanese line (generic 「がんばって！」 or **page-relevant** — e.g. on
+  基础 it might say 「動詞[どうし]の活用[かつよう]、おさらいしよ！」), then hops off. Encouragement
+  + a relevant phrase to read.
+- **"It's out playing":** sometimes you return home and the pet isn't on its spot — a hint reads
+  「キューブは『基础[きそ]』で あそんでるよ！」 with a *follow* button. Going there finds it (and
+  you review verb conjugation / particles / 読み方 while you're there). The pet's whims **pull you
+  into pages you'd otherwise skip** — that's the point.
+- Not random thrashing: weighted toward areas you haven't studied lately; gated so it never nags.
+  Text-only (no voice). Roaming sprite = a small fixed-position canvas animating across an edge,
+  reusing the genome renderer.
+
+> Constraints locked by the user: **no VOICEVOX / voice for the pet** (text only). The free-chat
+> "talk to the pet" feature is built (text) but the user is reconsidering it — kept unobtrusive for
+> now, decision deferred.
+
+---
+
 ## 7. Home-page integration (fills the gutters)
 
 - New home layout: the centered column stays; the pet gets a **companion panel** in the side
