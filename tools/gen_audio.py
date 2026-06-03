@@ -37,20 +37,24 @@ If you add brand-new files, re-run this script — it regenerates BOTH json + js
 
 import argparse, hashlib, json, os, re, subprocess, sys, urllib.parse, urllib.request
 
-ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LESSONS   = os.path.join(ROOT, "js", "lessons.js")
-SCENARIOS = os.path.join(ROOT, "js", "scenarios.js")
-DAILY     = os.path.join(ROOT, "js", "daily.js")
-AUDIO_DIR = os.path.join(ROOT, "audio")
-VOCAB_DIR = os.path.join(AUDIO_DIR, "vocab")
-MANIFEST  = os.path.join(AUDIO_DIR, "manifest.json")
-ENGINE    = os.environ.get("VOICEVOX_URL", "http://localhost:50021")
+ROOT       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LESSONS    = os.path.join(ROOT, "js", "lessons.js")
+SCENARIOS  = os.path.join(ROOT, "js", "scenarios.js")
+SCN_ADULT  = os.path.join(ROOT, "js", "scenarios-adult.js")
+DAILY      = os.path.join(ROOT, "js", "daily.js")
+AUDIO_DIR  = os.path.join(ROOT, "audio")
+VOCAB_DIR  = os.path.join(AUDIO_DIR, "vocab")
+MANIFEST   = os.path.join(AUDIO_DIR, "manifest.json")
+ENGINE     = os.environ.get("VOICEVOX_URL", "http://localhost:50021")
 
-# Per-role VOICEVOX speakers for scenario dialogue (two clearly contrasting voices
-# so the learner can tell who is talking): the learner's side (customer/guest/patient)
-# is a calm adult male; the staff side (reception/clerk/doctor/front desk) is a polite
-# adult female. Run --list-speakers to see ids on your engine.
-SCN_VOICE = {"c": 11, "s": 16}   # 11 玄野武宏/ノーマル(男) · 16 九州そら/ノーマル(女)
+# Per-role scenario voices as (speaker_id, speedScale). Two contrasting voices so the
+# learner can tell who is talking. speedScale NORMALIZES tempo: the male speaker (#11)
+# naturally talks ~1.5x faster than the female (#16) — measured ~6.8 vs ~4.5 mora/s —
+# so we slow him and nudge her up, landing both near ~5 mora/s. The runtime <audio>
+# playbackRate (global speed lever) then scales everything uniformly on top of this.
+SCN_VOICE   = {"c": (11, 0.80), "s": (16, 1.08)}   # 11 玄野武宏/ノーマル(男) · 16 九州そら/ノーマル(女)
+# 🔞 adult mode: an intimate/sultry pair — mellow male + sexy female.
+ADULT_VOICE = {"c": (84, 0.92), "s": (17, 1.0)}    # 84 青山龍星/しっとり(男) · 17 九州そら/セクシー(女)
 
 # ---- furigana / normalization (mirrors app.js toPlain + speechNorm) ----
 BRACKET = re.compile(r"\[[^\]]+\]")
@@ -135,8 +139,11 @@ def list_speakers():
             for st in sp["styles"]:
                 print(f'  id={st["id"]:>3}  {sp["name"]} / {st["name"]}')
 
-def synth_wav(text, speaker):
+def synth_wav(text, speaker, speed=None):
     query = vv_post("/audio_query", {"text": text, "speaker": speaker})
+    if speed is not None:                      # override tempo (normalize per-speaker)
+        q = json.loads(query); q["speedScale"] = speed
+        query = json.dumps(q).encode("utf-8")
     return vv_post("/synthesis", {"speaker": speaker}, data=query)
 
 def to_mp3(wav_bytes, out_path):
@@ -240,7 +247,7 @@ def main():
     ext = "wav" if args.wav else "mp3"
     made = skipped = 0
 
-    def emit(key, text, out_path, speaker=None):
+    def emit(key, text, out_path, speaker=None, speed=None):
         nonlocal made, skipped
         spoken = speech_norm(text)
         if not spoken:
@@ -248,7 +255,7 @@ def main():
         rel_path = os.path.relpath(out_path, ROOT).replace(os.sep, "/")
         if os.path.exists(out_path):
             manifest[key] = rel_path; skipped += 1; return
-        wav = synth_wav(spoken, args.speaker if speaker is None else speaker)
+        wav = synth_wav(spoken, args.speaker if speaker is None else speaker, speed)
         if args.wav:
             open(out_path, "wb").write(wav)
         else:
@@ -302,10 +309,25 @@ def main():
             # dialogue: positional key scn_<id>_<i>, per-role speaker baked in.
             # strip a leading speaker label ("患者：…") so the voice doesn't read it aloud.
             for i, d in enumerate(s.get("dialogue", [])):
-                spk = SCN_VOICE.get(d.get("sp"), args.speaker)
+                spk, spd = SCN_VOICE.get(d.get("sp"), (args.speaker, None))
                 line = re.sub(r"^[^：:\n]{1,8}[：:]\s*", "", d.get("jp", ""))
                 emit(f"scn_{sid}_{i}", line,
-                     os.path.join(scn_d, f"{sid}_{i}.{ext}"), speaker=spk)
+                     os.path.join(scn_d, f"{sid}_{i}.{ext}"), speaker=spk, speed=spd)
+        # 🔞 adult-mode dialogue (scenarios-adult.js): keyed scna_<id>_<i>, sultry voices.
+        adult = None
+        if os.path.exists(SCN_ADULT):
+            try:
+                _src = open(SCN_ADULT, encoding="utf-8").read()
+                adult = json.loads(_src[_src.index("{"): _src.rindex("}") + 1])
+            except Exception as e:
+                print(f"  (skip adult scenarios: {e})")
+        if isinstance(adult, dict):
+            for sid, lines in adult.items():
+                for i, d in enumerate(lines):
+                    spk, spd = ADULT_VOICE.get(d.get("sp"), (args.speaker, None))
+                    line = re.sub(r"^[^：:\n]{1,8}[：:]\s*", "", d.get("jp", ""))
+                    emit(f"scna_{sid}_{i}", line,
+                         os.path.join(scn_d, f"a_{sid}_{i}.{ext}"), speaker=spk, speed=spd)
         # 每日一句: phrase + example lines, keyed x_<text> (shared example namespace)
         if not args.no_ex:
             for jp in load_daily():

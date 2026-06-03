@@ -11,8 +11,18 @@ const STATE = {
   furi: true,                // furigana visible
   showZh: false,             // translations under paragraph (morning hides by default)
   writeMode: "type",         // type | hide
-  rate: 1.0,                 // natural speed for the real voice; slider can slow it for shadowing
+  rate: 1.0,                 // natural speed for the real voice; the global speed lever scales all playback
 };
+try{ const r=parseFloat(localStorage.getItem("jpn-rate")); if(r>=0.5&&r<=1.5) STATE.rate=r; }catch(e){}
+/* ONE global speed lever for all playback (audio playbackRate + TTS rate). Persisted,
+   and reflected in every speed control on the page (settings slider + scenarios lever). */
+function setRate(v){
+  STATE.rate=Math.max(0.5,Math.min(1.5,v));
+  try{ localStorage.setItem("jpn-rate", STATE.rate); }catch(e){}
+  document.querySelectorAll(".speed-range").forEach(el=>{ el.value=STATE.rate; });
+  document.querySelectorAll(".speed-val").forEach(el=>{ el.textContent=STATE.rate.toFixed(2)+"×"; });
+  if(CURRENT_AUDIO){ try{ CURRENT_AUDIO.playbackRate=STATE.rate; }catch(e){} }  // apply live mid-playback
+}
 /* ---------- i18n: explanation language (learner's native language) ---------- */
 function getLang(){ try{ return localStorage.getItem("jpn-lang")||"zh"; }catch(e){ return "zh"; } }
 let LANG = getLang();
@@ -269,7 +279,7 @@ function renderMorning(L){
     <div class="audio-bar">
       <button id="play-all">${T("▶ 全文を聴く","▶ Play all")}</button>
       <button id="stop-all" class="ghost">${T("■ 停止","■ Stop")}</button>
-      <div class="speed">${T("速さ","Speed")} <input type="range" id="rate" min="0.5" max="1.1" step="0.05" value="${STATE.rate}"><b id="rate-v">${STATE.rate.toFixed(2)}</b></div>
+      <div class="speed">${T("速さ","Speed")} <input type="range" id="rate" class="speed-range" min="0.6" max="1.4" step="0.05" value="${STATE.rate}"><b id="rate-v" class="speed-val">${STATE.rate.toFixed(2)}×</b></div>
     </div>
     <div class="mini-toggles">
       <button id="m-zh" class="${STATE.showZh?'on':''}">${T("中文译文","Translation")}</button>
@@ -291,7 +301,7 @@ function renderMorning(L){
     speakSequence(items);
   };
   $("#stop-all").onclick=stopSpeak;
-  $("#rate").oninput=e=>{ STATE.rate=parseFloat(e.target.value); $("#rate-v").textContent=STATE.rate.toFixed(2); };
+  $("#rate").oninput=e=>setRate(parseFloat(e.target.value));
   $("#m-zh").onclick=()=>{ STATE.showZh=!STATE.showZh; para.classList.toggle("hide-zh",!STATE.showZh); $("#m-zh").classList.toggle("on",STATE.showZh); };
   $("#m-furi").onclick=()=>{ STATE.furi=!STATE.furi; para.classList.toggle("hide-furi",!STATE.furi); $("#m-furi").classList.toggle("on",STATE.furi); $("#furi-toggle").classList.toggle("on",STATE.furi); };
   appendPron(L, body);
@@ -1235,32 +1245,57 @@ function renderGeneral(){
 /* split a dialogue line into an optional speaker label + the spoken body.
    "患者：すみません…" → {label:"患者", body:"すみません…"}; unlabeled → {label:"", body:jp} */
 function scnSplit(jp){
-  const m=(jp||"").match(/^([^：:\n]{1,8})[：:]\s*([\s\S]*)$/);
+  // label may carry furigana (adult lines: "看護師[かんごし]：…"), so allow up to ~14 chars
+  const m=(jp||"").match(/^([^：:\n]{1,14})[：:]\s*([\s\S]*)$/);
   return m ? {label:m[1], body:m[2]} : {label:"", body:jp||""};
 }
+/* speaker-label localisation: keep Japanese readable for zh AND en learners (esp.
+   katakana roles like フロント/トレーナー that a Chinese reader can't decode). */
+const SCN_ROLE={ "患者":["患者","Patient"],"受付":["前台","Reception"],"医師":["医生","Doctor"],
+  "看護師":["护士","Nurse"],"客":["客人","Customer"],"フロント":["前台","Front desk"],
+  "店員":["店员","Clerk"],"トレーナー":["教练","Trainer"],"キャスト":["陪侍","Hostess"] };
+function adultOn(){ try{ return localStorage.getItem("jpn-adult")==="1"; }catch(e){ return false; } }
 function renderScenarios(){
   const c=$("#page-scenarios"); if(!c) return;
   const list=(typeof window!=="undefined"&&window.SCENARIOS)||[];
-  const roleTag=(sp,label)=>{ if(label) return esc(label);
-    return sp==="s" ? T("店員","Staff") : T("あなた","You"); };
+  const ADULT=(typeof window!=="undefined"&&window.SCENARIOS_ADULT)||{};
+  const adult=adultOn();
+  const roleTag=(sp,label)=>{ const p=(label||"").replace(/\[[^\]]*\]/g,"");  // strip furigana for lookup
+    if(p) return SCN_ROLE[p]?esc(zhen(SCN_ROLE[p][0],SCN_ROLE[p][1])):esc(p);
+    return sp==="s" ? T("店员","Staff") : T("你","You"); };
   let html=`<div class="ref-intro"><h1>${T("🗺️ 場面 · 场景日语","🗺️ Scenarios · Real-life Japanese")}</h1>
     <p>${T("按真实生活场景学：实用对话、关键词、礼仪与文化贴士。","Learn by real-life scene: practical dialogue, key words, and etiquette/culture tips.")}</p>
-    <p class="tap-hint">🔊 ${T("点标题展开/收起 · 点任意单词或对话即可听真人发音（VOICEVOX）","Tap a heading to expand · tap any word or line to hear it in a real voice (VOICEVOX)")}</p></div>`;
+    <p class="tap-hint">🔊 ${T("点标题展开/收起 · 点任意单词或对话即可听真人发音（VOICEVOX）","Tap a heading to expand · tap any word or line to hear it in a real voice (VOICEVOX)")}</p>
+    <div class="scn-controls">
+      <label class="speed-ctl">🐢 ${T("朗读速度","Speed")} <input type="range" class="speed-range" min="0.6" max="1.4" step="0.05" value="${STATE.rate}"> 🐇 <b class="speed-val">${STATE.rate.toFixed(2)}×</b></label>
+      <button id="scn-adult" class="scn-adult-btn${adult?" on":""}">🔞 ${adult?T("成人模式：开","Adult mode: ON"):T("成人模式","Adult mode")}</button>
+    </div></div>`;
   if(!list.length) html+=`<p class="hc-empty">${T("场景内容尚未加载。","Scenario content not loaded yet.")}</p>`;
   list.forEach((s,i)=>{
-    const dlg=s.dialogue||[];
+    const adlg=(adult&&ADULT[s.id]&&ADULT[s.id].length)?ADULT[s.id]:null;
+    const dlg=adlg||s.dialogue||[];
+    const keyPre=adlg?`scna_${s.id}_`:`scn_${s.id}_`;
     html+=`<div class="ref-section${i===0?" open":""}" data-id="scn-${esc(s.id)}">
       <div class="ref-head"><span class="r-emoji">${s.icon||"🗺️"}</span><h2>${esc(s.title)} <span class="r-zh">${esc(LANG==="en"?(s.titleEn||s.titleZh||""):(s.titleZh||""))}</span></h2><span class="r-arrow">▸</span></div>
       <div class="ref-body">
         ${s.intro?`<p class="scn-intro">${esc(zhen(s.intro.zh,s.intro.en))}</p>`:""}
         ${(s.vocab&&s.vocab.length)?`<h4 class="scn-h">${T("🔑 キーワード","🔑 Key words")}</h4><div class="scn-vocab">${s.vocab.map(v=>`<div class="scn-v tappable" data-jp="${esc(v.r||v.w)}" data-key="v_${esc(speechNorm(v.r||v.w))}" title="${T('点击朗读','tap to hear')}"><b class="v-word">${esc(v.w)}</b><span class="v-read">${esc(v.r||"")}</span><span class="v-mean">${esc(zhen(v.zh,v.en))}</span><span class="tap-spk">🔊</span></div>`).join("")}</div>`:""}
-        ${dlg.length?`<div class="scn-dh"><h4 class="scn-h">${T("💬 会話","💬 Dialogue")}</h4><button class="scn-playall" data-scn="${esc(s.id)}">▶ ${T("全部播放","Play all")}</button></div>
-          <div class="scn-dialogue">${dlg.map((d,di)=>{const p=scnSplit(d.jp);return `<div class="scn-line sp-${d.sp==="s"?"s":"c"}" data-key="scn_${esc(s.id)}_${di}" title="${T('点击朗读','tap to hear')}"><span class="scn-spk">${roleTag(d.sp,p.label)}</span><div class="scn-bubble">${toRuby(p.body)}<span class="zh">${esc(zhen(d.zh,d.en))}</span></div></div>`;}).join("")}</div>`:""}
+        ${dlg.length?`<div class="scn-dh"><h4 class="scn-h">${T("💬 会話","💬 Dialogue")}${adlg?` <span class="scn-spicy">🔞 ${T("成人版","18+")}</span>`:""}</h4><button class="scn-playall" data-scn="${esc(s.id)}">▶ ${T("全部播放","Play all")}</button></div>
+          <div class="scn-dialogue">${dlg.map((d,di)=>{const p=scnSplit(d.jp);return `<div class="scn-line sp-${d.sp==="s"?"s":"c"}" data-key="${keyPre}${di}" title="${T('点击朗读','tap to hear')}"><span class="scn-spk">${roleTag(d.sp,p.label)}</span><div class="scn-bubble">${toRuby(p.body)}<span class="zh">${esc(zhen(d.zh,d.en))}</span></div></div>`;}).join("")}</div>`:""}
         ${(s.manners&&s.manners.length)?`<h4 class="scn-h">${T("🎎 マナー・文化","🎎 Manners & Culture")}</h4><ul class="r-rules scn-manners">${s.manners.map(m=>`<li>${rubyMd(zhen(m.zh,m.en))}</li>`).join("")}</ul>`:""}
       </div></div>`;
   });
   c.innerHTML=html;
   c.querySelectorAll(".ref-head").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("open"));
+  // global speed lever (one control, scales all playback site-wide)
+  c.querySelectorAll(".speed-range").forEach(el=>el.oninput=e=>setRate(parseFloat(e.target.value)));
+  // 🔞 adult-mode toggle (opt-in with a confirm gate; off by default)
+  const ab=$("#scn-adult"); if(ab) ab.onclick=()=>{
+    if(adultOn()){ try{ localStorage.setItem("jpn-adult","0"); }catch(e){} renderScenarios(); return; }
+    const ok=confirm(T("成人模式：18+ 趣味擦边对话（暗示性、搞笑，非露骨），使用性感音色。仅供娱乐。确定开启？",
+                      "Adult mode: 18+ playful, suggestive dialogue (innuendo & comedy, not explicit) with sultry voices. For fun only. Enable?"));
+    if(ok){ try{ localStorage.setItem("jpn-adult","1"); }catch(e){} renderScenarios(); }
+  };
   // vocab + single dialogue line → play that one clip, highlighting the element
   c.querySelectorAll(".scn-v,.scn-line").forEach(el=>el.onclick=()=>
     speakSequence([{text:el.dataset.jp||"",node:el,audioKey:el.dataset.key}]));

@@ -834,6 +834,16 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 /* tap-to-hear hint banner */
 .tap-hint{margin-top:8px;font-size:.85rem;color:var(--accent-2);background:var(--panel);border:1px dashed var(--line);border-radius:8px;padding:6px 10px;display:inline-block}
 
+/* scenarios top controls: global speed lever + adult toggle */
+.scn-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:12px}
+.speed-ctl{display:flex;align-items:center;gap:8px;font-size:.88rem;color:var(--ink-dim)}
+.speed-ctl .speed-range{width:160px;vertical-align:middle;accent-color:var(--accent)}
+.speed-ctl .speed-val{color:var(--accent);min-width:3.2em;text-align:right}
+.scn-adult-btn{font-size:.84rem;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink-dim);cursor:pointer}
+.scn-adult-btn:hover{border-color:#d6336c;color:#d6336c}
+.scn-adult-btn.on{background:#d6336c;border-color:#d6336c;color:#fff}
+.scn-spicy{font-size:.72rem;font-weight:700;color:#fff;background:#d6336c;border-radius:6px;padding:1px 7px;vertical-align:middle;margin-left:4px}
+
 /* dialogue header + play-all */
 .scn-dh{display:flex;align-items:center;gap:12px;margin:16px 0 8px}
 .scn-dh .scn-h{margin:0}
