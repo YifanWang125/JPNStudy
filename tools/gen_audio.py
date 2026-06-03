@@ -111,51 +111,6 @@ def synth_wav(text, speaker):
     query = vv_post("/audio_query", {"text": text, "speaker": speaker})
     return vv_post("/synthesis", {"speaker": speaker}, data=query)
 
-def accent_data(text, speaker):
-    """Per-accent-phrase pitch info for the OJAD-style high/low contour.
-    Returns [{a:<downstep mora, 1-based; 0=heiban>, m:[mora katakana,...]}, ...]."""
-    q = json.loads(vv_post("/audio_query", {"text": text, "speaker": speaker}))
-    out = []
-    for ap in q.get("accent_phrases", []):
-        moras = [m["text"] for m in ap.get("moras", [])]
-        if moras:
-            out.append({"a": ap.get("accent", 0), "m": moras})
-    return out
-
-def build_pitch(speaker):
-    """Pre-compute pitch-accent contours for every spoken line → audio/pitch.js (+ .json).
-    Keyed identically to the audio manifest (d{day}_s{i} / v_<reading> / x_<text>) so the
-    web app can look them up. Runs offline; the site needs no engine at runtime."""
-    try:
-        urllib.request.urlopen(ENGINE + "/version", timeout=5).read()
-    except Exception as e:
-        sys.exit(f"✗ VOICEVOX engine not reachable at {ENGINE}. Start it first. {e}")
-    pitch = {}
-    def setp(key, text):
-        spoken = speech_norm(text)
-        if not spoken or key in pitch:
-            return
-        try:
-            pitch[key] = accent_data(spoken, speaker)
-        except Exception as e:
-            print(f"  pitch fail {key}: {e}")
-    for d in load_lessons():
-        for i, jp in enumerate(d["sents"]):
-            setp(f'd{d["day"]}_s{i}', jp)
-        for r in d["readings"]:
-            sp = speech_norm(r)
-            if sp:
-                setp(f"v_{sp}", r)
-        for jp in d["extra"]:
-            sp = speech_norm(jp)
-            if sp:
-                setp(f"x_{sp}", jp)
-    os.makedirs(AUDIO_DIR, exist_ok=True)
-    json.dump(pitch, open(os.path.join(AUDIO_DIR, "pitch.json"), "w", encoding="utf-8"), ensure_ascii=False)
-    open(os.path.join(AUDIO_DIR, "pitch.js"), "w", encoding="utf-8").write(
-        "window.PITCH=" + json.dumps(pitch, ensure_ascii=False) + ";\n")
-    print(f"pitch entries: {len(pitch)} → audio/pitch.js (+ pitch.json)")
-
 def to_mp3(wav_bytes, out_path):
     p = subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", "pipe:0",
                         "-codec:a", "libmp3lame", "-qscale:a", "4", out_path],
@@ -228,8 +183,6 @@ def main():
     ap.add_argument("--list-speakers", action="store_true")
     ap.add_argument("--verify", action="store_true",
                     help="check every furigana reading against UniDic (fugashi) and report mismatches; no synthesis")
-    ap.add_argument("--pitch", action="store_true",
-                    help="pre-compute pitch-accent contours → audio/pitch.js (no audio synthesis)")
     ap.add_argument("--voice-dir", default=None,
                     help="generate an ALTERNATE voice into audio/voices/<name>/ (same filenames as default; "
                          "the web app plays it by path-prefix swap with fallback). Use with --speaker / a different "
@@ -240,8 +193,6 @@ def main():
         list_speakers(); return
     if args.verify:
         verify_readings(); return
-    if args.pitch:
-        build_pitch(args.speaker); return
 
     # sanity: engine reachable?
     try:

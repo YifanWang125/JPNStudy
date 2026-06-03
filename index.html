@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>日本語 N4 → N2 · 30日の道</title>
+<!-- theme: set BEFORE css to avoid a dark→light flash (FOUC). default dark. -->
+<script>(function(){try{var t=localStorage.getItem('jpn-theme')||'dark';var d=t==='auto'?((window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'):t;document.documentElement.setAttribute('data-theme',d);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
@@ -30,6 +32,7 @@
         <button id="next" title="次の日">›</button>
       </div>
     </span>
+    <button class="gear-btn" id="theme-btn" title="浅色 / 深色">🌙</button>
     <button class="gear-btn" id="gear-btn" title="设置 / 备份 / 发音引擎">⚙️</button>
   </div>
   <div class="progress-line"><i id="prog-fill"></i></div>

@@ -99,42 +99,6 @@ function voiceOptionsHTML(){
 /* normalize text for TTS / file lookup: drop furigana, 「〜」placeholder, edge punct */
 function speechNorm(text){ return toPlain(text).replace(/[〜～]/g,"").replace(/^[、。・「」『』\s]+|[、。・「」『』\s]+$/g,"").trim(); }
 
-/* ---- pitch-accent contour (音高线) ---- */
-let PITCH = {};                   // { "v_あめ":[{a:1,m:["ア","メ"]},...], ... }
-function kata2hira(s){ return s.replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60)); }
-function moraSplit(s){ return s.match(/.[ゃゅょぁぃぅぇぉゎ]?/g) || []; }   // kana → morae (small kana attach)
-/* OJAD-style high/low line from pre-computed VOICEVOX accent data. Returns "" if none.
-   Tokyo rule per accent phrase: heiban(a=0)=L H H…; 頭高(a=1)=H L L…; 中高/尾高(a≥2)=L H…H↓L.
-   `reading` (optional) relabels morae with the authored kana spelling (しょう, particle を…),
-   keeping VOICEVOX's pattern — so the line matches the reading shown above it. */
-function pitchHTML(key, reading){
-  const phr = PITCH[key];
-  if(!phr || !phr.length) return "";
-  let labels2 = phr.map(p=>p.m.map(kata2hira));
-  if(reading){
-    const rm = moraSplit(kata2hira(reading.replace(/[^ぁ-ゖァ-ヶー]/g,"")));
-    const total = phr.reduce((n,p)=>n+p.m.length,0);
-    if(rm.length===total){ let i=0; labels2 = phr.map(p=>p.m.map(()=>rm[i++])); }
-  }
-  const STEP=18, PAD=7, yHi=7, yLo=20, H=34, r=2.6;
-  let x=PAD, circles="", labels="", polys=[];
-  phr.forEach((p,pi)=>{
-    const a=p.a, pts=[];
-    p.m.forEach((mora,i)=>{
-      const j=i+1;
-      const hi = a===0 ? j>=2 : (a===1 ? j===1 : (j>=2 && j<=a));
-      const y = hi?yHi:yLo;
-      pts.push(x+","+y);
-      circles += `<circle cx="${x}" cy="${y}" r="${r}"${(a>=1&&j===a)?' class="nuc"':''}/>`;
-      labels  += `<text x="${x}" y="${H-3}" text-anchor="middle">${labels2[pi][i]}</text>`;
-      x += STEP;
-    });
-    polys.push(`<polyline points="${pts.join(' ')}"/>`);
-    x += STEP*0.55;
-  });
-  const W = Math.ceil(x - STEP*0.55 + PAD);
-  return `<svg class="pitch" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="音高线"><title>音高：上＝高音 · 下＝低音 · ●＝降调点（accent）</title>${polys.join("")}${circles}${labels}</svg>`;
-}
 
 function ttsOne(text, node){
   return new Promise(res=>{
@@ -821,6 +785,18 @@ function toggleMap(show){
  *  PAGE ROUTING
  * ==========================================================================*/
 /* make a floating element drag-anywhere; remembers position; calls onTap on a click (no drag) */
+/* ---- theme: light / dark / auto (follow system) ---- */
+function getTheme(){ try{ return localStorage.getItem("jpn-theme")||"dark"; }catch(e){ return "dark"; } }
+function resolvedTheme(t){ return t==="auto" ? ((window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark") : t; }
+function applyTheme(t){
+  document.documentElement.setAttribute("data-theme", resolvedTheme(t));
+  const b=$("#theme-btn");
+  if(b){ b.textContent = t==="auto"?"🖥":(resolvedTheme(t)==="light"?"☀️":"🌙");
+    b.title = "外观："+(t==="auto"?"跟随系统":(t==="light"?"浅色":"深色"))+"（点击切换）"; }
+}
+function setTheme(t){ try{ localStorage.setItem("jpn-theme", t); }catch(e){} applyTheme(t); }
+function cycleTheme(){ const c=getTheme(); setTheme(c==="dark"?"light":(c==="light"?"auto":"dark")); }
+
 function makeDraggable(el, key, onTap){
   try{ const p=JSON.parse(localStorage.getItem(key)); if(p&&p.left!=null){ el.style.left=p.left+"px"; el.style.top=p.top+"px"; el.style.right="auto"; el.style.bottom="auto"; } }catch(e){}
   let sx,sy,ox,oy,moved=false,down=false;
@@ -980,6 +956,12 @@ function openSettings(){
   ov.innerHTML=`<div class="modal">
     <div class="modal-head"><h2>⚙️ 设置</h2><button id="modal-close">✕</button></div>
     <div class="modal-body">
+      <section><h3>🎨 外观 / テーマ</h3>
+        <p class="m-note">选浅色或深色主题（也可跟随系统）。页眉那个 ☀️/🌙 按钮也能一键切换。</p>
+        <div class="theme-pick" id="theme-pick">
+          ${[["light","☀️ 浅色"],["dark","🌙 深色"],["auto","🖥 跟随系统"]].map(([v,l])=>`<button data-theme-val="${v}" class="${getTheme()===v?"on":""}">${l}</button>`).join("")}
+        </div>
+      </section>
       <section><h3>👤 你的名字（可选）</h3>
         <p class="m-note">填了之后，主页会用它跟你打招呼（おかえりなさい、…！）。只存在本机浏览器。</p>
         <label>名字 / Name <input type="text" id="usr-name" value="${esc(getName())}" placeholder="例如 Bob / 王"></label>
@@ -1009,6 +991,7 @@ function openSettings(){
     </div></div>`;
   $("#modal-close").onclick=closeSettings;
   ov.onclick=(e)=>{ if(e.target===ov) closeSettings(); };
+  $("#theme-pick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ setTheme(b.dataset.themeVal); $("#theme-pick").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); });
   $("#name-save").onclick=()=>{ const v=$("#usr-name").value.trim(); if(v) localStorage.setItem("jpn-name",v); else localStorage.removeItem("jpn-name"); $("#name-status").textContent="已保存 ✓"; };
   $("#az-save").onclick=()=>{ const key=$("#az-key").value.trim(), region=$("#az-region").value.trim(); if(key&&region){ localStorage.setItem("jpn-azure-cfg",JSON.stringify({key,region})); $("#az-status").textContent="已保存 ✓ 发音评估将用 Azure"; } else { $("#az-status").textContent="Key 和 Region 都要填"; } };
   $("#az-clear").onclick=()=>{ localStorage.removeItem("jpn-azure-cfg"); $("#az-key").value=""; $("#az-region").value=""; $("#az-status").textContent="已清除，将用浏览器识别"; const cc=$("#az-conn"); if(cc){ cc.className="conn-status"; cc.textContent=""; } };
@@ -1272,6 +1255,9 @@ function init(){
   $("#furi-toggle").onclick=()=>{ STATE.furi=!STATE.furi; render(); };
   $("#map-toggle").onclick=()=>toggleMap(!$("#map-view").classList.contains("show"));
   $("#gear-btn").onclick=openSettings;
+  applyTheme(getTheme());
+  if($("#theme-btn")) $("#theme-btn").onclick=cycleTheme;
+  if(window.matchMedia){ try{ matchMedia("(prefers-color-scheme: light)").addEventListener("change",()=>{ if(getTheme()==="auto") applyTheme("auto"); }); }catch(e){} }
   document.querySelectorAll("#page-nav button").forEach(b=>b.onclick=()=>showPage(b.dataset.p));
 
   // pre-generated audio manifest (VOICEVOX). Prefer the <script>-loaded global
@@ -1281,8 +1267,6 @@ function init(){
   } else if(typeof fetch==="function" && location.protocol!=="file:"){
     fetch("audio/manifest.json").then(r=>r.ok?r.json():{}).then(m=>{ AUDIO_MANIFEST=m||{}; }).catch(()=>{ AUDIO_MANIFEST={}; });
   }
-  // (pitch-accent contour was retired from the UI; gen_audio.py --pitch + audio/pitch.js
-  //  remain in the repo if we ever revisit it. PITCH stays empty and pitchHTML() returns "".)
   // voice models (registry script-loaded). Always include a built-in default first.
   VOICES = (typeof window!=="undefined" && Array.isArray(window.VOICES) && window.VOICES.length)
     ? window.VOICES
