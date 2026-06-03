@@ -57,6 +57,8 @@
     const b=J("jpn-test-best",{});                    // mastery = best test scores (un-gameable)
     for(const id in b){ const t=b[id]; if(t&&t.total) pr += (t.score/t.total*100)*1.2; }
     const pb=pronBest(); if(pb>0) pr += pb*0.8;        // best pronunciation
+    let exCorrect=0; J("jpn-exercise-log",[]).forEach(x=>{ exCorrect+=(x.score||0); });
+    pr += exCorrect*1.6;                               // PRODUCTION reps (highest-value output) → strong growth
     return Math.round(pr);
   }
   function pronBest(){ let m=0; J("jpn-pron-log",[]).forEach(x=>{ if((x.score||0)>m) m=x.score; }); return m; }

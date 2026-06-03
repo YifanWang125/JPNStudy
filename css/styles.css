@@ -872,6 +872,39 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .m-check{display:flex;align-items:flex-start;gap:8px;font-size:.9rem;color:var(--ink-dim);margin:6px 0;cursor:pointer}
 .m-check input{margin-top:3px;flex:0 0 auto}
 
+/* ============================== ✍️ 練習 EXERCISES ============================== */
+.ex-intro h2{font-family:var(--serif-jp);color:var(--accent-2);font-size:1.2rem;margin-bottom:6px}
+.ex-intro p{color:var(--ink-dim);font-size:.92rem;line-height:1.7;margin-bottom:12px}
+.ex-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.ex-genbtn{font-size:.9rem;padding:6px 14px;border-radius:999px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+.ex-genbtn:hover{background:var(--accent);color:#fff}
+.ex-mode{font-size:.8rem;color:var(--ink-faint)}
+.ex-score{margin-left:auto;font-weight:700;color:var(--accent-2)}
+.ex-loading{color:var(--ink-faint);font-size:1.4rem;letter-spacing:3px;padding:20px;text-align:center}
+.ex-list{display:flex;flex-direction:column;gap:14px}
+.ex-item{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.ex-tag{display:inline-block;font-size:.7rem;font-weight:700;color:#fff;border-radius:6px;padding:1px 8px;margin-bottom:8px}
+.ex-tag.t-cloze{background:#1c7ed6}.ex-tag.t-order{background:#7048e8}.ex-tag.t-compose{background:#0ca678}.ex-tag.t-scene{background:#e8590c}
+.ex-q{font-family:var(--serif-jp);font-size:1.08rem;line-height:1.9;color:var(--jp);margin-bottom:10px}
+.ex-gp{font-size:.8rem;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 7px;color:var(--accent-2)}
+.ex-opts{display:flex;flex-wrap:wrap;gap:8px}
+.ex-opt{font-family:var(--serif-jp);font-size:1rem;padding:7px 14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:9px;cursor:pointer}
+.ex-opt:hover:not(:disabled){border-color:var(--accent)}
+.ex-chips,.ex-build{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}
+.ex-build{min-height:2.4em;background:var(--panel);border:1px dashed var(--line);border-radius:9px;padding:8px;align-items:center}
+.ex-chip,.ex-bchip{font-family:var(--serif-jp);font-size:1rem;padding:6px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2)}
+.ex-chip{cursor:pointer}.ex-chip:hover{border-color:var(--accent)}
+.ex-bchip{background:rgba(228,87,46,.12);border-color:var(--accent)}
+.ex-row{display:flex;gap:8px;margin-top:8px}
+.ex-check,.ex-grade{font-size:.86rem;padding:6px 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer}
+.ex-reset,.ex-model{font-size:.86rem;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink-dim);cursor:pointer}
+.ex-ta{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:9px 11px;font-size:1rem;font-family:var(--serif-jp);resize:vertical}
+.ex-fb{margin-top:10px;font-size:.92rem;line-height:1.8;border-radius:9px;padding:9px 12px}
+.ex-fb.ok{background:rgba(12,166,120,.12);border:1px solid #0ca678;color:var(--ink)}
+.ex-fb.no{background:rgba(228,87,46,.1);border:1px solid var(--accent);color:var(--ink)}
+.ex-fb.model{background:var(--panel);border:1px solid var(--line);color:var(--ink-dim)}
+.ex-tip{color:var(--ink-dim);font-size:.85rem}
+
 /* ============================== 🥚 STUDY PET ============================== */
 :root{ --pixel:'DotGothic16','Noto Sans JP',monospace; }
 /* balanced home layout: pet (left) + content centered as a GROUP → equal gutters */

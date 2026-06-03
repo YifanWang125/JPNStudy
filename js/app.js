@@ -231,6 +231,7 @@ function render(){
   renderTabs(L);
   if(STATE.session==="morning") renderMorning(L);
   else if(STATE.session==="noon") renderNoon(L);
+  else if(STATE.session==="exercise"){ if(window.Exercises) Exercises.render(L); else renderNight(L); }
   else renderNight(L);
   updateProgressBar();
 }
@@ -267,7 +268,11 @@ function renderTabs(L){
       <span class="t-name">${s.name}</span>
       <span class="t-sub">${zhen(s.sub, s.subEn)}</span>
     </button>`;
-  }).join("");
+  }).join("") + `<button data-s="exercise" class="${STATE.session==="exercise"?'active':''}">
+      <span class="t-emoji">✍️</span>
+      <span class="t-name">練習</span>
+      <span class="t-sub">${T("产出 · 造句","Produce · Output")}</span>
+    </button>`;
   wrap.querySelectorAll("button").forEach(b=>b.onclick=()=>{ STATE.session=b.dataset.s; if(b.dataset.s==="morning") STATE.showZh=false; render(); });
 }
 
@@ -1126,7 +1131,7 @@ function openSettings(){
 }
 function closeSettings(){ const ov=$("#modal-overlay"); ov.style.display="none"; ov.innerHTML=""; }
 function exportProgress(){
-  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name","jpn-notes","jpn-pet","jpn-rate","jpn-test-log","jpn-pron-log"];
+  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name","jpn-notes","jpn-pet","jpn-rate","jpn-test-log","jpn-pron-log","jpn-exercise-log"];
   const out={ _app:"jpn-n4-n2", _exported:new Date().toISOString(), data:{} };
   keys.forEach(k=>{ const v=localStorage.getItem(k); if(v!==null) out.data[k]=v; });
   const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
