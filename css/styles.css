@@ -914,14 +914,33 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .pet-actions button:disabled{opacity:.32;cursor:default}
 .pet-actions button.med{border-color:#c0392b;color:#e74c3c}
 .pet-foot{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding-top:8px}
-.pet-foot .pet-chatbtn,.pet-foot .pet-logbtn{font-family:var(--pixel);font-size:.8rem;color:var(--accent-2);background:none;border:none;cursor:pointer;padding:2px 4px;position:relative}
-.pet-foot .pet-chatbtn:hover,.pet-foot .pet-logbtn:hover{color:var(--accent)}
+.pet-foot .pet-chatbtn,.pet-foot .pet-logbtn,.pet-foot .pet-dexbtn{font-family:var(--pixel);font-size:.78rem;color:var(--accent-2);background:none;border:none;cursor:pointer;padding:2px 3px;position:relative}
+.pet-foot .pet-chatbtn:hover,.pet-foot .pet-logbtn:hover,.pet-foot .pet-dexbtn:hover{color:var(--accent)}
+.pet-actions button.gift{border-color:var(--accent-2);color:var(--accent-2)}
+.pet-reg{color:var(--accent)}
 .pet-coins{margin-left:auto;font-family:var(--pixel);font-size:.82rem;color:var(--accent)}
 .pet-logbtn.unseen::after,.pet-chatbtn.unseen::after{content:"";position:absolute;top:-2px;right:-3px;width:7px;height:7px;border-radius:50%;background:#fa5252;border:1px solid var(--panel-2)}
 /* egg adoption / death / memorial */
 .pet-adopt h3,.pet-dead h3{font-family:var(--pixel);color:var(--accent-2);margin-bottom:4px}
 .pet-sub{font-family:var(--pixel);font-size:.8rem;color:var(--ink-dim);line-height:1.7}
-.pet-newegg{font-family:var(--pixel);margin-top:10px;padding:7px 14px;border-radius:999px;border:none;background:var(--accent);color:#fff;cursor:pointer}
+.pet-newegg,.pet-follow{font-family:var(--pixel);margin-top:10px;padding:7px 14px;border-radius:999px;border:none;background:var(--accent);color:#fff;cursor:pointer}
+/* "out playing" away card */
+.pet-screen.empty{color:var(--ink-faint);font-family:var(--pixel);font-size:1.4rem}
+.pet-away .away-z{opacity:.5}
+/* roaming pet — hops in from the bottom-left to cheer on study pages */
+.pet-roam{position:fixed;left:18px;bottom:-130px;z-index:55;display:flex;flex-direction:column;align-items:center;gap:4px;transition:bottom .5s cubic-bezier(.34,1.56,.64,1);pointer-events:none}
+.pet-roam.show{bottom:14px}
+.pet-roam canvas{image-rendering:pixelated;width:76px;height:76px;pointer-events:auto;animation:roamBob 1s ease-in-out infinite}
+@keyframes roamBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.proam-bubble{font-family:var(--pixel);font-size:.82rem;line-height:1.6;background:var(--panel-2);border:1px solid var(--accent);border-radius:12px;padding:6px 11px;max-width:240px;color:var(--ink);box-shadow:0 6px 24px var(--shadow)}
+@media (max-width:560px){ .pet-roam{left:10px} .proam-bubble{max-width:60vw} }
+/* 図鑑 / collection overlay (reuses .pet-log-ov + .pet-log card) */
+.pet-dex .dex-row{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
+.dex-chip{font-family:var(--pixel);font-size:.78rem;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--ink-faint);background:var(--panel)}
+.dex-chip.got{color:#fff;background:var(--accent);border-color:var(--accent)}
+.dex-grave{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 12px}
+.dex-tomb{display:flex;flex-direction:column;align-items:center;gap:2px;font-family:var(--pixel);font-size:.72rem;color:var(--ink-dim)}
+.dex-c{image-rendering:pixelated;width:56px;height:56px;filter:grayscale(.5) opacity(.85)}
 /* dedicated pet chat overlay */
 .pet-chat-ov{display:none;position:fixed;inset:0;z-index:62;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:18px}
 .pet-chat{background:var(--panel-2);border:1px solid var(--line);border-radius:16px;max-width:420px;width:100%;height:min(78vh,560px);display:flex;flex-direction:column;padding:14px;position:relative;box-shadow:0 20px 60px var(--shadow)}

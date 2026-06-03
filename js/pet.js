@@ -190,11 +190,14 @@
       else { p.sickSince=null; if(m.clean>45&&m.hunger>40) p.sick=false; }
       const bad = p.sick||m.hunger<8||m.energy<8;
       p.hp=clamp((p.hp==null?100:p.hp)+(bad?-1:1)*h*(bad?TUNE.hpDrain:TUNE.hpRegen));
-      if(p.hp<=0) die(p);
+      if(p.hp<=0){ die(p); return; }
+      if(p.sick && petReg(p)!=="rough" && Math.random()<0.015) evolveRegister(p,"rough");   // neglect → an angry form
     }
-    // hatch?
+    // hatch / stage-up
     if(p.stage==="egg" && studySXP()>=(p.hatchAt||Infinity)) hatch(p);
-    else if(p.stage!=="egg") p.stage=stageOf(p);
+    else if(p.stage!=="egg"){ const ns=stageOf(p);
+      if(ns!==p.stage){ const ord=["hatchling","child","teen","adult","elder"]; const up=ord.indexOf(ns)>ord.indexOf(p.stage); p.stage=ns; if(up) onStageUp(p); }
+    }
   }
   function hatch(p){ p.stage="hatchling"; p.hatchBase=studySXP(); p.bornAt=now();
     p.meters={hunger:80,clean:85,happy:95,energy:80,ts:now()}; p.hp=100; p.hasPoop=false;
@@ -208,7 +211,7 @@
     S.pets[uid]={ uid, seed, nature:natureOf(seed), species:"sp"+(seed%24), name:null, stage:"egg", found:now(),
       adoptSXP:studySXP(), hatchAt:studySXP()+TUNE.hatchCost, bornAt:now(),
       meters:{hunger:100,clean:100,happy:100,energy:100,ts:now()}, hp:100 };
-    S.active=uid; S.dex["sp"+(seed%24)]={seen:true}; save(); }
+    S.active=uid; S.dex["sp"+(seed%24)]={seen:true}; S.dex.nat=S.dex.nat||{}; S.dex.nat[natureOf(seed)]=true; save(); }
   function ensureEgg(){ if(!S.active && !S.mourning) adopt(Math.floor(Math.random()*1e9)); }
   function welcomeNewEgg(){ S.mourning=false; adopt(Math.floor(Math.random()*1e9)); refresh(); }
 
@@ -238,6 +241,8 @@
       if(now()-(p.found||0)<60000) return T("ふしぎなタマゴが届いた…縁だね。大事に育てよう！","A mysterious egg found its way to you… fate. Let's raise it with care!");
       return T("コツコツ勉強すると、生まれるよ…！","Keep studying and I'll hatch…!");
     }
+    const reg=REGISTERS[petReg(p)];                  // evolved dialect/register flavor (zh-mode)
+    if(window.LANG!=="en" && reg && reg.idle && reg.idle.length && Math.random()<0.6) return reg.idle[Math.floor(Math.random()*reg.idle.length)];
     const nat=NATURES[petNature(p)];                 // personality-flavored idle line
     if(nat&&nat.idle) return T(nat.idle.jp, nat.idle.en);
     return T("きょうも えらいね！","You're doing great today!");
@@ -289,6 +294,44 @@
   function natureOf(seed){ const k=Object.keys(NATURES); return k[Math.floor(mulberry32((seed^0x7a7a)>>>0)()*k.length)]; }
   function petNature(p){ return (p&&NATURES[p.nature]) ? p.nature : natureOf((p&&p.seed)||1); }
   function natLabel(p){ const nt=NATURES[petNature(p)]||{}; return window.LANG==="en"?(nt.en||"") : String(nt.jp||"").replace(/\[[^\]]*\]/g,""); }
+
+  // ---- B3: EVOLUTION = a new register/dialect of Japanese (the real payoff) ----
+  // Evolving doesn't just change the look — it changes HOW the pet speaks Japanese, so the
+  // learner gets exposed to a new variety (Kansai / keigo / net-slang / literary / gruff).
+  // `register` drives canned idle lines (zh-mode) AND the Claude persona prompt (chat+diary).
+  const REGISTERS={
+    std:{ jp:"標準語[ひょうじゅんご]", zh:"标准语", en:"Standard", ai:"ふつうの標準語で話す。" },
+    kansai:{ jp:"関西弁[かんさいべん]", zh:"关西腔", en:"Kansai-ben",
+      idle:["まいど！ぼちぼち やろか〜","なんでやねん！","知[し]らんけど。"], ai:"関西弁（〜やで／〜へん／ほんま／おおきに／なんでやねん 等）で話す。" },
+    keigo:{ jp:"敬語[けいご]", zh:"敬语", en:"Keigo",
+      idle:["ごきげんよう。本日[ほんじつ]も よろしく お願[ねが]い いたします。"], ai:"とても丁寧な敬語（〜でございます／〜いたします）で上品に話す。" },
+    net:{ jp:"ネット語[ご]", zh:"网络用语", en:"Net-slang",
+      idle:["それな！","勉強[べんきょう]してて えらみ〜","ワンチャン いけるって！"], ai:"若者のネットスラング（草／それな／〜み／ワンチャン 等）でくだけて話す。" },
+    literary:{ jp:"文語[ぶんご]ふう", zh:"文绉绉", en:"Literary",
+      idle:["学[まな]びとは、一生[いっしょう]の旅[たび]なり。"], ai:"少し硬めで文学的・格調の高い日本語で話す。" },
+    rough:{ jp:"オラオラ系[けい]", zh:"凶巴巴", en:"Gruff",
+      idle:["……ほっとくなよ。","ちっ、やる気[き] なくすわ。"], ai:"ぶっきらぼうで荒っぽい男言葉（〜だぜ／〜かよ）で不機嫌そうに話す。" },
+  };
+  function petReg(p){ return (p&&REGISTERS[p.register])?p.register:"std"; }
+  function regLabel(p){ const r=REGISTERS[petReg(p)]; return window.LANG==="en"?(r.en||"") : String(r.jp||"").replace(/\[[^\]]*\]/g,""); }
+  function evolveRegister(p, bias){
+    const keys=Object.keys(REGISTERS).filter(k=>k!=="std" && k!==petReg(p));
+    const pick=(bias&&REGISTERS[bias]&&bias!==petReg(p))?bias:keys[Math.floor(Math.random()*keys.length)];
+    if(!pick) return false;
+    p.register=pick; S.dex=S.dex||{}; S.dex.reg=S.dex.reg||{}; S.dex.reg[pick]=true;
+    const r=REGISTERS[pick], nm=p.name||"この子";
+    const evo={ jp:`✨ ${nm}は「${r.jp}」を 話[はな]せるように なった！`, zh:`✨ ${nm}学会了说「${r.zh}」！`, en:`✨ ${nm} learned to speak ${r.en}!` };
+    S.activity=S.activity||[]; S.activity.unshift({ ts:now(), span:[now(),now()], evo:true, events:[Object.assign({dia:evo},evo)], diary:evo });
+    AI_SAY={ text:(r.idle&&r.idle[0])||evo.jp, ts:now() }; S.chatNudge=now(); save(); return true;
+  }
+  function onStageUp(p){
+    const nm=p.name||"この子"; AI_SAY={ text:T(`${nm}は ぐんと せいちょうした！`,`${nm} grew up!`), ts:now() }; S.chatNudge=now();
+    const g={ jp:`🌱 ${nm}は「${({hatchling:"あかちゃん",child:"こども",teen:"わかもの",adult:"おとな",elder:"ちょうろう"})[p.stage]||""}」に なった！`,
+      zh:`🌱 ${nm}成长了一个阶段！`, en:`🌱 ${nm} grew to a new stage!` };
+    S.activity=S.activity||[]; S.activity.unshift({ ts:now(), span:[now(),now()], evo:true, events:[Object.assign({dia:g},g)], diary:g });
+    if(Math.random()<0.55){ evolveRegister(p, S.evoBias); S.evoBias=null; }   // evolving often = a new way of speaking
+    save();
+  }
   function rng(seed){ return mulberry32((seed>>>0)||1); }
   function fill(s,c){ return s.replace(/{n}/g,c.n).replace(/{f}/g,c.f).replace(/{g}/g,c.g); }
   function wpick(r,arr){ const tot=arr.reduce((s,e)=>s+e.w,0); let x=r()*tot; for(const e of arr){ if((x-=e.w)<0) return e; } return arr[0]; }
@@ -341,6 +384,7 @@
       `成長段階は「${stageJ}」。${(p.stage==="hatchling"||p.stage==="child")?"まだ幼いので、やさしくて短い言葉で話す。":""}`,
       nick?`飼[か]い主[ぬし]のことは「${nick}」と呼[よ]ぶ（性格しだいで甘[あま]えた呼び方でもよい）。`:`飼[か]い主[ぬし]のことは親[した]しみを込[こ]めて呼[よ]ぶ。`,
       `飼い主は中国語が母語で、JLPT N2 を目指して日本語を勉強している学習者。`,
+      `話し方：${(REGISTERS[petReg(p)]||REGISTERS.std).ai}`,
       `【出力ルール｜厳守】日本語だけで書く。漢字には必ず「漢字[かんじ]」の形でふりがなを付ける。N4〜N3 のやさしい日本語。キャラクターになりきって、短く、自然に。説明や前置きは書かない。`,
     ].join("\n");
   }
@@ -443,6 +487,7 @@
   function panelHTML(){
     const p=pet();
     if(!p) return "";   // renderInto guarantees a pet via ensureEgg() before calling this
+    if(S.out && p.stage!=="egg" && !p.diedAt) return awayHTML(p);   // "out playing" → away card
     const since=studySXP()-(p.hatchBase||p.adoptSXP||0);
     let next=null,prev=0; for(const [n,need] of STAGES){ if(since>=need) prev=need; else { next=need; break; } }
     const toNext = p.stage==="egg" ? Math.round((studySXP()-(p.adoptSXP||0))/TUNE.hatchCost*100)
@@ -453,7 +498,7 @@
     const warn = (!egg && (p.sick||hp<60)) ? `<div class="pet-warn">${p.sick?T("ぐあいが わるいよ…「くすり」を つかってね","Feeling sick… use medicine"):T("げんきが ないみたい。やすませてあげて","Looking weak — let it rest")}<i class="pm-hp"><b style="width:${hp}%"></b></i></div>` : "";
     return `<div class="pet-box pix" data-uid="${p.uid}">
       <div class="pet-screen"><canvas class="pet-canvas" width="120" height="120"></canvas></div>
-      <div class="pet-id"><b class="pet-name">${esc(p.name||"たまご")}</b><span class="pet-tags">${stageLbl[p.stage]||""}${egg?"":" · "+esc(natLabel(p))}</span></div>
+      <div class="pet-id"><b class="pet-name">${esc(p.name||"たまご")}</b><span class="pet-tags">${stageLbl[p.stage]||""}${egg?"":" · "+esc(natLabel(p))}${(!egg&&petReg(p)!=="std")?' · <span class="pet-reg">'+esc(regLabel(p))+'</span>':""}</span></div>
       <div class="pet-speech">${window.toRuby?toRuby(says(p)):esc(says(p))}</div>
       ${warn}
       <div class="pet-grow"><span class="pl">${egg?T("ふか","Hatch"):T("せいちょう","Growth")}</span><i><b style="width:${clamp(toNext)}%"></b></i></div>
@@ -463,10 +508,12 @@
         <button data-act="feed">ごはん</button><button data-act="wash">おふろ</button>
         <button data-act="poop"${p.hasPoop?"":" disabled"}>そうじ</button><button data-act="play">あそぶ</button>
         <button data-act="sleep">ねる</button>${p.sick?`<button data-act="med" class="med">くすり</button>`:""}
+        <button data-act="gift" class="gift" title="${T('おくりもの ◆8（しんかするかも！）','Gift ◆8 (may evolve!)')}">おくる</button>
       </div>
       <div class="pet-foot">
         <button class="pet-chatbtn">はなす</button>
         <button class="pet-logbtn${unseenLog()?" unseen":""}">にっき</button>
+        <button class="pet-dexbtn">ずかん</button>
         <span class="pet-coins" title="${T('コイン','Coins')}">◆ ${coins()}</span>
       </div>`}
     </div>`;
@@ -481,6 +528,8 @@
     else if(a==="play"){ m.happy=clamp(m.happy+30); m.energy=clamp(m.energy-8); }
     else if(a==="sleep"){ m.energy=clamp(m.energy+50); }
     else if(a==="med"){ if(!spend(TUNE.medCost)) return flash(T("コインが足りない…","Not enough coins…")); p.sick=false; p.sickSince=null; p.hp=clamp((p.hp||0)+15); m.clean=clamp(m.clean+10); }
+    else if(a==="gift"){ if(!spend(8)) return flash(T("コインが足りない…勉強してね！","Not enough coins — study more!"));
+      m.happy=clamp(m.happy+8); if(!evolveRegister(p)) flash(T("ぜんぶ おぼえちゃった！","I've learned them all!")); }
     save(); refresh();
   }
   let FLASH=""; function flash(msg){ FLASH=msg; refresh(); setTimeout(()=>{ FLASH=""; refresh(); },1800); }
@@ -496,8 +545,10 @@
 
   function bind(root){
     root.querySelectorAll(".pet-newegg").forEach(b=>b.onclick=welcomeNewEgg);
+    root.querySelectorAll(".pet-follow").forEach(b=>b.onclick=()=>{ if(S.out&&window.showPage) showPage(S.out.page); });
     root.querySelectorAll(".pet-actions button").forEach(b=>b.onclick=()=>act(b.dataset.act));
     root.querySelectorAll(".pet-logbtn").forEach(b=>b.onclick=openLog);
+    root.querySelectorAll(".pet-dexbtn").forEach(b=>b.onclick=openDex);
     root.querySelectorAll(".pet-chatbtn").forEach(b=>b.onclick=openChat);   // explicit "はなす" → chat
     const cv=root.querySelector(".pet-canvas"); if(cv) cv.onclick=()=>{ const p=pet(); if(p&&!p.diedAt&&p.stage!=="egg"){ p.meters.happy=clamp(p.meters.happy+5); save(); refresh(); } };  // tap = pet it
   }
@@ -534,6 +585,29 @@
     ov.querySelector(".plog-trtoggle").onclick=()=>{ LOG_TR=!LOG_TR; renderLog(ov); };
     ov.querySelectorAll(".plog-jp[data-jp]").forEach(el=>el.onclick=()=>{ if(window.speakSequence) speakSequence([{text:el.dataset.jp,node:null}]); });
   }
+  // ---- B4: 図鑑 (collection book) + 思い出 (memorial) ----
+  function openDex(){ let ov=document.getElementById("pet-dex-ov");
+    if(!ov){ ov=document.createElement("div"); ov.id="pet-dex-ov"; ov.className="pet-log-ov";
+      ov.addEventListener("click",e=>{ if(e.target===ov) ov.style.display="none"; }); document.body.appendChild(ov); }
+    renderDex(ov); ov.style.display="flex"; }
+  function renderDex(ov){
+    const en=window.LANG==="en"; const lab=(o)=>en?(o.en||""):String(o.jp||"").replace(/\[[^\]]*\]/g,"");
+    const regs=Object.keys(REGISTERS).map(k=>{ const got=(k==="std")||(S.dex&&S.dex.reg&&S.dex.reg[k]);
+      return `<span class="dex-chip${got?" got":""}">${got?esc(lab(REGISTERS[k])):"？？？"}</span>`; }).join("");
+    const nats=Object.keys(NATURES).map(k=>{ const got=S.dex&&S.dex.nat&&S.dex.nat[k];
+      return `<span class="dex-chip${got?" got":""}">${got?esc(lab(NATURES[k])):"？？？"}</span>`; }).join("");
+    const mem=(S.memorial||[]).slice().reverse();
+    const grave = mem.length ? `<h4 class="plog-h">${T("思い出[おもいで]","In memory")}</h4><div class="dex-grave">${
+      mem.map(m=>`<div class="dex-tomb"><canvas class="dex-c" width="56" height="56" data-seed="${m.seed||1}"></canvas><b>${esc(m.name||"?")}</b></div>`).join("")}</div>` : "";
+    ov.innerHTML=`<div class="pet-log pet-dex"><button class="plog-close">✕</button>
+      <h3>📖 ${T("ずかん・思[おも]い出[で]","Collection")}</h3>
+      <h4 class="plog-h">${T("ことば の コレクション","Speech styles")}</h4><div class="dex-row">${regs}</div>
+      <h4 class="plog-h">${T("せいかく","Natures")}</h4><div class="dex-row">${nats}</div>
+      ${grave}
+      <p class="pet-sub">${T("「ことば」は、しんか（おくりもの や せいちょう）で 増[ふ]える。日本語[にほんご]には いろんな 話[はな]し方[かた]が あるんだよ。","Your speech-style collection grows as the pet evolves — Japanese has many ways of speaking!")}</p></div>`;
+    ov.querySelector(".plog-close").onclick=()=>{ ov.style.display="none"; };
+    ov.querySelectorAll(".dex-c[data-seed]").forEach(cv=>drawCreature(cv, genome(+cv.dataset.seed), "adult", "happy", 0));
+  }
   function renderInto(el){ if(!el) return;
     if(!S.mourning) ensureEgg();              // fate grants one egg the first time
     const p=pet(); if(p) decay(p);            // decay may trigger death → sets S.mourning
@@ -551,18 +625,70 @@
   // The pet now lives as the LEFT COLUMN of a centered [pet | content] home layout
   // (#pet-slot), so the page stays balanced — no more lone fixed gutter rail.
   function mountHome(homeContainer){
-    if(!S.mourning){ ensureEgg(); rollActivity(); }   // live a little while you were away
+    if(!S.mourning){ ensureEgg(); rollActivity(); maybeGoOut(); }   // live a little + maybe wander off
     const slot = homeContainer && homeContainer.querySelector("#pet-slot");
     if(slot) renderInto(slot);
   }
   function refresh(){ const slot=document.getElementById("pet-slot"); if(slot) renderInto(slot); }
   function showRail(){}   // no-op (kept for the app.js call site; layout is now in-flow)
 
+  // ---- B-walk: the house & a roaming pet (navigation as a guided study tour) ----
+  // The whole site is the pet's home; each page is a room. It hops in to cheer when you
+  // open a study page (a page-relevant JP line = a phrase to read), and sometimes it's
+  // "out playing" on a page — leaving a hint home so its whims pull you in to study. Text only.
+  const STUDY_PAGES=["daily","general","scenarios","test","notes"];
+  const PAGE_LABEL={ daily:["每日","Daily"], general:["基础","Basics"], scenarios:["場面","Scenes"], test:["测试","Tests"], notes:["笔记","Notes"] };
+  const PAGE_LINES={
+    daily:["きょうも 音読[おんどく]、いっしょに がんばろう！","朗読[ろうどく]、ファイト！"],
+    general:["動詞[どうし]の活用[かつよう]、おさらいしよ！","助詞[じょし]、むずかしいけど だいじだよ！","時間[じかん]の 読[よ]み方[かた]、おぼえてる？"],
+    scenarios:["ロールプレイ、たのしいよね！","この場面[ばめん]、つかえるよ！"],
+    test:["テスト、ファイト！じぶんを ためそう！","ぜったい できるよ！"],
+    notes:["メモ、えらい！あとで 見返[みかえ]そうね。","かいたこと、わすれないでね！"],
+  };
+  function pageLabel(pg){ const l=PAGE_LABEL[pg]; return l?(window.LANG==="en"?l[1]:l[0]):pg; }
+  function pageLine(pg){ const a=PAGE_LINES[pg]||["がんばって！"]; return a[Math.floor(Math.random()*a.length)]; }
+  let ROAM_T=0;
+  function petRoam(pg,found){
+    const p=pet(); if(!p||p.diedAt||p.stage==="egg") return;
+    let el=document.getElementById("pet-roam");
+    if(!el){ el=document.createElement("div"); el.id="pet-roam"; el.className="pet-roam";
+      el.innerHTML='<div class="proam-bubble"></div><canvas class="pet-canvas" width="76" height="76"></canvas>';
+      document.body.appendChild(el); el.querySelector("canvas").style.cursor="pointer"; el.querySelector("canvas").onclick=()=>{ el.classList.remove("show"); }; }
+    const jp = found ? T("みーつけた！いっしょに べんきょうしよ！","Found me! Let's study together!")
+                     : (window.LANG==="en"?"Let's do this!":pageLine(pg));
+    el.querySelector(".proam-bubble").innerHTML = window.toRuby?toRuby(jp):esc(jp);
+    el.classList.add("show");
+    clearTimeout(ROAM_T); ROAM_T=setTimeout(()=>{ if(el) el.classList.remove("show"); }, found?5000:4200);
+  }
+  function maybeGoOut(){
+    const p=pet(); if(!p||p.diedAt||p.stage==="egg") return;
+    if(S.out){ if(now()-S.out.since > 14*3.6e6){ S.out=null; save(); } return; }   // came home after a while
+    if(now()-(S.outAt||0) < 3*3.6e6) return;                                        // not too often
+    if(Math.random()<0.22){ const pg=STUDY_PAGES[Math.floor(Math.random()*4)]; S.out={page:pg,since:now()}; S.outAt=now(); save(); }
+  }
+  function onPageVisit(pg){
+    const p=pet(); if(!p||p.diedAt||p.stage==="egg") return;
+    if(S.out && S.out.page===pg){ S.out=null; save(); p.meters.happy=clamp(p.meters.happy+6); refresh(); petRoam(pg,true); return; }
+    if(pg==="home") return;                                  // maybeGoOut already ran in mountHome
+    if(STUDY_PAGES.indexOf(pg)<0) return;
+    if(now()-(S.roamAt||0) < 7*60000) return;                // ≤ ~once / 7 min, never naggy
+    if(Math.random()<0.5){ S.roamAt=now(); save(); petRoam(pg,false); }
+  }
+  function awayHTML(p){
+    const lbl=pageLabel(S.out.page);
+    return `<div class="pet-box pix pet-away">
+      <div class="pet-screen empty"><span class="away-z">… ?</span></div>
+      <div class="pet-id"><b class="pet-name">${esc(p.name||"")}</b><span class="pet-tags">${T("おでかけ中[ちゅう]","out playing")}</span></div>
+      <div class="pet-speech">${window.toRuby?toRuby(T(`${p.name}は「${lbl}」で あそんでるみたい！`,`${p.name} is off playing in "${lbl}"!`)):esc(p.name+" is out playing!")}</div>
+      <button class="pet-follow">${T("ついていく →","Go find it →")}</button>
+    </div>`;
+  }
+
   // study event hook (called from app.js markSession / test finish)
   function onStudy(){ JUST_STUDIED=now(); AI_SAY=null; S.chatNudge=now(); const p=pet(); if(p) decay(p); save(); refresh();
     if(p) generateStudyLine(p); }   // agent writes a reaction (async) when a key is set
 
-  window.Pet={ mountHome, refresh, onStudy, showRail,
+  window.Pet={ mountHome, refresh, onStudy, showRail, onPageVisit,
     _debug:{ studySXP, state:()=>S, reset:()=>{ S=fresh(); save(); refresh(); },
       genome, draw:(cv,seed,stage,mood,frame)=>drawCreature(cv,genome(seed),stage,mood||"happy",frame||0) } };
 })();

@@ -911,7 +911,7 @@ function showPage(p){
   else if(p==="test") renderTestHome();
   else if(p==="notes" && window.Notes) window.Notes.renderPage();
   if(window.Assistant && window.Assistant.refreshCtx) window.Assistant.refreshCtx();  // R3-2: keep AI panel ctx fresh
-  if(window.Pet) Pet.showRail(p==="home");   // pet rail only on the home page
+  if(window.Pet){ Pet.showRail(p==="home"); Pet.onPageVisit(p); }   // pet may hop in to cheer / be found
   window.scrollTo(0,0);
 }
 
