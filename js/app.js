@@ -581,7 +581,7 @@ function renderNoon(L){
     <div class="vcards">
     ${L.vocab.map(v=>`<div class="vcard">
       <div class="vc-head"><span class="v-word">${esc(v.w)}</span><span class="v-read">${esc(v.r)}</span><button class="play-w" data-w="${esc(v.r)}">🔊</button>${v.pos?`<span class="v-pos">${esc(v.pos)}</span>`:""}</div>
-      <div class="vc-mean">${linkTerms(v.zh)}${v.en?`<span class="v-en"> · ${esc(v.en)}</span>`:""}</div>
+      <div class="vc-mean">${LANG==="en" ? esc(v.en||v.zh) : (linkTerms(v.zh)+(v.en?`<span class="v-en"> · ${esc(v.en)}</span>`:""))}</div>
       ${v.parts?`<div class="vc-parts"><span class="vc-tag">🧩 拆解</span>${v.parts.map(p=>`<span class="vc-part" ${p.r?`data-w="${esc(p.r)}"`:""}><b>${esc(p.p)}</b>${p.r?`<i>${esc(p.r)}</i>`:""}＝${esc(p.m)}</span>`).join('<span class="vc-plus">＋</span>')}</div>`:""}
       ${v.ex?`<div class="vc-ex" data-jp="${esc(v.ex.jp)}"><span class="vc-tag">📝 例</span>${toRuby(v.ex.jp)}<span class="zh">${esc(v.ex.zh)}</span></div>`:""}
     </div>`).join("")}
@@ -1006,10 +1006,16 @@ function openSettings(){
   ov.innerHTML=`<div class="modal">
     <div class="modal-head"><h2>⚙️ 设置</h2><button id="modal-close">✕</button></div>
     <div class="modal-body">
-      <section><h3>🎨 外观 / テーマ</h3>
-        <p class="m-note">选浅色或深色主题（也可跟随系统）。页眉那个 ☀️/🌙 按钮也能一键切换。</p>
+      <section><h3>${T("🌐 讲解语言 / Language","🌐 Explanation language")}</h3>
+        <p class="m-note">${T("选择你的母语——所有讲解会用这个语言显示（日语原文不变）。","Choose your native language — all explanations switch to it (the Japanese itself never changes).")}</p>
+        <div class="theme-pick" id="lang-pick">
+          ${[["zh","🇨🇳 中文"],["en","🇬🇧 English"]].map(([v,l])=>`<button data-lang-val="${v}" class="${getLang()===v?"on":""}">${l}</button>`).join("")}
+        </div>
+      </section>
+      <section><h3>${T("🎨 外观 / テーマ","🎨 Appearance")}</h3>
+        <p class="m-note">${T("选浅色或深色主题（也可跟随系统）。页眉那个 ☀️/🌙 按钮也能一键切换。","Pick a light or dark theme (or follow the system). The ☀️/🌙 button in the header also toggles it.")}</p>
         <div class="theme-pick" id="theme-pick">
-          ${[["light","☀️ 浅色"],["dark","🌙 深色"],["auto","🖥 跟随系统"]].map(([v,l])=>`<button data-theme-val="${v}" class="${getTheme()===v?"on":""}">${l}</button>`).join("")}
+          ${[["light",T("☀️ 浅色","☀️ Light")],["dark",T("🌙 深色","🌙 Dark")],["auto",T("🖥 跟随系统","🖥 System")]].map(([v,l])=>`<button data-theme-val="${v}" class="${getTheme()===v?"on":""}">${l}</button>`).join("")}
         </div>
       </section>
       <section><h3>👤 你的名字（可选）</h3>
@@ -1042,6 +1048,7 @@ function openSettings(){
   $("#modal-close").onclick=closeSettings;
   ov.onclick=(e)=>{ if(e.target===ov) closeSettings(); };
   $("#theme-pick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ setTheme(b.dataset.themeVal); $("#theme-pick").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); });
+  $("#lang-pick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ if(getLang()===b.dataset.langVal) return; setLang(b.dataset.langVal); showPage(STATE.page); openSettings(); });
   $("#name-save").onclick=()=>{ const v=$("#usr-name").value.trim(); if(v) localStorage.setItem("jpn-name",v); else localStorage.removeItem("jpn-name"); $("#name-status").textContent="已保存 ✓"; };
   $("#az-save").onclick=()=>{ const key=$("#az-key").value.trim(), region=$("#az-region").value.trim(); if(key&&region){ localStorage.setItem("jpn-azure-cfg",JSON.stringify({key,region})); $("#az-status").textContent="已保存 ✓ 发音评估将用 Azure"; } else { $("#az-status").textContent="Key 和 Region 都要填"; } };
   $("#az-clear").onclick=()=>{ localStorage.removeItem("jpn-azure-cfg"); $("#az-key").value=""; $("#az-region").value=""; $("#az-status").textContent="已清除，将用浏览器识别"; const cc=$("#az-conn"); if(cc){ cc.className="conn-status"; cc.textContent=""; } };
