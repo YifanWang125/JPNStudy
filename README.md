@@ -106,7 +106,9 @@ python3 tools/gen_audio.py --voice-dir metan-sexy --speaker 4    # 性感风格
 VOICEVOX_URL=http://localhost:10101 python3 tools/gen_audio.py --voice-dir aivis --speaker <id>
 ```
 
-生成后在 `audio/voices.js` 注册（含 `name / tag / desc / prefix`），刷新即可在 ⚙ 里选择。每个备选音色现含完整 `kana/` 与 `ex/`（约数百~千个 MP3）——文件较多，可考虑 git-lfs。
+生成后在 `audio/voices.js` 注册（含 `name / tag / desc / prefix`），刷新即可在 ⚙ 里选择。每个备选音色现含完整 `kana/` 与 `ex/`（约数百~千个 MP3）。
+
+> **关于音频文件入库**：本项目部署在 **GitHub Pages**，而 Pages **不支持 Git LFS**（会把 LFS 指针文件原样返回 → 音频 404）。所以这些 MP3 **必须**放在普通 git 里（仓库会偏大，这是 Pages 部署的必要代价；不要迁到 LFS，否则线上音频会坏）。若日后改用支持 LFS 的托管或单独的静态资源 CDN，再考虑迁移。
 
 ### 🥚 言霊 宠物 / AI 助手与 API 额度
 主页的 **言霊 宠物**（坚持学习它会成长）与右下角的 **AI 学习助手** 都用你自己的 Claude API Key（BYOK，仅存本机）。宠物的**日记 / 对话 / 学习后的一句话**各会发起一次便宜的 Claude(haiku) 调用；**练習(作文/场景)的 AI 出题与批改**也用同一个 Key。不填 Key 时全部回退到离线模板（仍可用，只是不那么丰富）。会消耗少量 API 额度，建议在 Anthropic 控制台设月度上限。
