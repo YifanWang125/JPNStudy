@@ -22,7 +22,7 @@
     [["は","ha",{w:"花",r:"はな",zh:"花",en:"flower"}],["ひ","hi",{w:"人",r:"ひと",zh:"人",en:"person"}],["ふ","fu",{w:"船",r:"ふね",zh:"船",en:"ship"}],["へ","he",{w:"部屋",r:"へや",zh:"房间",en:"room"}],["ほ","ho",{w:"星",r:"ほし",zh:"星星",en:"star"}]],
     [["ま","ma",{w:"窓",r:"まど",zh:"窗",en:"window"}],["み","mi",{w:"水",r:"みず",zh:"水",en:"water"}],["む","mu",{w:"虫",r:"むし",zh:"虫",en:"insect"}],["め","me",{w:"目",r:"め",zh:"眼睛",en:"eye"}],["も","mo",{w:"森",r:"もり",zh:"森林",en:"forest"}]],
     [["や","ya",{w:"山",r:"やま",zh:"山",en:"mountain"}],null,["ゆ","yu",{w:"雪",r:"ゆき",zh:"雪",en:"snow"}],null,["よ","yo",{w:"夜",r:"よる",zh:"夜晚",en:"night"}]],
-    [["ら","ra",{w:"林檎",r:"りんご",zh:"苹果",en:"apple"}],["り","ri",{w:"理由",r:"りゆう",zh:"理由",en:"reason"}],["る","ru",{w:"留守",r:"るす",zh:"不在家",en:"absence"}],["れ","re",{w:"歴史",r:"れきし",zh:"历史",en:"history"}],["ろ","ro",{w:"廊下",r:"ろうか",zh:"走廊",en:"hallway"}]],
+    [["ら","ra",{w:"らくだ",r:"らくだ",zh:"骆驼",en:"camel"}],["り","ri",{w:"理由",r:"りゆう",zh:"理由",en:"reason"}],["る","ru",{w:"留守",r:"るす",zh:"不在家",en:"absence"}],["れ","re",{w:"歴史",r:"れきし",zh:"历史",en:"history"}],["ろ","ro",{w:"廊下",r:"ろうか",zh:"走廊",en:"hallway"}]],
     [["わ","wa",{w:"私",r:"わたし",zh:"我",en:"I"}],null,null,null,["を","wo",{w:"（助詞）",r:"を",zh:"宾语助词",en:"object particle"}]],
     [["ん","n",{w:"日本",r:"にほん",zh:"日本",en:"Japan"}],null,null,null,null],
   ];

@@ -26,7 +26,8 @@ function setRate(v){
 /* ---------- i18n: explanation language (learner's native language) ---------- */
 function getLang(){ try{ const l=localStorage.getItem("jpn-lang"); return (l==="en"||l==="ja")?l:"zh"; }catch(e){ return "zh"; } }
 let LANG = getLang();
-function setLang(l){ LANG=(l==="en"||l==="ja")?l:"zh"; try{ localStorage.setItem("jpn-lang", LANG); }catch(e){} }
+try{ window.LANG = LANG; }catch(e){}   // expose to modules (pet/exercises/gojuon read window.LANG)
+function setLang(l){ LANG=(l==="en"||l==="ja")?l:"zh"; try{ window.LANG=LANG; }catch(e){} try{ localStorage.setItem("jpn-lang", LANG); }catch(e){} }
 /* nav labels per language: [zh, en, ja] */
 const NAV_LABELS={ home:["主页","Home","ホーム"], daily:["每日","Daily","毎日"], general:["基础","Basics","基礎"], scenarios:["场景","Scenes","場面"], test:["测试","Tests","テスト"], notes:["笔记","Notes","ノート"] };
 function applyLang(){
