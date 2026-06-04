@@ -863,12 +863,14 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .scn-line.sp-s{align-self:flex-start;align-items:flex-start}
 .scn-line.sp-c{align-self:flex-end;align-items:flex-end}
 .scn-spk{font-size:.72rem;color:var(--ink-faint);margin:0 6px 2px;font-family:var(--sans-jp)}
-.scn-bubble{position:relative;padding:9px 13px;border-radius:14px;border:1px solid var(--line);font-family:var(--serif-jp);font-size:1.06rem;line-height:1.9;transition:border-color .15s,background .15s}
+.scn-bubble{position:relative;padding:9px 13px;border-radius:14px;border:1px solid var(--line);font-family:var(--serif-jp);font-size:1.06rem;line-height:1.9;transition:border-color .15s,background .15s,box-shadow .15s,transform .15s}
 .scn-line.sp-s .scn-bubble{background:var(--panel);border-bottom-left-radius:4px}
 .scn-line.sp-c .scn-bubble{background:rgba(228,87,46,.08);border-bottom-right-radius:4px}
 .scn-line:hover .scn-bubble{border-color:var(--accent)}
 .scn-bubble .zh{display:block;font-family:var(--sans-jp);font-size:.84rem;color:var(--zh);margin-top:4px}
-.scn-line.speaking .scn-bubble{background:rgba(228,87,46,.2);border-color:var(--accent);box-shadow:0 0 0 2px rgba(228,87,46,.18)}
+/* the line currently being read aloud — clearly highlighted so you can follow who's speaking */
+.scn-line.speaking .scn-bubble{background:rgba(228,87,46,.34);border-color:var(--accent);box-shadow:0 0 0 2px var(--accent),0 6px 22px rgba(228,87,46,.4);transform:scale(1.03)}
+.scn-line.speaking .scn-spk{color:var(--accent);font-weight:700}
 .scn-manners li{line-height:1.8}
 
 /* brief flash when a clip is missing and TTS fallback is off (tap never feels dead) */

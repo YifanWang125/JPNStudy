@@ -51,19 +51,21 @@ MANIFEST   = os.path.join(AUDIO_DIR, "manifest.json")
 ENGINE     = os.environ.get("VOICEVOX_URL", "http://localhost:50021")
 
 # Per-role scenario voices as (speaker_id, speedScale). Two contrasting voices so the
-# learner can tell who is talking. speedScale NORMALIZES tempo: the male speaker (#11)
-# naturally talks ~1.5x faster than the female (#16) — measured ~6.8 vs ~4.5 mora/s —
-# so we slow him and nudge her up, landing both near ~5 mora/s. The runtime <audio>
-# playbackRate (global speed lever) then scales everything uniformly on top of this.
-SCN_VOICE   = {"c": (11, 0.80), "s": (16, 1.08)}   # 11 玄野武宏/ノーマル(男) · 16 九州そら/ノーマル(女)
+# learner can tell who is talking. speedScale NORMALIZES the PERCEIVED pace (mora per
+# total-audio-second, pauses included — verified: speedScale scales pauses too) so both
+# speakers in a dialogue land at ~5.6 mora/s; otherwise the conversation lurches fast↔slow.
+# Measured base @1.0: #11≈7.6, #16≈4.4. Runtime playbackRate then scales both uniformly.
+SCN_VOICE   = {"c": (11, 0.74), "s": (16, 1.26)}   # 11 玄野武宏/ノーマル(男) · 16 九州そら/ノーマル(女) → ~5.6 mora/s each
 # 五十音 — every kana, for the interactive chart (keys kana_<hira>); clear default voice.
 KANA = list("あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん"
             "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽ") + [
     "きゃ","きゅ","きょ","しゃ","しゅ","しょ","ちゃ","ちゅ","ちょ","にゃ","にゅ","にょ",
     "ひゃ","ひゅ","ひょ","みゃ","みゅ","みょ","りゃ","りゅ","りょ","ぎゃ","ぎゅ","ぎょ",
     "じゃ","じゅ","じょ","びゃ","びゅ","びょ","ぴゃ","ぴゅ","ぴょ"]
-# 🔞 adult mode: an intimate/sultry pair — mellow male + sexy female.
-ADULT_VOICE = {"c": (84, 0.92), "s": (17, 1.0)}    # 84 青山龍星/しっとり(男) · 17 九州そら/セクシー(女)
+# 🔞 adult mode: an intimate/sultry pair — mellow male + sexy female. Same tempo
+# normalization: the sexy voice (#17≈4.5 perceived) was much slower than the male
+# (#84≈6.8) — the "nurse 巨慢" problem — so we speed her up and slow him to ~5.6 each.
+ADULT_VOICE = {"c": (84, 0.82), "s": (17, 1.25)}   # 84 青山龍星/しっとり(男) · 17 九州そら/セクシー(女) → ~5.6 mora/s each
 # 言霊 first-login intro narration — a calm, elegant, "big-sister" voice (NOT a gruff
 # old-man narrator). 16 = 九州そら/ノーマル: mature & clear. Speed 1.1 = a gentle, natural
 # pace (VOICEVOX speedScale preserves pitch, so it stays graceful). INTRO_PAUSE forces
@@ -401,7 +403,7 @@ def main():
             # strip a leading speaker label ("患者：…") so the voice doesn't read it aloud.
             for i, d in enumerate(s.get("dialogue", [])):
                 spk, spd = SCN_VOICE.get(d.get("sp"), (args.speaker, None))
-                line = re.sub(r"^[^：:\n]{1,8}[：:]\s*", "", d.get("jp", ""))
+                line = re.sub(r"^[^：:\n。、！？]{1,16}[：:]\s*", "", d.get("jp", ""))
                 emit(f"scn_{sid}_{i}", despace(line),
                      os.path.join(scn_d, f"{sid}_{i}.{ext}"), speaker=spk, speed=spd)
         # 🔞 adult-mode dialogue (scenarios-adult.js): keyed scna_<id>_<i>, sultry voices.
@@ -416,7 +418,7 @@ def main():
             for sid, lines in adult.items():
                 for i, d in enumerate(lines):
                     spk, spd = ADULT_VOICE.get(d.get("sp"), (args.speaker, None))
-                    line = re.sub(r"^[^：:\n]{1,8}[：:]\s*", "", d.get("jp", ""))
+                    line = re.sub(r"^[^：:\n。、！？]{1,16}[：:]\s*", "", d.get("jp", ""))
                     emit(f"scna_{sid}_{i}", despace(line),
                          os.path.join(scn_d, f"a_{sid}_{i}.{ext}"), speaker=spk, speed=spd)
         # 每日一句: phrase + example lines, keyed x_<text> (shared example namespace)

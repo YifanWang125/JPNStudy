@@ -6,7 +6,7 @@
 window.SCENARIOS_ADULT = {
   "hospital": [
     {"sp":"s","jp":"看護師[かんごし]：あら、緊張[きんちょう]してるんですか？ もっと…リラックスして。","zh":"护士：哎呀，你紧张了吗？再…放松一点嘛。","en":"Nurse: Oh my, are you nervous? Relax a little more… for me."},
-    {"sp":"c","jp":"患者[かんじゃ]：は、はい…。","zh":"患者：是、是的…。","en":"Patient: Y-yes…"},
+    {"sp":"c","jp":"患者[かんじゃ]：はっ、はい…。","zh":"患者：是、是的…。","en":"Patient: Y-yes…"},
     {"sp":"s","jp":"看護師[かんごし]：どこか具合[ぐあい]が悪[わる]いんですか？ ここ…ですか？ それとも、もっと下[した]のほう…？","zh":"护士：你哪里不舒服呀？是…这里吗？还是，再…下面一点…？","en":"Nurse: Where doesn't it feel good? Right… here? Or… a little lower down…?"},
     {"sp":"c","jp":"患者[かんじゃ]：せ、先生[せんせい]、それは…ちょっと…。","zh":"患者：医、医生，那个…有点…。","en":"Patient: D-doctor, that's… a bit…"},
     {"sp":"s","jp":"看護師[かんごし]：ふふっ、冗談[じょうだん]ですよ。…半分[はんぶん]はね。","zh":"护士：呵呵，开玩笑的啦。…一半是真的哦。","en":"Nurse: Hehe, I'm only teasing. …Half of it, anyway."},
@@ -53,7 +53,7 @@ window.SCENARIOS_ADULT = {
     {"sp":"s","jp":"キャスト：初[はじ]めまして…今夜[こんや]は、私[わたし]が相手[あいて]してあげる。","zh":"陪侍：初次见面…今晚，由我来陪你哦。","en":"Hostess: Nice to meet you… tonight, I'll be the one keeping you company."},
     {"sp":"c","jp":"客[きゃく]：よ、よろしく…。","zh":"客人：请、请多关照…。","en":"Customer: N-nice to meet you…"},
     {"sp":"s","jp":"キャスト：そんなに緊張[きんちょう]しないで。…ほら、もっとこっち、来[き]て。","zh":"陪侍：别那么紧张嘛。…来，再过来一点。","en":"Hostess: Don't be so tense. …Come on, come a little closer."},
-    {"sp":"c","jp":"客[きゃく]：は、はい。","zh":"客人：是、是的。","en":"Customer: O-okay."},
+    {"sp":"c","jp":"客[きゃく]：はっ、はい。","zh":"客人：是、是的。","en":"Customer: O-okay."},
     {"sp":"s","jp":"キャスト：指名[しめい]、してくれる？ …私[わたし]を、独[ひと]り占[じ]めできるよ。","zh":"陪侍：会指名我吗？…你可以把我一个人独占哦。","en":"Hostess: Will you request me? …You could have me all to yourself."},
     {"sp":"c","jp":"客[きゃく]：し、指名[しめい]します！","zh":"客人：我、我指名！","en":"Customer: I-I'll request you!"},
     {"sp":"s","jp":"キャスト：うれしい。…今夜[こんや]は、帰[かえ]さないから。","zh":"陪侍：好开心。…今晚，可不放你回去哦。","en":"Hostess: I'm so happy. …I won't be letting you leave tonight."}
