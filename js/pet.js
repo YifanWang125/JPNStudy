@@ -248,23 +248,53 @@
       const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null;
       const ctx=new AC();
       const master=ctx.createGain(); master.gain.value=0; master.connect(ctx.destination);
-      const lp=ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=1100; lp.Q.value=0.4; lp.connect(master);
-      // a warm, open chord (D · A · D · A) — a few detuned voices with a slow shimmer LFO
-      const freqs=[146.83,220.0,293.66,440.0,587.33];
-      const oscs=freqs.map((f,i)=>{ const o=ctx.createOscillator(); o.type=(i%2)?"sine":"triangle"; o.frequency.value=f;
-        const g=ctx.createGain(); g.gain.value=0.13/(i+1.2); o.connect(g); g.connect(lp);
-        const lfo=ctx.createOscillator(); lfo.frequency.value=0.06+i*0.011; const lg=ctx.createGain(); lg.gain.value=2.2+i*0.4;
-        lfo.connect(lg); lg.connect(o.frequency); lfo.start(); o.start(); return o; });
-      const t=ctx.currentTime; master.gain.setValueAtTime(0,t); master.gain.linearRampToValueAtTime(0.5,t+2.6);
+      // --- a touch of space: feedback delay used as a cheap reverb on the melody ---
+      const delay=ctx.createDelay(1.0); delay.delayTime.value=0.34;
+      const fb=ctx.createGain(); fb.gain.value=0.34; const wet=ctx.createGain(); wet.gain.value=0.4;
+      delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(master);
+      // --- warm sustained pad we retune through a calm chord progression ---
+      const lp=ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=1500; lp.Q.value=0.5; lp.connect(master);
+      const padG=ctx.createGain(); padG.gain.value=0.11; padG.connect(lp);
+      const padA=ctx.createOscillator(); padA.type="triangle";
+      const padB=ctx.createOscillator(); padB.type="sine"; padB.detune.value=7;
+      padA.connect(padG); padB.connect(padG); padA.start(); padB.start();
+      // a slow shimmer on the pad so it breathes (not a flat drone)
+      const lfo=ctx.createOscillator(); lfo.frequency.value=0.08; const lg=ctx.createGain(); lg.gain.value=3;
+      lfo.connect(lg); lg.connect(padA.frequency); lfo.start();
+      // D-major progression (root pairs): D · Bm · G · A — gentle, hopeful
+      const CHORDS=[[146.83,220.00],[123.47,185.00],[98.00,146.83],[110.00,164.81]];
+      let ci=0; const setChord=()=>{ const c=CHORDS[ci%CHORDS.length], t=ctx.currentTime;
+        padA.frequency.setTargetAtTime(c[0],t,0.8); padB.frequency.setTargetAtTime(c[1],t,0.8); ci++; };
+      setChord();
+      // --- soft koto/bell pluck for a melodic line over the pad ---
+      const pluck=(freq,vel)=>{ const t=ctx.currentTime+0.04;
+        const o=ctx.createOscillator(); o.type="sine"; o.frequency.value=freq;
+        const o2=ctx.createOscillator(); o2.type="triangle"; o2.frequency.value=freq*2; o2.detune.value=4;
+        const g=ctx.createGain(); o.connect(g); o2.connect(g); g.connect(master); g.connect(delay);
+        const peak=0.16*vel; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(peak,t+0.012);
+        g.gain.exponentialRampToValueAtTime(0.0006,t+1.7);
+        o.start(t); o2.start(t); o.stop(t+1.8); o2.stop(t+1.8); };
+      // D-major pentatonic (D E F# A B) across two octaves — unmistakably serene/JP
+      const PENTA=[293.66,329.63,369.99,440.00,493.88,587.33,659.25,739.99];
+      let n=0; const tick=()=>{
+        // a slow rising-falling contour (sine) + a little wander → a tune, not noise
+        let idx=2+Math.round(Math.sin(n*0.6)*2.2)+(Math.random()<0.35?1:0);
+        idx=Math.max(0,Math.min(PENTA.length-1,idx));
+        pluck(PENTA[idx], 0.82+Math.random()*0.18);
+        if(n%4===3) setChord();             // move the chord every 4 notes
+        n++; };
+      const t0=ctx.currentTime; master.gain.setValueAtTime(0,t0); master.gain.linearRampToValueAtTime(0.46,t0+2.2);
       if(ctx.state==="suspended") ctx.resume().catch(()=>{});
-      return {ctx,master,oscs};
+      tick(); const iv=setInterval(tick,1000);
+      return {ctx,master,iv,oscs:[padA,padB,lfo]};
     }catch(e){ return null; }
   }
   function introMusicStop(m){
     if(!m||!m.ctx) return;
+    if(m.iv){ clearInterval(m.iv); m.iv=0; }
     try{ const t=m.ctx.currentTime; m.master.gain.cancelScheduledValues(t);
       m.master.gain.setValueAtTime(m.master.gain.value,t); m.master.gain.linearRampToValueAtTime(0,t+1.3);
-      setTimeout(()=>{ try{ m.oscs.forEach(o=>o.stop()); }catch(e){} try{ m.ctx.close(); }catch(e){} },1500);
+      setTimeout(()=>{ try{ (m.oscs||[]).forEach(o=>o.stop()); }catch(e){} try{ m.ctx.close(); }catch(e){} },1500);
     }catch(e){ try{ m.ctx.close(); }catch(e2){} }
   }
   function introRun(ov){                          // narration: highlight + voice, line by line
@@ -280,7 +310,7 @@
       if(!src){ i++; INTRO_T=setTimeout(step,2400); return; }   // no clip → time-based advance
       const a=new Audio(src); INTRO_AUDIO=a;
       a.onplay =()=>{ INTRO_STARTED=true; };
-      a.onended=()=>{ if(token!==INTRO_TOKEN) return; i++; INTRO_T=setTimeout(step,520); };
+      a.onended=()=>{ if(token!==INTRO_TOKEN) return; i++; INTRO_T=setTimeout(step,300); };
       a.onerror=()=>{ if(token!==INTRO_TOKEN) return; i++; INTRO_T=setTimeout(step,1200); };
       a.play().catch(()=>{});                     // blocked → the gesture kick restarts us
     };
