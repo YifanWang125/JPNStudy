@@ -141,6 +141,7 @@ if("speechSynthesis" in window){
 let AUDIO_MANIFEST = {};          // { "d1_s0": "audio/d1_s0.mp3", ... }
 let CURRENT_AUDIO = null;
 let SPEAK_TOKEN = 0;              // cancels sequential playback
+let SPEAK_PAUSED = false;        // pause/resume for sequence playback (vs. stop = clear)
 let VOICES = [];                  // selectable voice models (window.VOICES); [0] = default
 let VOICE_PREFIX = "audio/";      // path prefix of the currently selected voice
 function setVoice(id){
@@ -204,21 +205,61 @@ function playOne(item){           // {text, node, audioKey}
 /* one-off speak (vocab readings, single examples) */
 function speak(text){ stopSpeak(); return ttsOne(text, null); }
 
+/* STOP: clear everything — cancels the sequence; next play starts from the top. */
 function stopSpeak(){
   SPEAK_TOKEN++;
   if("speechSynthesis" in window) speechSynthesis.cancel();
   if(CURRENT_AUDIO){ try{ CURRENT_AUDIO.pause(); }catch(e){} CURRENT_AUDIO=null; }
   clearHighlight();
+  hidePlayCtl();
 }
+/* PAUSE: freeze in place — the sequence loop is parked on its `await playOne`; pausing the
+   current clip just delays its onended, so resume() continues the very same sentence. */
+function pauseSpeak(){
+  if(SPEAK_PAUSED) return; SPEAK_PAUSED=true;
+  try{ if(CURRENT_AUDIO) CURRENT_AUDIO.pause(); }catch(e){}
+  try{ if("speechSynthesis" in window) speechSynthesis.pause(); }catch(e){}
+  updatePlayCtl();
+}
+function resumeSpeak(){
+  if(!SPEAK_PAUSED) return; SPEAK_PAUSED=false;
+  try{ if(CURRENT_AUDIO) CURRENT_AUDIO.play().catch(()=>{}); }catch(e){}
+  try{ if("speechSynthesis" in window) speechSynthesis.resume(); }catch(e){}
+  updatePlayCtl();
+}
+/* floating pause/stop bar — shown only for multi-item (continuous) playback. Reusable: it
+   appears for ANY speakSequence of length>1 (scenario play-all, paragraph read, noon listen). */
+function playCtlEl(){
+  let b=document.getElementById("play-ctl");
+  if(!b){
+    b=document.createElement("div"); b.id="play-ctl"; b.className="play-ctl";
+    b.innerHTML=`<span class="pc-label">🔊 <span id="pc-text"></span></span>`+
+      `<button id="pc-pause" class="pc-btn"></button>`+
+      `<button id="pc-stop" class="pc-btn pc-stop"></button>`;
+    document.body.appendChild(b);
+    b.querySelector("#pc-pause").onclick=()=>{ SPEAK_PAUSED ? resumeSpeak() : pauseSpeak(); };
+    b.querySelector("#pc-stop").onclick=()=>{ stopSpeak(); };
+  }
+  return b;
+}
+function updatePlayCtl(){
+  const t=document.getElementById("pc-text"); if(t) t.textContent=SPEAK_PAUSED?T("已暂停","Paused"):T("播放中","Playing");
+  const p=document.getElementById("pc-pause"); if(p) p.textContent=SPEAK_PAUSED?("▶ "+T("继续","Resume")):("⏸ "+T("暂停","Pause"));
+  const s=document.getElementById("pc-stop"); if(s) s.textContent="⏹ "+T("停止","Stop");
+}
+function showPlayCtl(){ const b=playCtlEl(); updatePlayCtl(); b.classList.add("show"); }
+function hidePlayCtl(){ const b=document.getElementById("play-ctl"); if(b) b.classList.remove("show"); SPEAK_PAUSED=false; }
 /* play sentences in sequence, highlighting nodes; audio or TTS per item */
 async function speakSequence(items){
   stopSpeak();
   const token = ++SPEAK_TOKEN;
+  const seq = items.length>1;            // controls only make sense for continuous playback
+  if(seq) showPlayCtl();
   for(const it of items){
     if(token!==SPEAK_TOKEN) break;
     await playOne(it);
   }
-  if(token===SPEAK_TOKEN) clearHighlight();
+  if(token===SPEAK_TOKEN){ clearHighlight(); hidePlayCtl(); }
 }
 function clearHighlight(){ document.querySelectorAll(".speaking").forEach(n=>n.classList.remove("speaking")); }
 function audioKeyFor(day, idx){ return "d"+day+"_s"+idx; }

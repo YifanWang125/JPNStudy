@@ -873,6 +873,19 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .scn-line.speaking .scn-spk{color:var(--accent);font-weight:700}
 .scn-manners li{line-height:1.8}
 
+/* floating pause/stop bar for continuous playback (play-all, paragraph read, etc.) */
+.play-ctl{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(24px);z-index:90;
+  display:none;align-items:center;gap:9px;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:999px;padding:7px 9px 7px 15px;box-shadow:0 12px 36px var(--shadow);
+  opacity:0;transition:opacity .2s ease,transform .2s ease}
+.play-ctl.show{display:flex;opacity:1;transform:translateX(-50%) translateY(0)}
+.play-ctl .pc-label{font-size:.84rem;color:var(--ink-dim);font-family:var(--sans-jp);white-space:nowrap}
+.play-ctl .pc-btn{font-family:var(--sans-jp);font-size:.9rem;border:none;border-radius:999px;
+  padding:7px 15px;cursor:pointer;background:var(--accent);color:#fff;white-space:nowrap}
+.play-ctl .pc-btn.pc-stop{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+.play-ctl .pc-btn:hover{filter:brightness(1.08)}
+@media (max-width:480px){ .play-ctl{bottom:12px;padding:6px 8px 6px 12px;gap:6px} .play-ctl .pc-label{display:none} }
+
 /* brief flash when a clip is missing and TTS fallback is off (tap never feels dead) */
 @keyframes noAudioFlash{0%,100%{background:transparent}30%{background:rgba(150,150,150,.22)}}
 .no-audio,.no-audio .scn-bubble{animation:noAudioFlash .6s ease}
