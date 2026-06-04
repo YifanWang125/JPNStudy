@@ -180,6 +180,13 @@ def load_intro():
     for jp in re.findall(r'jp\s*:\s*"((?:[^"\\]|\\.)*)"', m.group(1)):
         jp = re.sub(r"[—―─]+", "、", jp)
         jp = re.sub(r"[ 　]", "", jp)
+        # Phrasing tweaks diagnosed directly against VOICEVOX (audio_query pause_mora):
+        #  • Quotes around 言霊 inject ~0.8s + ~0.9s pauses right before/after it, so
+        #    「言霊」と呼んだ stutters. Dropping the spoken quotes → 言霊と呼んだ flows with
+        #    no pause. (Display keeps the 「」 — this is the audio text only.)
+        jp = re.sub(r"「(言霊(?:\[[^\]]*\])?)」と", r"\1と", jp)
+        #  • 少しずつ光り had NO pause between them (rushed). Add a 、 for a clear beat.
+        jp = re.sub(r"(少(?:\[[^\]]*\])?しずつ)(光)", r"\1、\2", jp)
         out.append(jp)
     return out
 

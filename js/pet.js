@@ -303,7 +303,10 @@
         let idx=0; for(let i=0;i<marks.length;i++){ if(a.currentTime>=marks[i]-0.15) idx=i; }
         if(idx===cur) return; cur=idx;
         lineEls.forEach((el,i)=>{ el.classList.toggle("speaking-line",i===idx); if(i<=idx) el.classList.add("shown"); });
-        const el=lineEls[idx]; if(el){ try{ el.scrollIntoView({block:"center",behavior:"smooth"}); }catch(e){} }
+        // auto-scroll "crawl": keep the line being read in view (but at line 0, stay at the
+        // top so the egg + title are visible before the story scrolls upward).
+        const el=lineEls[idx];
+        try{ if(idx===0) ov.scrollTo({top:0,behavior:"smooth"}); else if(el) el.scrollIntoView({block:"center",behavior:"smooth"}); }catch(e){}
       };
       a.onended=()=>{ if(token!==INTRO_TOKEN) return; introDone(ov); };
       a.onerror=()=>{ if(token!==INTRO_TOKEN) return; introDone(ov); };
