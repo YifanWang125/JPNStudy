@@ -632,11 +632,14 @@
       acts.slice(0,6).forEach(b=>b.events.forEach(e=>{ html+=`<li><div class="plog-jp" data-jp="${esc(e.jp)}">${ruby(e.jp)}</div>${LOG_TR?`<div class="plog-tr">${esc(trv(e))}</div>`:""}</li>`; }));
       html+=`</ul>`;
     }
-    html+=`<p class="pet-sub plog-tip">${T("日本語[にほんご]を 読[よ]む 練習[れんしゅう]だよ。文[ぶん]を タップすると 読[よ]み上[あ]げ（音声[おんせい]がオンのとき）。","Reading practice! Tap a line to hear it (when audio fallback is on).")}</p></div>`;
+    const canHear = typeof ttsFallbackOn!=="function" || ttsFallbackOn();   // diary lines are dynamic → no pre-gen audio
+    html+=`<p class="pet-sub plog-tip">${canHear?T("日本語[にほんご]を 読[よ]む 練習[れんしゅう]。文[ぶん]を タップすると 読[よ]み上[あ]げ。","Reading practice! Tap a line to hear it.")
+                                              :T("日本語[にほんご]を 読[よ]む 練習[れんしゅう]だよ。","Reading practice — read it in Japanese!")}</p></div>`;
     ov.innerHTML=html;
     ov.querySelector(".plog-close").onclick=closeLog;
     ov.querySelector(".plog-trtoggle").onclick=()=>{ LOG_TR=!LOG_TR; renderLog(ov); };
-    ov.querySelectorAll(".plog-jp[data-jp]").forEach(el=>el.onclick=()=>{ if(window.speakSequence) speakSequence([{text:el.dataset.jp,node:null}]); });
+    if(canHear) ov.querySelectorAll(".plog-jp[data-jp]").forEach(el=>{ el.style.cursor="pointer";
+      el.onclick=()=>{ if(window.speakSequence) speakSequence([{text:el.dataset.jp,node:null}]); }; });
   }
   // ---- B4 (reframed): 成長きろく — this ONE pet's life trail (not a collection) ----
   function openDex(){ let ov=document.getElementById("pet-dex-ov");   // (id kept; it's the growth-record now)

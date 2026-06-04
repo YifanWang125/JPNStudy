@@ -347,7 +347,13 @@ textarea.typing:focus{outline:none;border-color:var(--night)}
 @media (max-width:1100px){ .day-num{display:none!important} .ctl-label{display:none} }
 @media (max-width:880px){ .pnl{display:none} .page-nav button{padding:0 10px;font-size:1rem} }
 @media (max-width:680px){ .top-row{gap:6px} .page-nav{gap:4px} .toggle-furi{padding:0 8px} .logo{font-size:1rem} }
-@media (max-width:560px){ .top-row{flex-wrap:wrap} }   /* phones: allow a 2nd row gracefully */
+/* phones: clean two-tier header — [logo … ☀️ ⚙️] on top, nav as its own full-width tab row */
+@media (max-width:560px){
+  .top-row{flex-wrap:wrap;row-gap:2px}
+  .top-spacer{flex:1 1 auto}
+  .page-nav{order:5;flex:1 0 100%;justify-content:space-between;gap:2px;margin:6px 0 0}
+  .page-nav button{flex:1;justify-content:center}
+}
 
 /* ============================  GENERAL / REFERENCE  ============================ */
 .ref-intro{padding:24px 0 6px}

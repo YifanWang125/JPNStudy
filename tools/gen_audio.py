@@ -43,6 +43,7 @@ SCENARIOS  = os.path.join(ROOT, "js", "scenarios.js")
 SCN_ADULT  = os.path.join(ROOT, "js", "scenarios-adult.js")
 DAILY      = os.path.join(ROOT, "js", "daily.js")
 REFER      = os.path.join(ROOT, "js", "reference.js")
+GOJUON     = os.path.join(ROOT, "js", "gojuon.js")
 AUDIO_DIR  = os.path.join(ROOT, "audio")
 VOCAB_DIR  = os.path.join(AUDIO_DIR, "vocab")
 MANIFEST   = os.path.join(AUDIO_DIR, "manifest.json")
@@ -139,6 +140,14 @@ def load_reference():
     except OSError:
         return []
     return re.findall(r'jp\s*:\s*"((?:[^"\\]|\\.)*)"', src)
+
+def load_gojuon_words():
+    """五十音 chart example-word readings (kana_<reading>) — the r:"…" in gojuon.js cells."""
+    try:
+        src = open(GOJUON, encoding="utf-8").read()
+    except OSError:
+        return []
+    return re.findall(r'r:"([^"]+)"', src)
 
 # ---- VOICEVOX HTTP API ----
 def vv_post(path, params=None, data=None):
@@ -362,7 +371,9 @@ def main():
             h = hashlib.sha1(spoken.encode("utf-8")).hexdigest()[:12]
             emit(f"x_{spoken}", jp, os.path.join(ex_d, f"{h}.{ext}"))
     kana_d = os.path.join(base, "kana"); os.makedirs(kana_d, exist_ok=True)
-    for k in KANA:
+    for k in KANA + load_gojuon_words():     # single kana + chart example words (kana_<reading>)
+        if not k:
+            continue
         h = hashlib.sha1(k.encode("utf-8")).hexdigest()[:12]
         emit(f"kana_{k}", k, os.path.join(kana_d, f"{h}.{ext}"))
 
