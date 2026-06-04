@@ -289,22 +289,41 @@
       setTimeout(()=>{ try{ (m.oscs||[]).forEach(o=>o.stop()); }catch(e){} try{ m.ctx.close(); }catch(e){} },1500);
     }catch(e){ try{ m.ctx.close(); }catch(e2){} }
   }
-  function introRun(ov){                          // narration: highlight + voice, line by line
+  function introRun(ov){                          // narration over the whole passage
     const token=++INTRO_TOKEN;
     const lineEls=[...ov.querySelectorAll(".pintro-line")];
-    const man=window.AUDIO_MANIFEST||{}; let i=0;
+    const man=window.AUDIO_MANIFEST||{};
+    const allSrc=man["intro_all"], marks=man["intro_marks"];
+    // PREFERRED: one continuous clip — reads like a real narration. Highlight the line
+    // whose [mark, nextMark) window the playhead is in.
+    if(allSrc && Array.isArray(marks) && marks.length){
+      const a=new Audio(allSrc); INTRO_AUDIO=a; let cur=-1;
+      a.onplay=()=>{ INTRO_STARTED=true; };
+      a.ontimeupdate=()=>{ if(token!==INTRO_TOKEN) return;
+        let idx=0; for(let i=0;i<marks.length;i++){ if(a.currentTime>=marks[i]-0.15) idx=i; }
+        if(idx===cur) return; cur=idx;
+        lineEls.forEach((el,i)=>{ el.classList.toggle("speaking-line",i===idx); if(i<=idx) el.classList.add("shown"); });
+        const el=lineEls[idx]; if(el){ try{ el.scrollIntoView({block:"center",behavior:"smooth"}); }catch(e){} }
+      };
+      a.onended=()=>{ if(token!==INTRO_TOKEN) return; introDone(ov); };
+      a.onerror=()=>{ if(token!==INTRO_TOKEN) return; introDone(ov); };
+      a.play().catch(()=>{});                     // blocked → the gesture kick restarts us
+      return;
+    }
+    // FALLBACK: legacy per-line clips (intro_0..N), advanced on each clip's end.
+    let i=0;
     const step=()=>{
-      if(token!==INTRO_TOKEN) return;             // superseded (restart) or closed
+      if(token!==INTRO_TOKEN) return;
       if(i>=lineEls.length){ introDone(ov); return; }
       lineEls.forEach(x=>x.classList.remove("speaking-line"));
       const el=lineEls[i]; if(el){ el.classList.add("shown","speaking-line"); try{ el.scrollIntoView({block:"center",behavior:"smooth"}); }catch(e){} }
       const src=man["intro_"+i];
-      if(!src){ i++; INTRO_T=setTimeout(step,2400); return; }   // no clip → time-based advance
+      if(!src){ i++; INTRO_T=setTimeout(step,2400); return; }
       const a=new Audio(src); INTRO_AUDIO=a;
       a.onplay =()=>{ INTRO_STARTED=true; };
       a.onended=()=>{ if(token!==INTRO_TOKEN) return; i++; INTRO_T=setTimeout(step,300); };
       a.onerror=()=>{ if(token!==INTRO_TOKEN) return; i++; INTRO_T=setTimeout(step,1200); };
-      a.play().catch(()=>{});                     // blocked → the gesture kick restarts us
+      a.play().catch(()=>{});
     };
     step();
   }

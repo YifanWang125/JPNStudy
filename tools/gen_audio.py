@@ -163,11 +163,17 @@ def load_intro():
     m = re.search(r"const\s+INTRO\s*=\s*\[(.*?)\];", src, re.S)
     if not m:
         return []
-    # Strip the manual readability spaces ("言葉には 魂が 宿る") — they're for the eye only.
-    # VOICEVOX treats each space as an accent-phrase break and pauses there, which makes the
-    # delivery choppy/word-by-word. Removing them lets it phrase the sentence naturally
-    # (real punctuation — 。「」—— — is kept, so genuine pauses survive).
-    return [re.sub(r"[ 　]", "", jp) for jp in re.findall(r'jp\s*:\s*"((?:[^"\\]|\\.)*)"', m.group(1))]
+    # Two cleanups so VOICEVOX reads it as flowing narration, not word-by-word:
+    #  • strip the manual readability spaces ("言葉には 魂が 宿る") — VOICEVOX breaks an
+    #    accent phrase at every space and pauses there (the choppy delivery).
+    #  • turn the visual em-dashes (——) into a single 、 so we get one clean pause instead
+    #    of VOICEVOX's unpredictable handling. (NOT the katakana長音 ー — that's a phoneme.)
+    out = []
+    for jp in re.findall(r'jp\s*:\s*"((?:[^"\\]|\\.)*)"', m.group(1)):
+        jp = re.sub(r"[—―─]+", "、", jp)
+        jp = re.sub(r"[ 　]", "", jp)
+        out.append(jp)
+    return out
 
 # ---- VOICEVOX HTTP API ----
 def vv_post(path, params=None, data=None):
@@ -189,6 +195,21 @@ def synth_wav(text, speaker, speed=None):
         q = json.loads(query); q["speedScale"] = speed
         query = json.dumps(q).encode("utf-8")
     return vv_post("/synthesis", {"speaker": speaker}, data=query)
+
+def line_seconds(text, speaker, speed):
+    """Spoken length of `text` in seconds (mora + pause durations / speed), excluding the
+    leading/trailing silence — used to time the per-line highlight inside the ONE combined
+    intro clip. Approximate but smooth (highlight is a soft glow, not a hard cut)."""
+    q = json.loads(vv_post("/audio_query", {"text": text, "speaker": speaker}))
+    ss = speed or q.get("speedScale") or 1.0
+    s = 0.0
+    for ph in q.get("accent_phrases", []):
+        for mo in ph.get("moras", []):
+            s += (mo.get("consonant_length") or 0.0) + (mo.get("vowel_length") or 0.0)
+        pm = ph.get("pause_mora")
+        if pm:
+            s += (pm.get("consonant_length") or 0.0) + (pm.get("vowel_length") or 0.0)
+    return s / ss
 
 def to_mp3(wav_bytes, out_path):
     p = subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", "pipe:0",
@@ -380,12 +401,25 @@ def main():
                     continue
                 h = hashlib.sha1(spoken.encode("utf-8")).hexdigest()[:12]
                 emit(f"x_{spoken}", jp, os.path.join(ex_d, f"{h}.{ext}"))
-        # 言霊 first-login intro narration (keys intro_0..N) — fixed elegant voice,
-        # NOT voice-swapped, so it always sounds the same on first login.
+        # 言霊 first-login intro narration — synthesized as ONE continuous passage
+        # (key intro_all) so VOICEVOX phrases the whole thing like a real narrator,
+        # not 5 disjoint clips stitched with gaps. intro_marks holds the start time
+        # (s) of each display line so the web app can sync the line-by-line glow.
+        # Fixed elegant voice, NOT voice-swapped → same on every first login.
         ispk, ispd = INTRO_VOICE
-        for i, jp in enumerate(load_intro()):
-            emit(f"intro_{i}", jp, os.path.join(base, f"intro_{i}.{ext}"),
-                 speaker=ispk, speed=ispd)
+        intro_lines = load_intro()
+        if intro_lines:
+            emit("intro_all", "".join(intro_lines),
+                 os.path.join(base, f"intro_all.{ext}"), speaker=ispk, speed=ispd)
+            marks, acc = [], 0.0
+            for jp in intro_lines:
+                marks.append(round(acc, 3))
+                try:
+                    acc += line_seconds(speech_norm(jp), ispk, ispd)
+                except Exception:
+                    acc += 3.0
+            manifest["intro_marks"] = marks
+            print(f"  ✓ intro_all  (marks: {marks})")
 
     # ---- content audio that EVERY voice must cover (so changing the voice applies
     #      globally): reference-page examples (x_) + the 五十音 chart (kana_). ----
