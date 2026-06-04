@@ -248,45 +248,37 @@
       const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null;
       const ctx=new AC();
       const master=ctx.createGain(); master.gain.value=0; master.connect(ctx.destination);
-      // --- a touch of space: feedback delay used as a cheap reverb on the melody ---
-      const delay=ctx.createDelay(1.0); delay.delayTime.value=0.34;
-      const fb=ctx.createGain(); fb.gain.value=0.34; const wet=ctx.createGain(); wet.gain.value=0.4;
-      delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(master);
-      // --- warm sustained pad we retune through a calm chord progression ---
-      const lp=ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=1500; lp.Q.value=0.5; lp.connect(master);
-      const padG=ctx.createGain(); padG.gain.value=0.11; padG.connect(lp);
-      const padA=ctx.createOscillator(); padA.type="triangle";
-      const padB=ctx.createOscillator(); padB.type="sine"; padB.detune.value=7;
-      padA.connect(padG); padB.connect(padG); padA.start(); padB.start();
-      // a slow shimmer on the pad so it breathes (not a flat drone)
-      const lfo=ctx.createOscillator(); lfo.frequency.value=0.08; const lg=ctx.createGain(); lg.gain.value=3;
-      lfo.connect(lg); lg.connect(padA.frequency); lfo.start();
-      // D-major progression (root pairs): D · Bm · G · A — gentle, hopeful
-      const CHORDS=[[146.83,220.00],[123.47,185.00],[98.00,146.83],[110.00,164.81]];
-      let ci=0; const setChord=()=>{ const c=CHORDS[ci%CHORDS.length], t=ctx.currentTime;
-        padA.frequency.setTargetAtTime(c[0],t,0.8); padB.frequency.setTargetAtTime(c[1],t,0.8); ci++; };
-      setChord();
-      // --- soft koto/bell pluck for a melodic line over the pad ---
-      const pluck=(freq,vel)=>{ const t=ctx.currentTime+0.04;
+      // a light, damped echo for space — short tail + low feedback so it NEVER builds into
+      // a sustained drone/hum (the old pad's "嗡嗡" came from continuous low oscillators).
+      const delay=ctx.createDelay(1.0); delay.delayTime.value=0.30;
+      const fb=ctx.createGain(); fb.gain.value=0.20; const wet=ctx.createGain(); wet.gain.value=0.26;
+      const damp=ctx.createBiquadFilter(); damp.type="lowpass"; damp.frequency.value=2600;
+      delay.connect(damp); damp.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(master);
+      // ONLY decaying koto/music-box plucks — no sustained tones at all, so nothing hums.
+      const pluck=(freq,vel)=>{ const t=ctx.currentTime+0.03;
         const o=ctx.createOscillator(); o.type="sine"; o.frequency.value=freq;
-        const o2=ctx.createOscillator(); o2.type="triangle"; o2.frequency.value=freq*2; o2.detune.value=4;
-        const g=ctx.createGain(); o.connect(g); o2.connect(g); g.connect(master); g.connect(delay);
-        const peak=0.16*vel; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(peak,t+0.012);
-        g.gain.exponentialRampToValueAtTime(0.0006,t+1.7);
-        o.start(t); o2.start(t); o.stop(t+1.8); o2.stop(t+1.8); };
-      // D-major pentatonic (D E F# A B) across two octaves — unmistakably serene/JP
+        const o2=ctx.createOscillator(); o2.type="sine"; o2.frequency.value=freq*2.01;   // soft octave shimmer
+        const g2=ctx.createGain(); g2.gain.value=0.32; o2.connect(g2);
+        const g=ctx.createGain(); o.connect(g); g2.connect(g); g.connect(master); g.connect(delay);
+        const peak=0.11*vel; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(peak,t+0.01);
+        g.gain.exponentialRampToValueAtTime(0.0005,t+1.9);
+        o.start(t); o2.start(t); o.stop(t+2); o2.stop(t+2); };
+      // D-major pentatonic (D E F# A B) across two octaves — serene, unmistakably JP.
       const PENTA=[293.66,329.63,369.99,440.00,493.88,587.33,659.25,739.99];
       let n=0; const tick=()=>{
-        // a slow rising-falling contour (sine) + a little wander → a tune, not noise
-        let idx=2+Math.round(Math.sin(n*0.6)*2.2)+(Math.random()<0.35?1:0);
+        // a slow rising/falling contour → a melody, not noise
+        let idx=2+Math.round(Math.sin(n*0.55)*2.2)+(Math.random()<0.3?1:0);
         idx=Math.max(0,Math.min(PENTA.length-1,idx));
-        pluck(PENTA[idx], 0.82+Math.random()*0.18);
-        if(n%4===3) setChord();             // move the chord every 4 notes
+        pluck(PENTA[idx], 0.9+Math.random()*0.1);
+        // gentle harmony every 3rd beat: a soft companion an octave-ish below — still a
+        // pluck that decays away (warmth without a sustained chord/drone).
+        if(n%3===0) pluck(PENTA[Math.max(0,idx-3)]/2, 0.45);
         n++; };
-      const t0=ctx.currentTime; master.gain.setValueAtTime(0,t0); master.gain.linearRampToValueAtTime(0.46,t0+2.2);
+      // overall bed kept quiet so the narration voice clearly sits on top.
+      const t0=ctx.currentTime; master.gain.setValueAtTime(0,t0); master.gain.linearRampToValueAtTime(0.24,t0+2.0);
       if(ctx.state==="suspended") ctx.resume().catch(()=>{});
-      tick(); const iv=setInterval(tick,1000);
-      return {ctx,master,iv,oscs:[padA,padB,lfo]};
+      tick(); const iv=setInterval(tick,1150);
+      return {ctx,master,iv,oscs:[]};
     }catch(e){ return null; }
   }
   function introMusicStop(m){
