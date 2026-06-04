@@ -997,7 +997,7 @@ function renderHome(){
       </div>
       <button class="hi-ok" id="hi-ok">${T("知道了，开始学习 →","Got it — start learning →")}</button>
     </div>`;
-  c.innerHTML='<div class="home-layout"><div class="home-body">'+introBanner+`
+  c.innerHTML='<div class="home-layout"><div id="pet-slot" class="home-pet"></div><div class="home-body">'+introBanner+`
     <div class="home-hero">
       <div class="hh-top">
         <div class="greet">おかえりなさい${name?('、<b>'+esc(name)+'</b>'):''}！<span class="hh-sub">${toRuby("続[つづ]けることが、何[なに]より大切[たいせつ]です。")}</span></div>
@@ -1051,7 +1051,7 @@ function renderHome(){
         <div class="stat"><div class="num">${gramL}</div><div class="lbl">${T("已学语法点","grammar points")}</div></div>
       </div>
       <div class="dash-stats" style="margin-top:6px">${TESTS.map(t=>{const b=best[t.id];return `<div class="stat"><div class="num" style="font-size:1.3rem">${b?Math.round(b.score/b.total*100)+'%':'—'}</div><div class="lbl">${esc(t.title.split('—')[0].trim())}</div></div>`;}).join("")}</div>
-    </section></div><div id="pet-slot" class="home-pet"></div></div>`;
+    </section></div></div>`;
 
   // --- wire interactions ---
   const dismissIntro=()=>{ try{ localStorage.setItem("jpn-seen-intro","1"); }catch(e){} const b=$("#home-intro"); if(b) b.remove(); };

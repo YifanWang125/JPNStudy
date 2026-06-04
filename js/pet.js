@@ -596,6 +596,28 @@
   function stopAnim(){ if(RAF) cancelAnimationFrame(RAF); RAF=0; }
   try{ document.addEventListener("visibilitychange", syncAnim); }catch(e){}
 
+  // ---- tap-to-interact: every tap MUST visibly react (egg knocks; pet bounces & speaks) --
+  let TAPS=0;
+  const EGG_LINES=["コツ…","コツコツ…","ピクッ！","…コトッ","なかで うごいた？"];
+  const PET_LINES=["えへへ♪","うれしい！","なでなで、すき！","もっと なでて！","きゃっ"];
+  function bumpAnim(el,cls){ if(!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+    setTimeout(()=>{ try{ el.classList.remove(cls); }catch(e){} },600); }
+  function blip(box,jp){ const sp=box&&box.querySelector(".pet-speech"); if(!sp) return;
+    if(sp._restore==null) sp._restore=sp.innerHTML;
+    sp.innerHTML=window.toRuby?toRuby(jp):esc(jp);
+    clearTimeout(sp._t); sp._t=setTimeout(()=>{ if(sp._restore!=null){ sp.innerHTML=sp._restore; sp._restore=null; } },1500); }
+  function petTap(cv){
+    const p=pet(); if(!p||p.diedAt) return;
+    const box=cv.closest(".pet-box"); TAPS++;
+    if(p.stage==="egg"){                                   // egg can't talk — it knocks from inside
+      bumpAnim(cv,"egg-knock"); blip(box,EGG_LINES[TAPS%EGG_LINES.length]); return;
+    }
+    p.meters.happy=clamp(p.meters.happy+5); save();        // tap = pet it (+happy), with a visible bounce
+    bumpAnim(cv,"pet-bounce");
+    const hp=box&&box.querySelectorAll(".pet-meters .pm")[2];   // 食浴楽力 → 楽 is index 2
+    if(hp){ const b=hp.querySelector("b"); if(b) b.style.width=clamp(p.meters.happy)+"%"; hp.classList.toggle("low",p.meters.happy<25); }
+    blip(box,PET_LINES[TAPS%PET_LINES.length]);
+  }
   function bind(root){
     root.querySelectorAll(".pet-newegg").forEach(b=>b.onclick=welcomeNewEgg);
     root.querySelectorAll(".pet-follow").forEach(b=>b.onclick=()=>{ if(S.out&&window.showPage) showPage(S.out.page); });
@@ -603,7 +625,7 @@
     root.querySelectorAll(".pet-logbtn").forEach(b=>b.onclick=openLog);
     root.querySelectorAll(".pet-dexbtn").forEach(b=>b.onclick=openDex);
     root.querySelectorAll(".pet-chatbtn").forEach(b=>b.onclick=openChat);   // explicit "はなす" → chat
-    const cv=root.querySelector(".pet-canvas"); if(cv) cv.onclick=()=>{ const p=pet(); if(p&&!p.diedAt&&p.stage!=="egg"){ p.meters.happy=clamp(p.meters.happy+5); save(); refresh(); } };  // tap = pet it
+    const cv=root.querySelector(".pet-canvas"); if(cv) cv.onclick=()=>petTap(cv);   // tap = react (egg knock / pet bounce)
   }
 
   // ---- B1 log/diary overlay (Japanese reading surface) ----------------------

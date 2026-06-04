@@ -577,7 +577,8 @@ table.r-table ruby rt{font-size:.55em}
 .continue-cta.done{background:var(--panel);border:1px solid var(--good);color:var(--ink);cursor:default}
 .continue-cta.done .cc-main{color:var(--good)}
 
-.home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:14px}
+.home-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px}
+@media (max-width:620px){.home-grid{grid-template-columns:1fr}}
 .home-card{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
 .home-card h2{font-family:var(--serif-jp);font-size:1.08rem;color:var(--accent-2);margin-bottom:12px}
 .hc-empty{font-size:.92rem;color:var(--ink-dim);line-height:1.8}
@@ -969,8 +970,10 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .home-body{flex:1;min-width:0}
 @media (max-width:980px){
   #page-home.wrap{max-width:880px}
+  /* stack: greeting/continue (body) first, pet below — natural reading order on phones */
   .home-layout{flex-direction:column}
-  .home-pet{position:static;flex:none;width:100%;max-width:380px;margin:0 auto}
+  .home-body{order:1;width:100%}
+  .home-pet{order:2;position:static;flex:none;width:100%;max-width:380px;margin:0 auto}
 }
 
 /* B2: endangered-pet top banner (felt on return) */
@@ -982,7 +985,13 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .pet-box.pix{font-family:var(--pixel);background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;box-shadow:0 8px 30px var(--shadow)}
 .pet-screen{display:flex;justify-content:center;align-items:center;height:132px;border-radius:10px;border:1px solid var(--line);
   background:repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 2px,transparent 2px 4px),radial-gradient(ellipse at 50% 92%,rgba(228,87,46,.16),transparent 60%),var(--panel)}
-.pet-canvas{image-rendering:pixelated;width:120px;height:120px;cursor:pointer}
+.pet-canvas{image-rendering:pixelated;width:120px;height:120px;cursor:pointer;transition:filter .15s}
+.pet-canvas:hover{filter:brightness(1.08)}
+/* tap feedback — egg knocks from inside; a hatched pet bounces when petted */
+@keyframes egg-knock{0%,100%{transform:rotate(0) translateY(0)}15%{transform:rotate(-5deg)}30%{transform:rotate(4deg)}45%{transform:rotate(-3deg) translateY(-2px)}60%{transform:rotate(2deg)}80%{transform:rotate(-1deg)}}
+@keyframes pet-bounce{0%,100%{transform:translateY(0) scale(1,1)}25%{transform:translateY(-8px) scale(.96,1.06)}50%{transform:translateY(0) scale(1.05,.94)}70%{transform:translateY(-3px) scale(1,1)}}
+.pet-canvas.egg-knock{animation:egg-knock .5s ease}
+.pet-canvas.pet-bounce{animation:pet-bounce .5s ease}
 .pet-id{margin:9px 0 2px;display:flex;flex-direction:column;gap:1px}
 .pet-name{font-family:var(--pixel);font-size:1.12rem;color:var(--jp);letter-spacing:.5px}
 .pet-tags{font-family:var(--pixel);font-size:.74rem;color:var(--ink-faint)}
