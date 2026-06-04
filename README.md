@@ -87,7 +87,7 @@ python3 -m http.server 4173
 
 ```
 # 1. 启动 VOICEVOX 引擎（默认 localhost:50021）  2. 安装 ffmpeg
-python3 tools/gen_audio.py                  # 生成 audio/*.mp3 + manifest（课文/单词/例句/会话/五十音/参考例句）
+python3 tools/gen_audio.py                  # 生成 audio/*.mp3 + manifest（课文/单词/例句/会话/五十音/参考例句/言霊开场白）
 python3 tools/gen_audio.py --list-speakers  # 看可用声音 id
 python3 tools/gen_audio.py --verify         # ★ 校验读音：手写振假名 vs UniDic，标出不一致
 ```

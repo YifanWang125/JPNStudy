@@ -237,6 +237,65 @@
       en:"Raise it with care. Now — together." },
   ];
   function maybePetIntro(){ const p=pet(); if(!p||p.stage!=="egg"||S.introSeen) return; showPetIntro(); }
+
+  // ---- intro A/V: an elegant "big-sister" voice (VOICEVOX intro_N) over a soft ambient
+  //      pad. Auto-plays on entry; if the browser blocks autoplay (first load, no gesture
+  //      yet) it starts on the first interaction. Stops when the story ends OR the overlay
+  //      is dismissed. Heard only on first login. -------------------------------------------
+  let INTRO_TOKEN=0, INTRO_AUDIO=null, INTRO_MUSIC=null, INTRO_T=0, INTRO_STARTED=false;
+  function introMusicStart(){
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null;
+      const ctx=new AC();
+      const master=ctx.createGain(); master.gain.value=0; master.connect(ctx.destination);
+      const lp=ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=1100; lp.Q.value=0.4; lp.connect(master);
+      // a warm, open chord (D · A · D · A) — a few detuned voices with a slow shimmer LFO
+      const freqs=[146.83,220.0,293.66,440.0,587.33];
+      const oscs=freqs.map((f,i)=>{ const o=ctx.createOscillator(); o.type=(i%2)?"sine":"triangle"; o.frequency.value=f;
+        const g=ctx.createGain(); g.gain.value=0.13/(i+1.2); o.connect(g); g.connect(lp);
+        const lfo=ctx.createOscillator(); lfo.frequency.value=0.06+i*0.011; const lg=ctx.createGain(); lg.gain.value=2.2+i*0.4;
+        lfo.connect(lg); lg.connect(o.frequency); lfo.start(); o.start(); return o; });
+      const t=ctx.currentTime; master.gain.setValueAtTime(0,t); master.gain.linearRampToValueAtTime(0.5,t+2.6);
+      if(ctx.state==="suspended") ctx.resume().catch(()=>{});
+      return {ctx,master,oscs};
+    }catch(e){ return null; }
+  }
+  function introMusicStop(m){
+    if(!m||!m.ctx) return;
+    try{ const t=m.ctx.currentTime; m.master.gain.cancelScheduledValues(t);
+      m.master.gain.setValueAtTime(m.master.gain.value,t); m.master.gain.linearRampToValueAtTime(0,t+1.3);
+      setTimeout(()=>{ try{ m.oscs.forEach(o=>o.stop()); }catch(e){} try{ m.ctx.close(); }catch(e){} },1500);
+    }catch(e){ try{ m.ctx.close(); }catch(e2){} }
+  }
+  function introRun(ov){                          // narration: highlight + voice, line by line
+    const token=++INTRO_TOKEN;
+    const lineEls=[...ov.querySelectorAll(".pintro-line")];
+    const man=window.AUDIO_MANIFEST||{}; let i=0;
+    const step=()=>{
+      if(token!==INTRO_TOKEN) return;             // superseded (restart) or closed
+      if(i>=lineEls.length){ introDone(ov); return; }
+      lineEls.forEach(x=>x.classList.remove("speaking-line"));
+      const el=lineEls[i]; if(el){ el.classList.add("shown","speaking-line"); try{ el.scrollIntoView({block:"center",behavior:"smooth"}); }catch(e){} }
+      const src=man["intro_"+i];
+      if(!src){ i++; INTRO_T=setTimeout(step,2400); return; }   // no clip → time-based advance
+      const a=new Audio(src); INTRO_AUDIO=a;
+      a.onplay =()=>{ INTRO_STARTED=true; };
+      a.onended=()=>{ if(token!==INTRO_TOKEN) return; i++; INTRO_T=setTimeout(step,520); };
+      a.onerror=()=>{ if(token!==INTRO_TOKEN) return; i++; INTRO_T=setTimeout(step,1200); };
+      a.play().catch(()=>{});                     // blocked → the gesture kick restarts us
+    };
+    step();
+  }
+  function introDone(ov){                          // story finished naturally → fade music, glow CTA
+    introMusicStop(INTRO_MUSIC); INTRO_MUSIC=null;
+    ov.querySelectorAll(".pintro-line").forEach(x=>x.classList.remove("speaking-line"));
+    const ok=ov.querySelector(".pintro-ok"); if(ok) ok.classList.add("ready");
+  }
+  function introStopAV(){                           // dismissed → kill everything
+    INTRO_TOKEN++; if(INTRO_T){ clearTimeout(INTRO_T); INTRO_T=0; }
+    if(INTRO_AUDIO){ try{ INTRO_AUDIO.pause(); }catch(e){} INTRO_AUDIO=null; }
+    introMusicStop(INTRO_MUSIC); INTRO_MUSIC=null; INTRO_STARTED=false;
+  }
   function showPetIntro(){
     let ov=document.getElementById("pet-intro-ov");
     if(ov) return;
@@ -250,10 +309,18 @@
       <button class="pintro-ok" style="animation-delay:${0.5+INTRO.length*1.7}s">${ruby(T("🥚 タマゴを 受[う]け取[と]る","🥚 Receive the egg"))}</button>
       <button class="pintro-skip">${T("スキップ","Skip")}</button>
     </div>`;
-    const close=()=>{ S.introSeen=true; save(); ov.remove(); refresh(); };
+    const close=()=>{ introStopAV(); S.introSeen=true; save(); ov.remove(); refresh(); };
     ov.querySelector(".pintro-ok").onclick=close;
     ov.querySelector(".pintro-skip").onclick=close;
     startAnim();
+    // --- start the A/V: try now; if autoplay is blocked, the first interaction kicks it ---
+    INTRO_STARTED=false; INTRO_MUSIC=introMusicStart(); introRun(ov);
+    let kicked=false;
+    const kick=()=>{ if(kicked) return; kicked=true;
+      if(INTRO_MUSIC&&INTRO_MUSIC.ctx&&INTRO_MUSIC.ctx.state==="suspended") INTRO_MUSIC.ctx.resume().catch(()=>{});
+      if(!INTRO_STARTED) introRun(ov);            // narration was blocked → restart now that we have a gesture
+    };
+    ["pointerdown","keydown","touchstart"].forEach(ev=>document.addEventListener(ev,kick,{once:true,capture:true}));
   }
   function welcomeNewEgg(){ S.mourning=false; adopt(Math.floor(Math.random()*1e9)); refresh(); }
 

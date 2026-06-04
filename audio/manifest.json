@@ -1687,5 +1687,10 @@
 "kana_れきし": "audio/kana/ab82e387c3e3.mp3",
 "kana_ろうか": "audio/kana/0433421652f9.mp3",
 "kana_わたし": "audio/kana/b8020da03ae5.mp3",
-"kana_にほん": "audio/kana/01b64b5814b8.mp3"
+"kana_にほん": "audio/kana/01b64b5814b8.mp3",
+"intro_0": "audio/intro_0.mp3",
+"intro_1": "audio/intro_1.mp3",
+"intro_2": "audio/intro_2.mp3",
+"intro_3": "audio/intro_3.mp3",
+"intro_4": "audio/intro_4.mp3"
 }
