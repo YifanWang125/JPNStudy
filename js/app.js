@@ -990,10 +990,11 @@ function renderHome(){
         <span>🤖 <b>${T("AI 提问","Ask AI")}</b>：${T("右下角随时问任何日语问题（需在 ⚙ 填 Claude Key）","ask any Japanese question, bottom-right (add a Claude key in ⚙)")}</span>
         <span>🗒️ <b>${T("速记本","Quick notes")}</b>：${T("学习时随手记，自动保存，可存成笔记","jot as you study — auto-saved, savable as notes")}</span>
         <span>☀️ <b>${T("浅/深色","Light/Dark")}</b>：${T("右上角一键切换主题","toggle the theme, top-right")}</span>
+        <span>🥚 <b>${T("言霊ペット","Kotodama pet")}</b>：${T("学习会孵化并养成你的『言霊』宠物——坚持学它就长大；偷懒太久它会离开。","studying hatches & raises your 言霊 pet — keep at it and it grows; neglect it too long and it slips away.")}</span>
       </div>
       <button class="hi-ok" id="hi-ok">${T("知道了，开始学习 →","Got it — start learning →")}</button>
     </div>`;
-  c.innerHTML='<div class="home-layout"><div id="pet-slot" class="home-pet"></div><div class="home-body">'+introBanner+`
+  c.innerHTML='<div class="home-layout"><div class="home-body">'+introBanner+`
     <div class="home-hero">
       <div class="hh-top">
         <div class="greet">おかえりなさい${name?('、<b>'+esc(name)+'</b>'):''}！<span class="hh-sub">${toRuby("続[つづ]けることが、何[なに]より大切[たいせつ]です。")}</span></div>
@@ -1047,7 +1048,7 @@ function renderHome(){
         <div class="stat"><div class="num">${gramL}</div><div class="lbl">${T("已学语法点","grammar points")}</div></div>
       </div>
       <div class="dash-stats" style="margin-top:6px">${TESTS.map(t=>{const b=best[t.id];return `<div class="stat"><div class="num" style="font-size:1.3rem">${b?Math.round(b.score/b.total*100)+'%':'—'}</div><div class="lbl">${esc(t.title.split('—')[0].trim())}</div></div>`;}).join("")}</div>
-    </section></div></div>`;
+    </section></div><div id="pet-slot" class="home-pet"></div></div>`;
 
   // --- wire interactions ---
   const dismissIntro=()=>{ try{ localStorage.setItem("jpn-seen-intro","1"); }catch(e){} const b=$("#home-intro"); if(b) b.remove(); };

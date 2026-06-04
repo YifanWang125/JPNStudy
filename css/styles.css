@@ -967,6 +967,11 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
   .home-pet{position:static;flex:none;width:100%;max-width:380px;margin:0 auto}
 }
 
+/* B2: endangered-pet top banner (felt on return) */
+.pet-danger{display:flex;align-items:center;gap:10px;background:#c0392b;color:#fff;border-radius:12px;padding:11px 16px;margin-bottom:14px;font-family:var(--pixel);font-size:.92rem;line-height:1.6;box-shadow:0 6px 24px rgba(192,57,43,.4)}
+.pet-danger span{flex:1}
+.pet-danger .pd-x{background:rgba(255,255,255,.25);border:none;color:#fff;border-radius:7px;width:26px;height:26px;cursor:pointer;flex:0 0 auto}
+
 /* cohesive pixel panel — DotGothic16 chrome + an LCD-style creature screen */
 .pet-box.pix{font-family:var(--pixel);background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;box-shadow:0 8px 30px var(--shadow)}
 .pet-screen{display:flex;justify-content:center;align-items:center;height:132px;border-radius:10px;border:1px solid var(--line);

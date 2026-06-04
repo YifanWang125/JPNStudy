@@ -489,7 +489,7 @@
     let ov=document.getElementById("pet-chat-ov");
     if(!ov){ ov=document.createElement("div"); ov.id="pet-chat-ov"; ov.className="pet-chat-ov";
       ov.addEventListener("click",e=>{ if(e.target===ov) closeChat(); }); document.body.appendChild(ov); }
-    renderChat(ov); ov.style.display="flex";
+    renderChat(ov); ov.style.display="flex"; startAnim();
     const inp=ov.querySelector(".pchat-input"); if(inp) inp.focus(); refresh();
   }
   function closeChat(){ const ov=document.getElementById("pet-chat-ov"); if(ov) ov.style.display="none"; }
@@ -580,12 +580,21 @@
 
   // ---- mounting + animation -------------------------------------------------
   let RAF=0, FRAME=0;
-  function draw(){ FRAME++;
-    document.querySelectorAll(".pet-canvas").forEach(cv=>{ const p=pet(); if(p) drawCreature(cv, genome(p.seed), p.stage, moodOf(p), FRAME); });
+  // a pet canvas counts as "visible" only if it's laid out (offsetParent!=null) AND, for the
+  // roam sprite, only while it's actually shown. → animation runs ONLY when a pet is on screen.
+  function visibleCanvas(cv){ if(cv.offsetParent===null) return false;
+    const r=cv.closest(".pet-roam"); return !(r && !r.classList.contains("show")); }
+  function animTargetsVisible(){ return !document.hidden && [...document.querySelectorAll(".pet-canvas")].some(visibleCanvas); }
+  function syncAnim(){ animTargetsVisible() ? startAnim() : stopAnim(); }
+  function draw(){ FRAME++; let any=false;
+    document.querySelectorAll(".pet-canvas").forEach(cv=>{ if(!visibleCanvas(cv)) return; any=true;
+      const p=pet(); if(p) drawCreature(cv, genome(p.seed), p.stage, moodOf(p), FRAME); });
+    if(!any){ stopAnim(); return; }          // nothing on screen → stop (save battery/CPU)
     RAF=requestAnimationFrame(draw);
   }
   function startAnim(){ if(!RAF) RAF=requestAnimationFrame(draw); }
   function stopAnim(){ if(RAF) cancelAnimationFrame(RAF); RAF=0; }
+  try{ document.addEventListener("visibilitychange", syncAnim); }catch(e){}
 
   function bind(root){
     root.querySelectorAll(".pet-newegg").forEach(b=>b.onclick=welcomeNewEgg);
@@ -633,7 +642,7 @@
   function openDex(){ let ov=document.getElementById("pet-dex-ov");   // (id kept; it's the growth-record now)
     if(!ov){ ov=document.createElement("div"); ov.id="pet-dex-ov"; ov.className="pet-log-ov";
       ov.addEventListener("click",e=>{ if(e.target===ov) ov.style.display="none"; }); document.body.appendChild(ov); }
-    renderDex(ov); ov.style.display="flex"; }
+    renderDex(ov); ov.style.display="flex"; startAnim(); }
   function fmtDate(ts){ try{ const d=new Date(ts); return (d.getMonth()+1)+"/"+d.getDate(); }catch(e){ return ""; } }
   function renderDex(ov){
     const p=pet(); const en=window.LANG==="en";
@@ -675,6 +684,22 @@
     if(!S.mourning){ ensureEgg(); maybePetIntro(); rollActivity(); maybeGoOut(); }   // welcome story + live a little
     const slot = homeContainer && homeContainer.querySelector("#pet-slot");
     if(slot) renderInto(slot);
+    dangerBanner(homeContainer);   // B2: pull you back when the pet is in danger
+  }
+  // a prominent, dismissible top banner when the pet is endangered (sick / HP low) — so
+  // neglect is FELT on return and you're pulled back to study & care (it can still die).
+  function dangerBanner(homeContainer){
+    if(!homeContainer) return;
+    const p=pet(), old=homeContainer.querySelector("#pet-danger");
+    const danger = p && !p.diedAt && p.stage!=="egg" && (p.sick || (p.hp!=null && p.hp<40)) && !S.mourning;
+    if(!danger){ if(old) old.remove(); return; }
+    if(old) return;   // already shown this view
+    const b=document.createElement("div"); b.id="pet-danger"; b.className="pet-danger";
+    const nm=esc(p.name||"この子");
+    const msg=T(nm+"が あぶないよ！はやく 勉強[べんきょう]して、お世話[せわ]してあげて。",nm+" is in danger! Study and take care of it — fast.");
+    b.innerHTML=`<span>⚠️ ${window.toRuby?toRuby(msg):esc(msg)}</span><button class="pd-x" title="${T('閉じる','Close')}">✕</button>`;
+    b.querySelector(".pd-x").onclick=()=>b.remove();
+    homeContainer.insertBefore(b, homeContainer.firstChild);
   }
   function refresh(){ const slot=document.getElementById("pet-slot"); if(slot) renderInto(slot); }
   function showRail(){}   // no-op (kept for the app.js call site; layout is now in-flow)
@@ -704,7 +729,7 @@
     const jp = found ? T("みーつけた！いっしょに べんきょうしよ！","Found me! Let's study together!")
                      : (window.LANG==="en"?"Let's do this!":pageLine(pg));
     el.querySelector(".proam-bubble").innerHTML = window.toRuby?toRuby(jp):esc(jp);
-    el.classList.add("show");
+    el.classList.add("show"); startAnim();
     clearTimeout(ROAM_T); ROAM_T=setTimeout(()=>{ if(el) el.classList.remove("show"); }, found?5000:4200);
   }
   function maybeGoOut(){
