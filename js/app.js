@@ -1256,7 +1256,7 @@ function renderGeneral(){
   html+=grammarIndexSection();
   c.innerHTML=html;
   c.querySelectorAll(".ref-head").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("open"));
-  c.querySelectorAll(".r-ex").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:null}]));
+  c.querySelectorAll(".r-ex").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:null,audioKey:"x_"+speechNorm(el.dataset.jp)}]));
   c.querySelectorAll(".gidx-item").forEach(el=>el.onclick=()=>{ STATE.day=parseInt(el.dataset.day,10); STATE.session="noon"; showPage("daily"); });
   if(window.Gojuon) Gojuon.render();             // mount the interactive kana app
 }

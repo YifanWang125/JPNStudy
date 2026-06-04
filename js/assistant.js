@@ -157,8 +157,11 @@ ${courseIndex()}`;
       .filter(x=>/[ぁ-んァ-ヶ]/.test(x)).map(toPlain).join("。");
   }
   function speakBtn(full){
+    // dynamic AI text has no pre-generated audio → only works via system-TTS, which is OFF
+    // by default. Hide the button when TTS is off so it's never a dead button. (R5 F3b)
+    if(typeof ttsFallbackOn==="function" && !ttsFallbackOn()) return "";
     const t=jaText(full); if(!t) return "";
-    return `<button class="ai-speak" data-t="${esc(t)}" title="朗读答案中的日语">🔊 读日语</button>`;
+    return `<button class="ai-speak" data-t="${esc(t)}" title="${T('朗读答案中的日语','Read the Japanese aloud')}">🔊 ${T('读日语','Read aloud')}</button>`;
   }
 
   /* ---------------- UI ---------------- */
@@ -176,10 +179,12 @@ ${courseIndex()}`;
     m.appendChild(wrap); scrollBot(); return wrap;
   }
   function greeting(){
-    const tips=["「〜ています」和「〜てから」的 て 有什么区别？","这一课的「を」为什么用在这里？","帮我用今天的语法各造一个句子"];
+    const tips=[T("「〜ています」和「〜てから」的 て 有什么区别？","What's the difference between the て in 〜ています and 〜てから?"),
+                T("这一课的「を」为什么用在这里？","Why is を used here in this lesson?"),
+                T("帮我用今天的语法各造一个句子","Make an example sentence with each of today's grammar points")];
     const keyWarn = hasKey()? "" :
-      `<div class="ai-note">⚠️ 还没设置 API Key。点右上角 ⚙ → 「AI 学习助手」填入你的 Claude API Key（仅存本机）。<a id="ai-go-set">去设置</a></div>`;
-    return `<div class="ai-msg assistant"><div class="ai-body">你好！我是你的日语学习助手 🌸 学习中有任何疑问都可以问我——语法、读音、近义词、为什么这么说都行。${keyWarn}
+      `<div class="ai-note">⚠️ ${T("还没设置 API Key。点右上角 ⚙ → 「AI 学习助手」填入你的 Claude API Key（仅存本机）。","No API key yet. Top-right ⚙ → \"AI Assistant\" → enter your Claude API key (stored on this device only).")}<a id="ai-go-set">${T("去设置","Set up")}</a></div>`;
+    return `<div class="ai-msg assistant"><div class="ai-body">${T("你好！我是你的日语学习助手 🌸 学习中有任何疑问都可以问我——语法、读音、近义词、为什么这么说都行。","Hi! I'm your Japanese study assistant 🌸 Ask me anything — grammar, readings, synonyms, or why we say it a certain way.")}${keyWarn}
       <div class="ai-tips">${tips.map(t=>`<button class="ai-tip">${esc(t)}</button>`).join("")}</div></div></div>`;
   }
   function resetMsgs(){ MSGS=[]; $id("ai-msgs").innerHTML=greeting(); }
@@ -253,22 +258,22 @@ ${courseIndex()}`;
   function injectUI(){
     if($id("ai-fab")) return;
     const fab=document.createElement("button");
-    fab.id="ai-fab"; fab.type="button"; fab.title="AI 学习助手"; fab.textContent="🤖";
+    fab.id="ai-fab"; fab.type="button"; fab.title=T("AI 学习助手","AI Assistant"); fab.textContent="🤖";
     document.body.appendChild(fab);
     const panel=document.createElement("div"); panel.id="ai-panel";
     panel.innerHTML=`
-      <div class="ai-head"><b>🤖 AI 学习助手</b><span class="ai-ctx" id="ai-ctx"></span><button id="ai-close" title="关闭">✕</button></div>
+      <div class="ai-head"><b>🤖 ${T("AI 学习助手","AI Assistant")}</b><span class="ai-ctx" id="ai-ctx"></span><button id="ai-close" title="${T('关闭','Close')}">✕</button></div>
       <div class="ai-msgs" id="ai-msgs"></div>
       <div class="ai-sel" id="ai-sel" style="display:none"></div>
       <div class="ai-inputbar">
-        <textarea id="ai-text" rows="1" placeholder="问我任何日语问题…（中／日均可，Enter 发送）"></textarea>
-        <button id="ai-mic" title="语音输入（中文）">🎤</button>
-        <button id="ai-send" class="primary">发送</button>
+        <textarea id="ai-text" rows="1" placeholder="${T('问我任何日语问题…（中／日均可，Enter 发送）','Ask me any Japanese question… (Enter to send)')}"></textarea>
+        <button id="ai-mic" title="${T('语音输入（中文）','Voice input')}">🎤</button>
+        <button id="ai-send" class="primary">${T('发送','Send')}</button>
       </div>
-      <div class="ai-foot">仅限日语学习 · 解释由 AI 生成仅供参考 · <a id="ai-clear">清空</a></div>`;
+      <div class="ai-foot">${T("仅限日语学习 · 解释由 AI 生成仅供参考","Japanese study only · AI-generated, for reference")} · <a id="ai-clear">${T('清空','Clear')}</a></div>`;
     document.body.appendChild(panel);
     if(window.makeDraggable) makeDraggable(fab, "jpn-aifab-pos", open); else fab.onclick=open;
-    fab.title="AI 学习助手（可拖动）";
+    fab.title=T("AI 学习助手（可拖动）","AI Assistant (draggable)");
     $id("ai-close").onclick=close;
     $id("ai-send").onclick=()=>send();
     $id("ai-clear").onclick=resetMsgs;

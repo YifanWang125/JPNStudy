@@ -42,6 +42,7 @@ LESSONS    = os.path.join(ROOT, "js", "lessons.js")
 SCENARIOS  = os.path.join(ROOT, "js", "scenarios.js")
 SCN_ADULT  = os.path.join(ROOT, "js", "scenarios-adult.js")
 DAILY      = os.path.join(ROOT, "js", "daily.js")
+REFER      = os.path.join(ROOT, "js", "reference.js")
 AUDIO_DIR  = os.path.join(ROOT, "audio")
 VOCAB_DIR  = os.path.join(AUDIO_DIR, "vocab")
 MANIFEST   = os.path.join(AUDIO_DIR, "manifest.json")
@@ -127,6 +128,14 @@ def load_daily():
     """每日一句 lines from js/daily.js — phrase jp + example ex.jp (regex; JS not JSON)."""
     try:
         src = open(DAILY, encoding="utf-8").read()
+    except OSError:
+        return []
+    return re.findall(r'jp\s*:\s*"((?:[^"\\]|\\.)*)"', src)
+
+def load_reference():
+    """example sentences in js/reference.js (the tappable .r-ex lines) — every jp:"…"."""
+    try:
+        src = open(REFER, encoding="utf-8").read()
     except OSError:
         return []
     return re.findall(r'jp\s*:\s*"((?:[^"\\]|\\.)*)"', src)
@@ -342,11 +351,20 @@ def main():
                     continue
                 h = hashlib.sha1(spoken.encode("utf-8")).hexdigest()[:12]
                 emit(f"x_{spoken}", jp, os.path.join(ex_d, f"{h}.{ext}"))
-        # 五十音 single-kana clips (keys kana_<hira>) for the interactive chart
-        kana_d = os.path.join(base, "kana"); os.makedirs(kana_d, exist_ok=True)
-        for k in KANA:
-            h = hashlib.sha1(k.encode("utf-8")).hexdigest()[:12]
-            emit(f"kana_{k}", k, os.path.join(kana_d, f"{h}.{ext}"))
+
+    # ---- content audio that EVERY voice must cover (so changing the voice applies
+    #      globally): reference-page examples (x_) + the 五十音 chart (kana_). ----
+    if not args.no_ex:
+        for jp in load_reference():
+            spoken = speech_norm(jp)
+            if not spoken:
+                continue
+            h = hashlib.sha1(spoken.encode("utf-8")).hexdigest()[:12]
+            emit(f"x_{spoken}", jp, os.path.join(ex_d, f"{h}.{ext}"))
+    kana_d = os.path.join(base, "kana"); os.makedirs(kana_d, exist_ok=True)
+    for k in KANA:
+        h = hashlib.sha1(k.encode("utf-8")).hexdigest()[:12]
+        emit(f"kana_{k}", k, os.path.join(kana_d, f"{h}.{ext}"))
 
     json.dump(manifest, open(manifest_path, "w", encoding="utf-8"), ensure_ascii=False, indent=0)
     if not args.voice_dir:
