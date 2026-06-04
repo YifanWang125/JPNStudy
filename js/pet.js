@@ -14,7 +14,7 @@
 (function(){
   "use strict";
   const KEY="jpn-pet";
-  const T=(z,e)=> (window.LANG==="en" && e!=null) ? e : z;   // mirrors app.js T(), reads global LANG
+  const T=(z,e)=>{ const L=window.LANG; if(L==="ja") return (e!=null&&window.JA_UI&&window.JA_UI[e]!=null)?window.JA_UI[e]:(e!=null?e:z); return (L==="en"&&e!=null)?e:z; };   // mirrors app.js T()
 
   // ---- tunables (forgiving; all in one place to dial difficulty) ------------
   const TUNE={

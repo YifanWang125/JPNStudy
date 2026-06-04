@@ -8,7 +8,7 @@
  * ==========================================================================*/
 (function(){
   "use strict";
-  const T=(z,e)=>(window.LANG==="en"&&e!=null)?e:z;
+  const T=(z,e)=>{ const L=window.LANG; if(L==="ja") return (e!=null&&window.JA_UI&&window.JA_UI[e]!=null)?window.JA_UI[e]:(e!=null?e:z); return (L==="en"&&e!=null)?e:z; };
   const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const ruby=s=>window.toRuby?window.toRuby(s):esc(s);
   const plain=s=>String(s||"").replace(/\[[^\]]*\]/g,"").replace(/\s+/g,"").replace(/[。、！？]/g,"");

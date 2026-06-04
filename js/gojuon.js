@@ -6,7 +6,7 @@
  * ==========================================================================*/
 (function(){
   "use strict";
-  const T=(z,e)=>((window.LANG==="en"||window.LANG==="ja")&&e!=null)?e:z;
+  const T=(z,e)=>{ const L=window.LANG; if(L==="ja") return (e!=null&&window.JA_UI&&window.JA_UI[e]!=null)?window.JA_UI[e]:(e!=null?e:z); return (L==="en"&&e!=null)?e:z; };
   const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const mean=o=>esc((window.LANG==="zh")?(o.zh||o.en||""):(o.en||o.zh||""));
   // hira → kata

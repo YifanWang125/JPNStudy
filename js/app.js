@@ -24,20 +24,30 @@ function setRate(v){
   if(CURRENT_AUDIO){ try{ CURRENT_AUDIO.playbackRate=STATE.rate; }catch(e){} }  // apply live mid-playback
 }
 /* ---------- i18n: explanation language (learner's native language) ---------- */
-function getLang(){ try{ return localStorage.getItem("jpn-lang")||"zh"; }catch(e){ return "zh"; } }
+function getLang(){ try{ const l=localStorage.getItem("jpn-lang"); return (l==="en"||l==="ja")?l:"zh"; }catch(e){ return "zh"; } }
 let LANG = getLang();
-function setLang(l){ LANG=(l==="en"?"en":"zh"); try{ localStorage.setItem("jpn-lang", LANG); }catch(e){} }
-const NAV_LABELS={ home:["主页","Home"], daily:["每日","Daily"], general:["基础","Basics"], scenarios:["场景","Scenes"], test:["测试","Tests"], notes:["笔记","Notes"] };
+function setLang(l){ LANG=(l==="en"||l==="ja")?l:"zh"; try{ localStorage.setItem("jpn-lang", LANG); }catch(e){} }
+/* nav labels per language: [zh, en, ja] */
+const NAV_LABELS={ home:["主页","Home","ホーム"], daily:["每日","Daily","毎日"], general:["基础","Basics","基礎"], scenarios:["场景","Scenes","場面"], test:["测试","Tests","テスト"], notes:["笔记","Notes","ノート"] };
 function applyLang(){
-  document.querySelectorAll("#page-nav button").forEach(b=>{ const l=NAV_LABELS[b.dataset.p], s=b.querySelector(".pnl"); if(l&&s) s.textContent=" "+(LANG==="en"?l[1]:l[0]); });
-  document.documentElement.setAttribute("lang", LANG==="en"?"en":"zh");
-  const fm=document.getElementById("footer-motto"); if(fm) fm.textContent=LANG==="en"?"· a little every day, one step at a time.":"· 每天一点点，一步一步来。";
-  const fn=document.getElementById("footer-note"); if(fn) fn.textContent=LANG==="en"?"Progress is saved in this browser · real-voice audio (VOICEVOX), falls back to system TTS · open via a local server (localhost) for recording & pronunciation scoring":"进度自动保存在本机浏览器 · 真人音频(VOICEVOX)，缺失时回退系统语音 · 录音与发音评估请用本地服务器(localhost)打开";
+  const ix=LANG==="en"?1:(LANG==="ja"?2:0);
+  document.querySelectorAll("#page-nav button").forEach(b=>{ const l=NAV_LABELS[b.dataset.p], s=b.querySelector(".pnl"); if(l&&s) s.textContent=" "+(l[ix]||l[0]); });
+  document.documentElement.setAttribute("lang", LANG);
+  const fm=document.getElementById("footer-motto"); if(fm) fm.textContent={en:"· a little every day, one step at a time.",ja:"· 毎日少しずつ、一歩ずつ。",zh:"· 每天一点点，一步一步来。"}[LANG];
+  const fn=document.getElementById("footer-note"); if(fn) fn.textContent={
+    en:"Progress is saved in this browser · real-voice audio (VOICEVOX), falls back to system TTS · open via a local server (localhost) for recording & pronunciation scoring",
+    ja:"学習データはこのブラウザに保存されます · 音声は VOICEVOX（無い場合はシステム音声）· 録音と発音採点はローカルサーバー（localhost）で開いてください",
+    zh:"进度自动保存在本机浏览器 · 真人音频(VOICEVOX)，缺失时回退系统语音 · 录音与发音评估请用本地服务器(localhost)打开"}[LANG];
 }
-/* UI string: T("中文","English") → picks by LANG (falls back to zh if no en given) */
-function T(zh, en){ return (LANG==="en" && en!=null) ? en : zh; }
-/* data field: show the English value when in en-mode AND it exists; else the Chinese */
-function zhen(zh, en){ return (LANG==="en" && en!=null && en!=="") ? en : (zh!=null?zh:""); }
+/* UI string: T("中文","English"). zh by default; en in en-mode; in ja-mode use the Japanese
+   override (window.JA_UI keyed by the English) and fall back to English, then Chinese. */
+function T(zh, en){
+  if(LANG==="ja"){ if(en!=null && window.JA_UI && window.JA_UI[en]!=null) return window.JA_UI[en]; return en!=null?en:zh; }
+  return (LANG==="en" && en!=null) ? en : zh;
+}
+/* data field (lesson explanations etc.): English in en- AND ja-mode (the study materials'
+   paired explanations show English for Japanese staff); Chinese otherwise. */
+function zhen(zh, en){ return ((LANG==="en"||LANG==="ja") && en!=null && en!=="") ? en : (zh!=null?zh:""); }
 /* English lesson content (js/i18n-en.js); ENL(day) → that day's en fields or {} */
 function ENL(day){ return (typeof window!=="undefined" && window.EN && window.EN[day]) || {}; }
 /* English data for tests (window.EN_TESTS[id]) */
@@ -1065,10 +1075,10 @@ function openSettings(){
   ov.innerHTML=`<div class="modal">
     <div class="modal-head"><h2>⚙️ 设置</h2><button id="modal-close">✕</button></div>
     <div class="modal-body">
-      <section><h3>${T("🌐 讲解语言 / Language","🌐 Explanation language")}</h3>
-        <p class="m-note">${T("选择你的母语——所有讲解会用这个语言显示（日语原文不变）。","Choose your native language — all explanations switch to it (the Japanese itself never changes).")}</p>
+      <section><h3>${T("🌐 语言 / Language","🌐 Language")}</h3>
+        <p class="m-note">${T("选择界面 / 讲解语言（日语原文不变）。选「日本語」时，界面为日语、讲解用英文。","Choose the interface / explanation language (the Japanese itself never changes). With 日本語, the UI is Japanese and explanations show in English.")}</p>
         <div class="theme-pick" id="lang-pick">
-          ${[["zh","🇨🇳 中文"],["en","🇬🇧 English"]].map(([v,l])=>`<button data-lang-val="${v}" class="${getLang()===v?"on":""}">${l}</button>`).join("")}
+          ${[["zh","🇨🇳 中文"],["en","🇬🇧 English"],["ja","🇯🇵 日本語"]].map(([v,l])=>`<button data-lang-val="${v}" class="${getLang()===v?"on":""}">${l}</button>`).join("")}
         </div>
       </section>
       <section><h3>${T("🎨 外观 / テーマ","🎨 Appearance")}</h3>
