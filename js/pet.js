@@ -242,7 +242,7 @@
   //      pad. Auto-plays on entry; if the browser blocks autoplay (first load, no gesture
   //      yet) it starts on the first interaction. Stops when the story ends OR the overlay
   //      is dismissed. Heard only on first login. -------------------------------------------
-  let INTRO_TOKEN=0, INTRO_AUDIO=null, INTRO_MUSIC=null, INTRO_T=0, INTRO_STARTED=false;
+  let INTRO_TOKEN=0, INTRO_AUDIO=null, INTRO_MUSIC=null, INTRO_T=0, INTRO_STARTED=false, SCROLL_RAF=0;
   function introMusicStart(){
     try{
       const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null;
@@ -299,17 +299,35 @@
     if(allSrc && Array.isArray(marks) && marks.length){
       const a=new Audio(allSrc); INTRO_AUDIO=a; let cur=-1;
       a.onplay=()=>{ INTRO_STARTED=true; };
+      // highlight: light up the line whose [mark,next) window the playhead is in (monotonic)
       a.ontimeupdate=()=>{ if(token!==INTRO_TOKEN) return;
         let idx=0; for(let i=0;i<marks.length;i++){ if(a.currentTime>=marks[i]-0.15) idx=i; }
         if(idx===cur) return; cur=idx;
         lineEls.forEach((el,i)=>{ el.classList.toggle("speaking-line",i===idx); if(i<=idx) el.classList.add("shown"); });
-        // auto-scroll "crawl": keep the line being read in view (but at line 0, stay at the
-        // top so the egg + title are visible before the story scrolls upward).
-        const el=lineEls[idx];
-        try{ if(idx===0) ov.scrollTo({top:0,behavior:"smooth"}); else if(el) el.scrollIntoView({block:"center",behavior:"smooth"}); }catch(e){}
       };
       a.onended=()=>{ if(token!==INTRO_TOKEN) return; introDone(ov); };
       a.onerror=()=>{ if(token!==INTRO_TOKEN) return; introDone(ov); };
+      // SMOOTH CRAWL: drive scrollTop directly from the playhead every frame (rAF). It only
+      // ever moves forward and is interpolated between line centres, so it glides — no
+      // scrollIntoView animations fighting each other (that caused the 2↔3 jitter).
+      const crawl=()=>{
+        if(token!==INTRO_TOKEN || !ov.isConnected){ SCROLL_RAF=0; return; }
+        const max=ov.scrollHeight-ov.clientHeight, t=a.currentTime;
+        if(max>4){
+          let i=0; while(i<marks.length-1 && t>=marks[i+1]) i++;
+          const el=lineEls[i];
+          if(el){
+            const next=lineEls[i+1];
+            const segEnd=(i+1<marks.length)?marks[i+1]:((a.duration||marks[i]+5));
+            const fr=segEnd>marks[i]?Math.min(1,Math.max(0,(t-marks[i])/(segEnd-marks[i]))):0;
+            const cy=el.offsetTop+el.offsetHeight/2, ny=next?(next.offsetTop+next.offsetHeight/2):cy;
+            ov.scrollTop=Math.min(max,Math.max(0,(cy+(ny-cy)*fr)-ov.clientHeight*0.5));
+          }
+        }
+        SCROLL_RAF=requestAnimationFrame(crawl);
+      };
+      if(SCROLL_RAF) cancelAnimationFrame(SCROLL_RAF);
+      SCROLL_RAF=requestAnimationFrame(crawl);
       a.play().catch(()=>{});                     // blocked → the gesture kick restarts us
       return;
     }
@@ -331,11 +349,14 @@
     step();
   }
   function introDone(ov){                          // story finished naturally → fade music, glow CTA
+    if(SCROLL_RAF){ cancelAnimationFrame(SCROLL_RAF); SCROLL_RAF=0; }
     introMusicStop(INTRO_MUSIC); INTRO_MUSIC=null;
     ov.querySelectorAll(".pintro-line").forEach(x=>x.classList.remove("speaking-line"));
     const ok=ov.querySelector(".pintro-ok"); if(ok) ok.classList.add("ready");
+    try{ ov.scrollTo({top:ov.scrollHeight,behavior:"smooth"}); }catch(e){}   // reveal the CTA
   }
   function introStopAV(){                           // dismissed → kill everything
+    if(SCROLL_RAF){ cancelAnimationFrame(SCROLL_RAF); SCROLL_RAF=0; }
     INTRO_TOKEN++; if(INTRO_T){ clearTimeout(INTRO_T); INTRO_T=0; }
     if(INTRO_AUDIO){ try{ INTRO_AUDIO.pause(); }catch(e){} INTRO_AUDIO=null; }
     introMusicStop(INTRO_MUSIC); INTRO_MUSIC=null; INTRO_STARTED=false;

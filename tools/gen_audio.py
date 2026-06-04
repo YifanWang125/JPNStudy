@@ -66,8 +66,11 @@ KANA = list("あいうえおかきくけこさしすせそたちつてとなに�
 ADULT_VOICE = {"c": (84, 0.92), "s": (17, 1.0)}    # 84 青山龍星/しっとり(男) · 17 九州そら/セクシー(女)
 # 言霊 first-login intro narration — a calm, elegant, "big-sister" voice (NOT a gruff
 # old-man narrator). 16 = 九州そら/ノーマル: mature & clear. Speed 1.1 = a gentle, natural
-# pace (VOICEVOX speedScale preserves pitch, so it stays graceful).
+# pace (VOICEVOX speedScale preserves pitch, so it stays graceful). INTRO_PAUSE forces
+# EVERY pause to the same length so the whole passage reads with one steady rhythm
+# (VOICEVOX's own pauses range ~0.8–1.1s and cluster unevenly → fast bits & slow bits).
 INTRO_VOICE = (16, 1.1)
+INTRO_PAUSE = 0.5
 
 # ---- furigana / normalization (mirrors app.js toPlain + speechNorm) ----
 BRACKET = re.compile(r"\[[^\]]+\]")
@@ -204,17 +207,24 @@ def list_speakers():
             for st in sp["styles"]:
                 print(f'  id={st["id"]:>3}  {sp["name"]} / {st["name"]}')
 
-def synth_wav(text, speaker, speed=None):
+def synth_wav(text, speaker, speed=None, uniform_pause=None):
     query = vv_post("/audio_query", {"text": text, "speaker": speaker})
-    if speed is not None:                      # override tempo (normalize per-speaker)
-        q = json.loads(query); q["speedScale"] = speed
+    if speed is not None or uniform_pause is not None:
+        q = json.loads(query)
+        if speed is not None:                  # override tempo (normalize per-speaker)
+            q["speedScale"] = speed
+        if uniform_pause is not None:          # flatten every pause → one steady rhythm
+            for ap in q.get("accent_phrases", []):
+                if ap.get("pause_mora"):
+                    ap["pause_mora"]["vowel_length"] = uniform_pause
+                    ap["pause_mora"]["consonant_length"] = None
         query = json.dumps(q).encode("utf-8")
     return vv_post("/synthesis", {"speaker": speaker}, data=query)
 
-def line_seconds(text, speaker, speed):
+def line_seconds(text, speaker, speed, uniform_pause=None):
     """Spoken length of `text` in seconds (mora + pause durations / speed), excluding the
     leading/trailing silence — used to time the per-line highlight inside the ONE combined
-    intro clip. Approximate but smooth (highlight is a soft glow, not a hard cut)."""
+    intro clip. Must mirror synth_wav's uniform_pause so the marks stay in sync."""
     q = json.loads(vv_post("/audio_query", {"text": text, "speaker": speaker}))
     ss = speed or q.get("speedScale") or 1.0
     s = 0.0
@@ -223,7 +233,8 @@ def line_seconds(text, speaker, speed):
             s += (mo.get("consonant_length") or 0.0) + (mo.get("vowel_length") or 0.0)
         pm = ph.get("pause_mora")
         if pm:
-            s += (pm.get("consonant_length") or 0.0) + (pm.get("vowel_length") or 0.0)
+            s += uniform_pause if uniform_pause is not None else \
+                 ((pm.get("consonant_length") or 0.0) + (pm.get("vowel_length") or 0.0))
     return s / ss
 
 def to_mp3(wav_bytes, out_path):
@@ -327,7 +338,7 @@ def main():
     ext = "wav" if args.wav else "mp3"
     made = skipped = 0
 
-    def emit(key, text, out_path, speaker=None, speed=None):
+    def emit(key, text, out_path, speaker=None, speed=None, uniform_pause=None):
         nonlocal made, skipped
         spoken = speech_norm(text)
         if not spoken:
@@ -335,7 +346,7 @@ def main():
         rel_path = os.path.relpath(out_path, ROOT).replace(os.sep, "/")
         if os.path.exists(out_path):
             manifest[key] = rel_path; skipped += 1; return
-        wav = synth_wav(spoken, args.speaker if speaker is None else speaker, speed)
+        wav = synth_wav(spoken, args.speaker if speaker is None else speaker, speed, uniform_pause)
         if args.wav:
             open(out_path, "wb").write(wav)
         else:
@@ -425,14 +436,16 @@ def main():
         intro_lines = load_intro()
         if intro_lines:
             emit("intro_all", "".join(intro_lines),
-                 os.path.join(base, f"intro_all.{ext}"), speaker=ispk, speed=ispd)
+                 os.path.join(base, f"intro_all.{ext}"), speaker=ispk, speed=ispd, uniform_pause=INTRO_PAUSE)
             marks, acc = [], 0.0
-            for jp in intro_lines:
+            for i, jp in enumerate(intro_lines):
                 marks.append(round(acc, 3))
                 try:
-                    acc += line_seconds(speech_norm(jp), ispk, ispd)
+                    acc += line_seconds(speech_norm(jp), ispk, ispd, uniform_pause=INTRO_PAUSE)
                 except Exception:
-                    acc += 3.0
+                    acc += 6.0
+                if i < len(intro_lines) - 1:
+                    acc += INTRO_PAUSE / ispd      # the 。 pause between the joined lines
             manifest["intro_marks"] = marks
             print(f"  ✓ intro_all  (marks: {marks})")
 
