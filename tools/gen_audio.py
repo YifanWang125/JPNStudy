@@ -53,6 +53,12 @@ ENGINE     = os.environ.get("VOICEVOX_URL", "http://localhost:50021")
 # so we slow him and nudge her up, landing both near ~5 mora/s. The runtime <audio>
 # playbackRate (global speed lever) then scales everything uniformly on top of this.
 SCN_VOICE   = {"c": (11, 0.80), "s": (16, 1.08)}   # 11 玄野武宏/ノーマル(男) · 16 九州そら/ノーマル(女)
+# 五十音 — every kana, for the interactive chart (keys kana_<hira>); clear default voice.
+KANA = list("あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん"
+            "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽ") + [
+    "きゃ","きゅ","きょ","しゃ","しゅ","しょ","ちゃ","ちゅ","ちょ","にゃ","にゅ","にょ",
+    "ひゃ","ひゅ","ひょ","みゃ","みゅ","みょ","りゃ","りゅ","りょ","ぎゃ","ぎゅ","ぎょ",
+    "じゃ","じゅ","じょ","びゃ","びゅ","びょ","ぴゃ","ぴゅ","ぴょ"]
 # 🔞 adult mode: an intimate/sultry pair — mellow male + sexy female.
 ADULT_VOICE = {"c": (84, 0.92), "s": (17, 1.0)}    # 84 青山龍星/しっとり(男) · 17 九州そら/セクシー(女)
 
@@ -336,6 +342,11 @@ def main():
                     continue
                 h = hashlib.sha1(spoken.encode("utf-8")).hexdigest()[:12]
                 emit(f"x_{spoken}", jp, os.path.join(ex_d, f"{h}.{ext}"))
+        # 五十音 single-kana clips (keys kana_<hira>) for the interactive chart
+        kana_d = os.path.join(base, "kana"); os.makedirs(kana_d, exist_ok=True)
+        for k in KANA:
+            h = hashlib.sha1(k.encode("utf-8")).hexdigest()[:12]
+            emit(f"kana_{k}", k, os.path.join(kana_d, f"{h}.{ext}"))
 
     json.dump(manifest, open(manifest_path, "w", encoding="utf-8"), ensure_ascii=False, indent=0)
     if not args.voice_dir:

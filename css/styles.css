@@ -872,6 +872,40 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .m-check{display:flex;align-items:flex-start;gap:8px;font-size:.9rem;color:var(--ink-dim);margin:6px 0;cursor:pointer}
 .m-check input{margin-top:3px;flex:0 0 auto}
 
+/* ============================== 🇯🇵 五十音 GOJUON ============================== */
+.gj-tip{color:var(--ink-dim);font-size:.9rem;line-height:1.7;margin-bottom:12px}
+.gj-ctrl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.gj-seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.gj-seg button{font-family:var(--sans-jp);font-size:.85rem;padding:6px 12px;border:none;background:var(--panel);color:var(--ink-dim);cursor:pointer}
+.gj-seg button.on{background:var(--accent);color:#fff}
+.gj-rom{font-size:.85rem;color:var(--ink-dim);display:flex;align-items:center;gap:5px;cursor:pointer}
+.gj-quiz{font-size:.85rem;padding:6px 14px;border-radius:999px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+.gj-quiz:hover{background:var(--accent);color:#fff}
+.gj-quiz.alt{border-color:var(--line);color:var(--ink-dim)}
+.gj-grid{display:flex;flex-direction:column;gap:6px}
+.gj-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.gj-grid.yoon .gj-row{grid-template-columns:repeat(3,1fr);max-width:60%}
+.gj-cell{aspect-ratio:1/1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1px solid var(--line);background:var(--panel);border-radius:10px;cursor:pointer;transition:transform .08s,border-color .12s,background .12s}
+.gj-cell:hover{border-color:var(--accent);background:var(--panel-2);transform:translateY(-2px)}
+.gj-cell.gj-empty{border:none;background:none;cursor:default}
+.gj-k{font-family:var(--serif-jp);font-size:1.5rem;color:var(--jp);line-height:1}
+.gj-r{font-size:.72rem;color:var(--ink-faint)}
+.gj-detail{margin-top:14px;display:none}
+.gj-detail.show{display:block;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.gj-d-k{font-family:var(--serif-jp);font-size:3rem;color:var(--accent);text-align:center;line-height:1.1}
+.gj-d-meta{text-align:center;margin-top:6px}
+.gj-d-pair{font-size:.9rem;color:var(--ink-dim)}.gj-d-pair b{color:var(--jp)}
+.gj-d-r{color:var(--accent-2);font-weight:700}
+.gj-d-ex{margin-top:8px;font-size:1rem;color:var(--ink);cursor:pointer}.gj-d-ex b{color:var(--jp);font-family:var(--serif-jp)}
+.gj-d-ex:hover{color:var(--accent)}
+.gj-quizq,.gj-quizend{text-align:center}
+.gj-qn{color:var(--ink-faint);font-size:.8rem}
+.gj-qrow{display:flex;gap:8px;justify-content:center;margin-top:10px}
+.gj-qrow input{background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:8px 12px;font-size:1.1rem;width:120px;text-align:center}
+.gj-qfb{margin-top:10px;font-size:1rem;min-height:1.4em}.gj-qfb.ok{color:var(--good,#0ca678)}.gj-qfb.no{color:var(--accent)}
+.gj-quizend b{color:var(--accent);font-size:1.4rem}
+@media (max-width:560px){ .gj-k{font-size:1.25rem} .gj-grid.yoon .gj-row{max-width:100%} }
+
 /* ============================== ✍️ 練習 EXERCISES ============================== */
 .ex-intro h2{font-family:var(--serif-jp);color:var(--accent-2);font-size:1.2rem;margin-bottom:6px}
 .ex-intro p{color:var(--ink-dim);font-size:.92rem;line-height:1.7;margin-bottom:12px}

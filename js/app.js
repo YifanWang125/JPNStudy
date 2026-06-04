@@ -1233,10 +1233,11 @@ function grammarIndexSection(){
 function renderGeneral(){
   const c=$("#page-general");
   const ER=(typeof window!=="undefined"&&window.EN_REF)||{};
-  let html=`<div class="ref-intro"><h1>${T("📚 基础总览","📚 General Reference")}</h1><p>${T("随时回来查阅的通用参考：动词分组与变位、形容词、助词、助数词与特殊读音、敬语速查、全语法索引、关西弁。点标题展开/收起；例句可点击朗读。","A reference to come back to anytime: verb groups & conjugation, adjectives, particles, counters & special readings, a keigo cheat-sheet, the full grammar index, and Kansai dialect. Tap a heading to expand/collapse; tap an example to hear it.")}</p></div>`;
+  let html=`<div class="ref-intro"><h1>${T("📚 基础总览","📚 General Reference")}</h1><p>${T("随时回来查阅的通用参考：五十音、动词分组与变位、形容词、助词、助数词与特殊读音、敬语速查、全语法索引、关西弁。点标题展开/收起；例句可点击朗读。","A reference to come back to anytime: the kana chart, verb groups & conjugation, adjectives, particles, counters & special readings, a keigo cheat-sheet, the full grammar index, and Kansai dialect. Tap a heading to expand/collapse; tap an example to hear it.")}</p></div>`;
+  html+=(window.Gojuon?Gojuon.section():"");      // 🇯🇵 interactive kana chart, first
   REFERENCE.forEach((sec,i)=>{
     const er=ER[sec.id]||{};
-    html+=`<div class="ref-section${i===0?" open":""}" data-id="${esc(sec.id)}">
+    html+=`<div class="ref-section" data-id="${esc(sec.id)}">
       <div class="ref-head"><span class="r-emoji">${sec.icon}</span><h2>${esc(sec.title)} <span class="r-zh">${esc(zhen(sec.titleZh, er.titleEn))}</span></h2><span class="r-arrow">▸</span></div>
       <div class="ref-body">${renderBlocks(sec.blocks, er.blocks)}</div></div>`;
   });
@@ -1246,6 +1247,7 @@ function renderGeneral(){
   c.querySelectorAll(".ref-head").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("open"));
   c.querySelectorAll(".r-ex").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:null}]));
   c.querySelectorAll(".gidx-item").forEach(el=>el.onclick=()=>{ STATE.day=parseInt(el.dataset.day,10); STATE.session="noon"; showPage("daily"); });
+  if(window.Gojuon) Gojuon.render();             // mount the interactive kana app
 }
 
 /* ============================================================================
