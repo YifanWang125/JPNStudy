@@ -76,6 +76,14 @@ def to_plain(text):           # 漢字[かな] -> 漢字 ; drop furigana reading
 def speech_norm(text):        # what the site actually speaks / keys on
     t = to_plain(text).replace("〜", "").replace("～", "")
     return t.strip(" 、。・「」『』\t\n")
+def despace(text):
+    """Drop manual readability spaces (分かち書き). VOICEVOX treats every space as an
+    accent-phrase boundary and pauses there → choppy, word-by-word delivery (this is what
+    bit the 言霊 intro). Applied ONLY to the passage/dialogue surfaces, whose audio keys
+    are POSITIONAL (d{day}_s{i}, scn_<id>_<i>), so collapsing spaces never changes a key —
+    it only smooths the synthesized reading. Current content has no such spaces, so this is
+    a no-op safeguard for any future authored text that adds them for the eye."""
+    return re.sub(r"[ 　]", "", text)
 
 # ---- reading-verification helpers (used by --verify) ----
 # Compares the kana I HAND-AUTHORED in the furigana against an INDEPENDENT
@@ -332,7 +340,7 @@ def main():
     for d in load_lessons():
         for i, jp in enumerate(d["sents"]):
             key = f'd{d["day"]}_s{i}'
-            emit(key, jp, os.path.join(base, f"{key}.{ext}"))
+            emit(key, despace(jp), os.path.join(base, f"{key}.{ext}"))   # positional key → safe to despace
         if not args.no_vocab:
             for r in d["readings"]:
                 spoken = speech_norm(r)
@@ -376,7 +384,7 @@ def main():
             for i, d in enumerate(s.get("dialogue", [])):
                 spk, spd = SCN_VOICE.get(d.get("sp"), (args.speaker, None))
                 line = re.sub(r"^[^：:\n]{1,8}[：:]\s*", "", d.get("jp", ""))
-                emit(f"scn_{sid}_{i}", line,
+                emit(f"scn_{sid}_{i}", despace(line),
                      os.path.join(scn_d, f"{sid}_{i}.{ext}"), speaker=spk, speed=spd)
         # 🔞 adult-mode dialogue (scenarios-adult.js): keyed scna_<id>_<i>, sultry voices.
         adult = None
@@ -391,7 +399,7 @@ def main():
                 for i, d in enumerate(lines):
                     spk, spd = ADULT_VOICE.get(d.get("sp"), (args.speaker, None))
                     line = re.sub(r"^[^：:\n]{1,8}[：:]\s*", "", d.get("jp", ""))
-                    emit(f"scna_{sid}_{i}", line,
+                    emit(f"scna_{sid}_{i}", despace(line),
                          os.path.join(scn_d, f"a_{sid}_{i}.{ext}"), speaker=spk, speed=spd)
         # 每日一句: phrase + example lines, keyed x_<text> (shared example namespace)
         if not args.no_ex:

@@ -342,7 +342,9 @@
     if(ov) return;
     ov=document.createElement("div"); ov.id="pet-intro-ov"; ov.className="pet-intro-ov"; document.body.appendChild(ov);
     const ruby=s=>window.toRuby?window.toRuby(s):esc(s);
-    const lines=INTRO.map((b,i)=>`<div class="pintro-line" style="animation-delay:${0.5+i*1.7}s"><p class="pintro-jp">${ruby(b.jp)}</p><p class="pintro-tr">${esc(window.LANG==="en"?b.en:b.zh)}</p></div>`).join("");
+    // First-login lore: we don't yet know if the visitor reads Chinese or English, so show
+    // BOTH translations under the Japanese (ordered by the current UI language for emphasis).
+    const lines=INTRO.map((b,i)=>`<div class="pintro-line" style="animation-delay:${0.5+i*1.7}s"><p class="pintro-jp">${ruby(b.jp)}</p>${window.LANG==="en"?(`<p class="pintro-tr">${esc(b.en)}</p><p class="pintro-tr zh">${esc(b.zh)}</p>`):(`<p class="pintro-tr">${esc(b.zh)}</p><p class="pintro-tr en">${esc(b.en)}</p>`)}</div>`).join("");
     ov.innerHTML=`<div class="pet-intro">
       <div class="pintro-egg"><canvas class="pet-canvas" width="120" height="120"></canvas></div>
       <h2 class="pintro-title">${ruby(T("言霊[ことだま]の たまご","The Egg of Kotodama"))}</h2>

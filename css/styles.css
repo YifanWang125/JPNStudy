@@ -959,6 +959,8 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .pintro-line{opacity:0;animation:pintroIn 1s forwards}
 .pintro-jp{font-family:var(--serif-jp);font-size:1.04rem;line-height:1.95;color:#fff}
 .pintro-tr{font-family:var(--sans-jp);font-size:.84rem;color:#c9b8a8;margin-top:3px}
+/* the secondary (non-UI-language) translation: a touch smaller/dimmer so the pair reads clearly */
+.pintro-tr.en,.pintro-tr.zh{font-size:.78rem;color:#9c8f80;margin-top:1px}
 .pintro-ok{opacity:0;animation:pintroIn 1s forwards;font-family:var(--pixel);font-size:1rem;padding:10px 22px;border:none;border-radius:999px;background:linear-gradient(135deg,var(--accent),#f0883e);color:#fff;cursor:pointer;box-shadow:0 8px 30px rgba(228,87,46,.45)}
 .pintro-ok:hover{transform:translateY(-2px)}
 .pintro-skip{display:block;margin:14px auto 0;background:none;border:none;color:#8a7f72;font-size:.8rem;cursor:pointer;opacity:.7}
