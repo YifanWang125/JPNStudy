@@ -111,9 +111,13 @@
     inp.focus(); inp.onkeydown=e=>{ if(e.key==="Enter") go(); };
     box.querySelector("#gj-qok").onclick=go; box.querySelector("#gj-qhear").onclick=()=>speak(quiz.cur[0]);
   }
+  // accept both Hepburn (shi/chi/tsu/fu/ji…) and kunrei-shiki (si/ti/tu/hu/zi…) input (D4)
+  const KUNREI={si:"shi",ti:"chi",tu:"tsu",hu:"fu",zi:"ji",di:"ji",du:"zu",
+    sya:"sha",syu:"shu",syo:"sho",tya:"cha",tyu:"chu",tyo:"cho",zya:"ja",zyu:"ju",zyo:"jo"};
   function checkQ(v){
     const c=quiz.cur, fb=document.getElementById("gj-qfb"); if(!c||!fb) return;
-    const ok=(v||"").trim().toLowerCase().replace(/[^a-z]/g,"")===c[1];
+    const v2=(v||"").trim().toLowerCase().replace(/[^a-z]/g,"");
+    const ok = v2===c[1] || KUNREI[v2]===c[1];
     if(ok) quiz.score++;
     speak(c[0]);
     fb.className="gj-qfb "+(ok?"ok":"no");

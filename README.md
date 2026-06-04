@@ -87,29 +87,29 @@ python3 -m http.server 4173
 
 ```
 # 1. 启动 VOICEVOX 引擎（默认 localhost:50021）  2. 安装 ffmpeg
-python3 tools/gen_audio.py                  # 生成 audio/*.mp3 + manifest（课文/单词/例句/会话）
+python3 tools/gen_audio.py                  # 生成 audio/*.mp3 + manifest（课文/单词/例句/会话/五十音/参考例句）
 python3 tools/gen_audio.py --list-speakers  # 看可用声音 id
 python3 tools/gen_audio.py --verify         # ★ 校验读音：手写振假名 vs UniDic，标出不一致
-python3 tools/gen_audio.py --pitch          # ★ 预生成音高线数据 audio/pitch.js
 ```
 
-脚本**幂等**（已存在则跳过）。生成后用本地服务器打开，网页自动优先播放 MP3、缺文件回退 TTS；速度滑块(0.5–1.1×)对真人音频同样有效。**名句想用真人原声**：把同名 MP3（如 `audio/d17_s7.mp3`）放进 `audio/` 即可覆盖（key→路径不变，无需改 manifest）。
+脚本**幂等**（已存在则跳过）。生成后用本地服务器打开，网页自动优先播放 MP3、缺文件回退 TTS；速度滑块对真人音频同样有效。**名句想用真人原声**：把同名 MP3（如 `audio/d17_s7.mp3`）放进 `audio/` 即可覆盖（key→路径不变，无需改 manifest）。
 
 **读音校验**：`--verify` 用形态素分析器（fugashi + unidic-lite，`pip3 install --user fugashi unidic-lite`）独立检查每条振假名，结果写 `tools/verify_report.txt`。多数不一致是 UniDic 的书面默认音（私=わたくし、日本=にっぽん…）属正常，重点看真错。
 
-**音高线（音高）**：每张单词卡上方显示 OJAD 式高低线（上＝高、下＝低、红点＝降调）。数据由 `--pitch` 从 VOICEVOX 重音信息离线生成到 `audio/pitch.js`，运行时不依赖引擎。
-
 ### 多声音模型 · Voice picker（⚙ 设置 → 声音）
-换不同声音朗读（标准 / 播音 / 性感 …）。每个声音生成到自己的文件夹，网页按路径前缀切换、缺文件回退标准音——**无需额外 manifest**：
+换不同声音朗读（标准 / 播音 / 性感 …）。每个声音生成到自己的文件夹，网页按路径前缀切换、缺文件回退标准音——**无需额外 manifest**。一次 `--voice-dir` 即生成该音色的**全套**（课文/单词/例句/五十音），所以**切换音色后整站发音都会变**（场景对话按角色固定配音，不跟随）：
 
 ```
-python3 tools/gen_audio.py --voice-dir no7-anno  --speaker 30 --no-ex   # 播音风格
-python3 tools/gen_audio.py --voice-dir metan-sexy --speaker 4  --no-ex   # 性感风格
+python3 tools/gen_audio.py --voice-dir no7-anno   --speaker 30   # 播音风格
+python3 tools/gen_audio.py --voice-dir metan-sexy --speaker 4    # 性感风格
 # 想要更自然的声音：装 AivisSpeech（同款 API，端口 10101），同样生成即可：
-VOICEVOX_URL=http://localhost:10101 python3 tools/gen_audio.py --voice-dir aivis --speaker <id> --no-ex
+VOICEVOX_URL=http://localhost:10101 python3 tools/gen_audio.py --voice-dir aivis --speaker <id>
 ```
 
-生成后在 `audio/voices.js` 注册（含 `name / tag / desc / prefix`），刷新即可在 ⚙ 里选择。`--no-ex` 跳过例句以省空间（例句自动回退标准音）。
+生成后在 `audio/voices.js` 注册（含 `name / tag / desc / prefix`），刷新即可在 ⚙ 里选择。每个备选音色现含完整 `kana/` 与 `ex/`（约数百~千个 MP3）——文件较多，可考虑 git-lfs。
+
+### 🥚 言霊 宠物 / AI 助手与 API 额度
+主页的 **言霊 宠物**（坚持学习它会成长）与右下角的 **AI 学习助手** 都用你自己的 Claude API Key（BYOK，仅存本机）。宠物的**日记 / 对话 / 学习后的一句话**各会发起一次便宜的 Claude(haiku) 调用；**练習(作文/场景)的 AI 出题与批改**也用同一个 Key。不填 Key 时全部回退到离线模板（仍可用，只是不那么丰富）。会消耗少量 API 额度，建议在 Anthropic 控制台设月度上限。
 
 ## 💾 进度备份 · Backup（⚙ 设置）
 
