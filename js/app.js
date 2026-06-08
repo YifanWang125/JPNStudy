@@ -29,7 +29,7 @@ let LANG = getLang();
 try{ window.LANG = LANG; }catch(e){}   // expose to modules (pet/exercises/gojuon read window.LANG)
 function setLang(l){ LANG=(l==="en"||l==="ja")?l:"zh"; try{ window.LANG=LANG; }catch(e){} try{ localStorage.setItem("jpn-lang", LANG); }catch(e){} }
 /* nav labels per language: [zh, en, ja] */
-const NAV_LABELS={ home:["主页","Home","ホーム"], daily:["每日","Daily","毎日"], general:["基础","Basics","基礎"], scenarios:["场景","Scenes","場面"], test:["测试","Tests","テスト"], notes:["笔记","Notes","ノート"] };
+const NAV_LABELS={ home:["主页","Home","ホーム"], daily:["每日","Daily","毎日"], general:["基础","Basics","基礎"], scenarios:["场景","Scenes","場面"], test:["测试","Tests","テスト"], produce:["产出","Output","アウトプット"], notes:["笔记","Notes","ノート"] };
 function applyLang(){
   const ix=LANG==="en"?1:(LANG==="ja"?2:0);
   document.querySelectorAll("#page-nav button").forEach(b=>{ const l=NAV_LABELS[b.dataset.p], s=b.querySelector(".pnl"); if(l&&s) s.textContent=" "+(l[ix]||l[0]); });
@@ -960,6 +960,7 @@ function showPage(p){
   $("#page-general").style.display = p==="general"?"block":"none";
   if($("#page-scenarios")) $("#page-scenarios").style.display = p==="scenarios"?"block":"none";
   $("#page-test").style.display = p==="test"?"block":"none";
+  if($("#page-produce")) $("#page-produce").style.display = p==="produce"?"block":"none";
   if($("#page-notes")) $("#page-notes").style.display = p==="notes"?"block":"none";
   $("#daily-controls").style.display = p==="daily"?"flex":"none";
   if(p!=="daily"){ $("#map-view").classList.remove("show"); $("#day-num").textContent=""; }
@@ -969,6 +970,7 @@ function showPage(p){
   else if(p==="general") renderGeneral();
   else if(p==="scenarios") renderScenarios();
   else if(p==="test") renderTestHome();
+  else if(p==="produce" && window.Produce) window.Produce.render();
   else if(p==="notes" && window.Notes) window.Notes.renderPage();
   if(window.Assistant && window.Assistant.refreshCtx) window.Assistant.refreshCtx();  // R3-2: keep AI panel ctx fresh
   if(window.Pet){ Pet.showRail(p==="home"); Pet.onPageVisit(p); }   // pet may hop in to cheer / be found
@@ -1187,7 +1189,7 @@ function openSettings(){
 }
 function closeSettings(){ const ov=$("#modal-overlay"); ov.style.display="none"; ov.innerHTML=""; }
 function exportProgress(){
-  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name","jpn-notes","jpn-pet","jpn-rate","jpn-test-log","jpn-pron-log","jpn-exercise-log"];
+  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name","jpn-notes","jpn-pet","jpn-rate","jpn-test-log","jpn-pron-log","jpn-exercise-log","jpn-produce-log"];
   const out={ _app:"jpn-n4-n2", _exported:new Date().toISOString(), data:{} };
   keys.forEach(k=>{ const v=localStorage.getItem(k); if(v!==null) out.data[k]=v; });
   const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});

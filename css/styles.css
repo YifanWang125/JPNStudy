@@ -961,6 +961,28 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .ex-fb.model{background:var(--panel);border:1px solid var(--line);color:var(--ink-dim)}
 .ex-tip{color:var(--ink-dim);font-size:.85rem}
 
+/* ============== 🗣️ 产出 / OUTPUT (production gym — produce.js) ============== */
+.pr-nokey{font-size:.85rem;color:var(--accent-2);margin-top:6px}
+.pr-tabs{display:flex;gap:8px;margin:16px 0 4px;flex-wrap:wrap}
+.pr-tab{font-family:var(--sans-jp);font-size:.95rem;padding:8px 16px;border:1px solid var(--line);border-radius:999px;background:var(--panel-2);color:var(--ink-dim);cursor:pointer}
+.pr-tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pr-body{margin-top:10px}
+.pr-bar{display:flex;justify-content:flex-end;margin-bottom:10px}
+.pr-new{font-family:var(--sans-jp);font-size:.85rem;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 13px;color:var(--ink-dim);cursor:pointer}
+.pr-new:hover{border-color:var(--accent);color:var(--ink)}
+.pr-model-line{font-family:var(--serif-jp);font-size:1.04rem;background:var(--panel);border-left:3px solid var(--accent-2);border-radius:6px;padding:7px 11px;margin:4px 0 8px;color:var(--ink)}
+.pr-hint{font-size:.84rem;color:var(--ink-dim);margin:4px 0 8px;line-height:1.6}
+.pr-bigta{min-height:140px;line-height:1.95}
+.pr-prompt{font-family:var(--serif-jp);font-size:1.4rem;color:var(--jp);line-height:1.8;margin:4px 0 2px}
+.pr-prompt-zh{font-size:.92rem;color:var(--zh);margin-bottom:10px}
+.pr-note{font-size:.82rem;color:var(--ink-dim);background:var(--panel);border-radius:8px;padding:8px 11px;margin:8px 0;line-height:1.6}
+.pr-mic{font-family:var(--sans-jp);font-size:1rem;background:var(--accent);color:#fff;border:none;border-radius:999px;padding:11px 22px;cursor:pointer;margin:4px 0}
+.pr-mic:hover{filter:brightness(1.08)}
+.pr-mic.rec{background:#c0392b;animation:pr-pulse 1s ease-in-out infinite}
+@keyframes pr-pulse{50%{opacity:.55}}
+.pr-status{font-size:.85rem;color:var(--ink-dim);margin:7px 0;min-height:1.1em}
+.pr-good{color:var(--accent-2);font-weight:600;margin-bottom:5px}
+
 /* ============================== 🥚 STUDY PET ============================== */
 :root{ --pixel:'DotGothic16','Noto Sans JP',monospace; }
 /* first-time 言霊 world intro (cinematic, staged) */
