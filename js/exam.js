@@ -146,5 +146,71 @@
     </div>`;
   }
 
-  window.Exam={ guideHTML, buildMock, scoreMock, resultHTML };
+  /* ---------- 官方样题 (real Japan Foundation/JEES samples — LINKED, not copied) ---------- */
+  const OBASE="https://www.jlpt.jp/samples/sample2018/";
+  const OFFICIAL={
+    test:[["文字・語彙","Vocabulary","pdf/N2V.pdf"],["文法","Grammar","pdf/N2G.pdf"],["読解","Reading","pdf/N2R.pdf"],["聴解（問題冊子）","Listening booklet","pdf/N2L.pdf"]],
+    audio:[["問題1 課題理解","Q1 Task-based","mp3/N2Q1.mp3"],["問題2 ポイント理解","Q2 Point","mp3/N2Q2.mp3"],["問題3 概要理解","Q3 Gist","mp3/N2Q3.mp3"],["問題4 即時応答","Q4 Quick response","mp3/N2Q4.mp3"],["問題5 統合理解","Q5 Integrated","mp3/N2Q5.mp3"]],
+    doc:[["解答","Answer key","pdf/N2answer.pdf"],["聴解スクリプト","Listening transcript","pdf/N2script.pdf"],["解答用紙","Answer sheet","pdf/N2sheet.pdf"]]
+  };
+  const lk=arr=>arr.map(([ja,en,p])=>`<a class="of-link" href="${OBASE}${p}" target="_blank" rel="noopener">📎 ${esc(ja)} <span class="of-en">${esc(en)}</span> <span class="of-ext">↗</span></a>`).join("");
+  function officialHTML(){
+    return `<div class="exam-guide">
+      <button class="exam-back" id="exam-back">← ${T("返回考试中心","Back to Exam Center")}</button>
+      <h1>📚 ${T("官方样题（JLPT 公式）","Official Samples (JLPT)")}</h1>
+      <p class="exam-lead">${T("这些是 JLPT 官方（国际交流基金・日本国际教育支援协会）免费公开的 N2 样题——<b>最接近真题</b>，而且<b>有真实听力音频</b>。强烈建议<b>限时、按真实流程</b>整套做一遍。","Official free N2 samples from the Japan Foundation & JEES — the <b>closest thing to the real exam</b>, with <b>real listening audio</b>. Do the full set under <b>timed, exam-like conditions</b>.")}</p>
+      <section class="exam-sec"><h2>📄 ${T("试题册","Test booklets")}</h2><div class="of-grid">${lk(OFFICIAL.test)}</div></section>
+      <section class="exam-sec"><h2>🎧 ${T("听力音频（真实！）","Listening audio (real!)")}</h2><div class="of-grid">${lk(OFFICIAL.audio)}</div>
+        <p class="exam-note">${T("配合上面的「聴解（問題冊子）」边听边做；这是练听力最真实的材料，每天都该碰。做完用下面的「听力脚本」核对。","Play these with the Listening booklet above — the most authentic listening material; touch it daily. Check yourself afterward with the transcript below.")}</p></section>
+      <section class="exam-sec"><h2>✅ ${T("解答・脚本・答题纸","Answers · transcript · answer sheet")}</h2><div class="of-grid">${lk(OFFICIAL.doc)}</div></section>
+      <p class="exam-note">© ${T("国際交流基金・日本国際教育支援協会。以上是官方公开样题的链接（新窗口打开），本站不复制其内容。","The Japan Foundation & JEES. Links to the official public samples (open in a new tab); this site does not copy their content.")}</p>
+      <button class="exam-back" id="exam-back2">← ${T("返回考试中心","Back to Exam Center")}</button>
+    </div>`;
+  }
+
+  /* ---------- AI 出题: expand the mock toward full written length (~74 Q, real structure) ---------- */
+  const AI_KEY="jpn-mock-ai";
+  const MOCK_TARGET={ "語彙":32, "文法":24, "読解":18 };   // real N2 written length; listening practiced via official audio
+  function aiOn(){ return !!(window.Assistant&&window.Assistant.hasKey&&window.Assistant.hasKey()); }
+  function aiCache(){ try{ return JSON.parse(localStorage.getItem(AI_KEY)||"null")||{items:[]}; }catch(e){ return {items:[]}; } }
+  function aiCount(){ return (aiCache().items||[]).length; }
+  function authoredByCat(){ const m={}; tests().forEach(t=>(t.questions||[]).forEach(q=>{ (m[q.cat]=m[q.cat]||[]).push(q); })); return m; }
+  async function generateAI(onProgress){
+    if(!aiOn()) return 0;
+    const have=authoredByCat();
+    const need=[
+      {cat:"語彙", n:Math.max(6, MOCK_TARGET["語彙"]-((have["語彙"]||[]).length)),
+        sys:`あなたは JLPT N2 の作問者。中国語母語の学習者向けに、文字・語彙の問題を作る。漢字には必ず「漢字[かな]」でふりがな。選択肢はちょうど4つ、答えは0〜3の番号。自然で正確な日本語のみ。`,
+        usr:n=>`N2 の文字・語彙問題を ${n} 問。漢字読み／文脈規定／言い換え類義 を混ぜる。JSON配列だけ出力（前後に説明やコードブロックを書かない）: [{"q":"問題文（ふりがな付き、空所は ＿＿）","options":["..","..","..",".."],"answer":0,"point":"短い解説(中国語可)"}]`},
+      {cat:"読解", n:Math.max(6, MOCK_TARGET["読解"]-((have["読解"]||[]).length)),
+        sys:`あなたは JLPT N2 の作問者。短文読解（100〜200字の本文＋設問）を作る。漢字には「漢字[かな]」でふりがな。選択肢4つ、答えは0〜3。自然で正確な日本語のみ。`,
+        usr:n=>`N2 の短文読解を ${n} 問。各問は本文と設問を q にまとめる（本文の後に改行 \\n を入れて「問：…」）。JSON配列だけ: [{"q":"本文…\\n問：…","options":["..","..","..",".."],"answer":0,"point":"読解"}]`}
+    ];
+    let made=0; const out=[];
+    for(const b of need){ if(b.n<=0) continue; if(onProgress) onProgress(b.cat);
+      try{
+        const txt=await window.Assistant.complete({system:b.sys, messages:[{role:"user",content:b.usr(b.n)}], max_tokens:3200});
+        const m=String(txt).match(/\[[\s\S]*\]/);
+        if(m) JSON.parse(m[0]).forEach(q=>{
+          if(q && typeof q.q==="string" && Array.isArray(q.options) && q.options.length===4 && typeof q.answer==="number" && q.answer>=0 && q.answer<4){
+            out.push({q:q.q, options:q.options, answer:q.answer, cat:b.cat, point:q.point||b.cat, day:0, explain:q.point||"", _ai:true}); made++;
+          }
+        });
+      }catch(e){}
+    }
+    if(out.length){ const prev=aiCache().items||[]; try{ localStorage.setItem(AI_KEY, JSON.stringify({items:prev.concat(out)})); }catch(e){} }
+    return made;
+  }
+  // mock builder: authored + cached-AI, in real section order, capped to the target counts
+  function buildFullMock(){
+    const have=authoredByCat(), ai=aiCache().items||[]; const aiByCat={};
+    ai.forEach(q=>{ (aiByCat[q.cat]=aiByCat[q.cat]||[]).push(q); });
+    const qs=[];
+    ["語彙","文法","読解"].forEach(cat=>{ const pool=(have[cat]||[]).concat(aiByCat[cat]||[]); const t=MOCK_TARGET[cat]||pool.length; pool.slice(0,t).forEach(q=>qs.push(q)); });
+    return { id:"mock", isMock:true, full:true, timeMin:105,
+      title:T(`🎯 完整模拟考 · ${qs.length}题`,`🎯 Full Mock · ${qs.length} Q`),
+      questions:qs };
+  }
+
+  window.Exam={ guideHTML, officialHTML, buildMock, buildFullMock, scoreMock, resultHTML, generateAI, aiCount };
 })();

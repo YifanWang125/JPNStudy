@@ -1398,12 +1398,15 @@ function renderTestHome(){
   if(TEST&&TEST.interval) clearInterval(TEST.interval);
   TEST=null;
   const c=$("#page-test"); const best=loadTestBest();
-  const mb=best["mock"];
-  let html=`<div class="test-intro"><h1>${T("📝 N2 考试中心","📝 N2 Exam Center")}</h1><p>${T("先「考前指导」把考试吃透，再用「完整模拟考」按真实结构＋JLPT 计分练手。下面的周测可作日常快速诊断。","First read the Guide to learn the exam cold, then drill the Full Mock (real structure + JLPT-style scoring). The weekly sets below are quick daily diagnostics.")}</p></div>
+  const mb=best["mock"], aiN=(window.Exam&&Exam.aiCount)?Exam.aiCount():0;
+  const aiKey=!!(window.Assistant&&window.Assistant.hasKey&&window.Assistant.hasKey());
+  let html=`<div class="test-intro"><h1>${T("📝 N2 考试中心","📝 N2 Exam Center")}</h1><p>${T("「考前指导」把考试吃透；「完整模拟考」按真实结构＋JLPT 计分练笔试；「官方样题」是最接近真题的官方材料（含真实听力音频）。下面的周测可日常快速诊断。","Read the Guide; drill the Full Mock (real structure + JLPT scoring, written part); use Official Samples — the most authentic material, with real listening audio. Weekly sets below are quick diagnostics.")}</p></div>
     <div class="exam-hub">
-      <button class="exam-hub-card guide" id="exam-go-guide"><span class="ehc-ico">📋</span><span class="ehc-tt">${T("考前指导","Exam Guide")}</span><span class="ehc-d">${T("结构 / 时间 / 评分 / 合格线 / 应试技巧 / 当天流程","structure · timing · scoring · pass line · tactics · day-of")}</span></button>
-      <button class="exam-hub-card mock" id="exam-go-mock"><span class="ehc-ico">🎯</span><span class="ehc-tt">${T("完整模拟考 · 105分","Full Mock · 105 min")}</span><span class="ehc-d">${T("真实题型顺序 ＋ JLPT 计分估算（各科 /60 ≥19；总分 ≥90）","real section order + JLPT score (each /60 ≥19; total ≥90)")}${mb?` · ${T("上次","last")} ${mb.score}/${mb.total}`:""}</span></button>
+      <button class="exam-hub-card guide" id="exam-go-guide"><span class="ehc-ico">📋</span><span class="ehc-tt">${T("考前指导","Exam Guide")}</span><span class="ehc-d">${T("结构 / 时间 / 评分 / 合格线 / 应试技巧 / 当天流程","structure · timing · scoring · pass · tactics · day-of")}</span></button>
+      <button class="exam-hub-card mock" id="exam-go-mock"><span class="ehc-ico">🎯</span><span class="ehc-tt">${T("完整模拟考","Full Mock")}</span><span class="ehc-d">${T("真实题型顺序 ＋ JLPT 计分（笔试部分，不含听力）","real section order + JLPT score (written part; no listening)")}${mb?` · ${T("最佳","best")} ${mb.score}/${mb.total}`:""}${aiN?` · ✨${T("已扩充","+AI")} ${aiN}`:""}</span></button>
+      <button class="exam-hub-card official" id="exam-go-official"><span class="ehc-ico">📚</span><span class="ehc-tt">${T("官方样题","Official Samples")}</span><span class="ehc-d">${T("JLPT 官网免费样题 · 含真实听力音频","Official JLPT samples · real listening audio")}</span></button>
     </div>
+    <div class="exam-aiexpand">${aiKey?`<button id="exam-ai-gen">✨ ${T("用 AI 把模拟卷扩充到完整长度","Expand the mock to full length with AI")}</button><span id="exam-ai-stat" class="exam-ai-stat"></span>`:`<span class="exam-ai-stat">${T("💡 在 ⚙ 填入 Claude Key，即可用 AI 把模拟卷扩充到完整长度（生成更多新题）。","💡 Add a Claude key in ⚙ to expand the mock to full length with AI-generated questions.")}</span>`}</div>
     <h2 class="test-sub">${T("📝 周测 · 快速练习","📝 Weekly sets · quick practice")}</h2>
     <div class="test-grid">`;
   TESTS.forEach(t=>{
@@ -1420,12 +1423,28 @@ function renderTestHome(){
   html+=`</div>`;
   c.innerHTML=html;
   if($("#exam-go-guide")) $("#exam-go-guide").onclick=()=>renderExamGuide();
-  if($("#exam-go-mock")) $("#exam-go-mock").onclick=()=>{ if(window.Exam) startTest(Exam.buildMock()); };
+  if($("#exam-go-mock")) $("#exam-go-mock").onclick=()=>{ if(window.Exam) startTest(Exam.buildFullMock()); };
+  if($("#exam-go-official")) $("#exam-go-official").onclick=()=>renderExamOfficial();
+  const gen=$("#exam-ai-gen");
+  if(gen) gen.onclick=async()=>{
+    if(!window.Exam||!Exam.generateAI) return; gen.disabled=true; const st=$("#exam-ai-stat");
+    if(st) st.textContent=T("AI 出题中…（约 1 分钟）","AI is writing questions… (~1 min)");
+    try{ const n=await Exam.generateAI(cat=>{ if(st) st.textContent=T("正在生成：","Generating: ")+cat+"…"; });
+      if(st) st.textContent=n?("✓ "+T("已新增","Added ")+n+T(" 题，模拟卷已扩充","Q — mock expanded")):T("（这次没生成成功，请重试）","(nothing generated — try again)");
+    }catch(e){ if(st) st.textContent=T("（生成失败）","(generation failed)"); }
+    gen.disabled=false; setTimeout(()=>{ if(STATE.page==="test") renderTestHome(); },1600);
+  };
   c.querySelectorAll(".test-card").forEach(card=>card.onclick=()=>startTest(parseInt(card.dataset.id,10)));
 }
 function renderExamGuide(){
   const c=$("#page-test"); if(!window.Exam) return;
   c.innerHTML=Exam.guideHTML();
+  c.querySelectorAll("#exam-back,#exam-back2").forEach(b=>b.onclick=()=>renderTestHome());
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function renderExamOfficial(){
+  const c=$("#page-test"); if(!window.Exam) return;
+  c.innerHTML=Exam.officialHTML();
   c.querySelectorAll("#exam-back,#exam-back2").forEach(b=>b.onclick=()=>renderTestHome());
   window.scrollTo({top:0,behavior:"smooth"});
 }
