@@ -252,3 +252,22 @@
 > **给机构演示的"必修最小集"**：H1(XSS) + H2(设置/AI 面板中文，机构切日/英很扎眼) + G(课文讲解 ja) + H3(产出不喂宠物)。其余 H4–H12 紧随其后。
 > 提醒：协作里出现过的 Azure key 记得轮换。
 > 本轮 audit 已并入（D 段）。这是交付前的完整清单。
+
+---
+
+## ✅ DONE — build round z18 (2026-06-05)
+- **G ✓** 全部修复：ja 模式课文讲解/词义/拆解/扩展/基础页表格/场景小标题/测试分类、produce promptZh、pet 日记译文/langName/pageLabel —— `LANG==="en"` → `LANG!=="zh"`。实测 ja 模式 Day1 昼：语法精讲、词义均为英文。**朋友反馈已解决。**
+- **H1 ✓** 加 `escAttr()`（esc + 转义引号），用于：笔记标题/标签/搜索框、断链 `data-newtitle`（并 esc 其可见文本）、设置名字框、AI 🔊 `data-t`。实测 `escAttr('a" onmouseover=…')` 引号被中和。
+- **H3 ✓** `progressXP()` 现计入 `jpn-produce-log` → 产出(说/写)练习正常喂养宠物。
+- **H4 ✓** showPage 离开未提交的测试时 `clearInterval(TEST.interval)+TEST=null`（不再后台自动交卷）。实测离开后 TEST=null。
+- **H5 ✓**（阶段）只升不降：`if(ord.indexOf(ns)>ord.indexOf(p.stage)){…}`。（H5a XP 可刷=累加，未改，进度加权已以 best 为主导，影响小。）
+- **H8 ✓** 五十音测验 `を` 接受 `o`（KUNREI 加 `o:"wo"`）。
+- **H9 ✓** roaming 覆盖全部 5 个学习页（`*STUDY_PAGES.length`）。
+- **H10 ✓** produce 语音输入防重入（`SR_ACTIVE` 守卫 + 录音时禁用按钮）。
+- 0 console 报错；cache z18。A(C1–C3)/D/E/F/B 经核实上轮已完成。
+
+## ⏳ REMAINING（按价值排序，已向作者说明）
+- **H2**【大件】设置弹窗 + AI 助手设置面板 + glossary 词典 的整体 i18n（en/ja 下仍中文）+ `GLOSSARY[].def` 补 en/ja。量大，建议单独一轮专做。
+- **H6 / E-补**【需 VOICEVOX + 体积决策】6 个备选音色重生成补齐（vocab/ex/kana 新词条）；`audio/voices/*` 走 .gitignore 或 git-lfs。
+- **H7**【精细】发音录制异步落错句 → 录音起始把 key 固定进 `PRON.pending.key`。（动 R2-2 状态机，谨慎。）
+- **H5a**（XP 可刷）/ **H11**（导入文案/重应用 LANG·theme）/ **H12**（每天 sourceEn 缺）/ **F4b 附带**（AI 回答语言跟随系统语言，产品取舍）。
