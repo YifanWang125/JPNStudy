@@ -1404,6 +1404,7 @@ function renderTestHome(){
     <div class="exam-hub">
       <button class="exam-hub-card guide" id="exam-go-guide"><span class="ehc-ico">📋</span><span class="ehc-tt">${T("考前指导","Exam Guide")}</span><span class="ehc-d">${T("结构 / 时间 / 评分 / 合格线 / 应试技巧 / 当天流程","structure · timing · scoring · pass · tactics · day-of")}</span></button>
       <button class="exam-hub-card mock" id="exam-go-mock"><span class="ehc-ico">🎯</span><span class="ehc-tt">${T("完整模拟考","Full Mock")}</span><span class="ehc-d">${T("真实题型顺序 ＋ JLPT 计分（笔试部分，不含听力）","real section order + JLPT score (written part; no listening)")}${mb?` · ${T("最佳","best")} ${mb.score}/${mb.total}`:""}${aiN?` · ✨${T("已扩充","+AI")} ${aiN}`:""}</span></button>
+      <button class="exam-hub-card listen" id="exam-go-listen"><span class="ehc-ico">🎧</span><span class="ehc-tt">${T("听力练习","Listening")}</span><span class="ehc-d">${T("真人配音短对话 ＋ 选择 ＋ 脚本（站内练习）","voiced short dialogues + MCQ + transcript (in-app)")}</span></button>
       <button class="exam-hub-card official" id="exam-go-official"><span class="ehc-ico">📚</span><span class="ehc-tt">${T("官方样题","Official Samples")}</span><span class="ehc-d">${T("JLPT 官网免费样题 · 含真实听力音频","Official JLPT samples · real listening audio")}</span></button>
     </div>
     <div class="exam-aiexpand">${aiKey?`<button id="exam-ai-gen">✨ ${T("用 AI 把模拟卷扩充到完整长度","Expand the mock to full length with AI")}</button><span id="exam-ai-stat" class="exam-ai-stat"></span>`:`<span class="exam-ai-stat">${T("💡 在 ⚙ 填入 Claude Key，即可用 AI 把模拟卷扩充到完整长度（生成更多新题）。","💡 Add a Claude key in ⚙ to expand the mock to full length with AI-generated questions.")}</span>`}</div>
@@ -1425,6 +1426,7 @@ function renderTestHome(){
   if($("#exam-go-guide")) $("#exam-go-guide").onclick=()=>renderExamGuide();
   if($("#exam-go-mock")) $("#exam-go-mock").onclick=()=>{ if(window.Exam) startTest(Exam.buildFullMock()); };
   if($("#exam-go-official")) $("#exam-go-official").onclick=()=>renderExamOfficial();
+  if($("#exam-go-listen")) $("#exam-go-listen").onclick=()=>renderExamListening();
   const gen=$("#exam-ai-gen");
   if(gen) gen.onclick=async()=>{
     if(!window.Exam||!Exam.generateAI) return; gen.disabled=true; const st=$("#exam-ai-stat");
@@ -1447,6 +1449,9 @@ function renderExamOfficial(){
   c.innerHTML=Exam.officialHTML();
   c.querySelectorAll("#exam-back,#exam-back2").forEach(b=>b.onclick=()=>renderTestHome());
   window.scrollTo({top:0,behavior:"smooth"});
+}
+function renderExamListening(){
+  const c=$("#page-test"); if(window.Exam&&Exam.renderListening) Exam.renderListening(c);
 }
 
 function shuffled(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }

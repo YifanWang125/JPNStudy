@@ -1700,5 +1700,18 @@
 15.38,
 23.415,
 30.782
-]
+],
+"listen_l1_0": "audio/listen/l1_0.mp3",
+"listen_l1_1": "audio/listen/l1_1.mp3",
+"listen_l1_2": "audio/listen/l1_2.mp3",
+"listen_l1_3": "audio/listen/l1_3.mp3",
+"listen_l2_0": "audio/listen/l2_0.mp3",
+"listen_l2_1": "audio/listen/l2_1.mp3",
+"listen_l3_0": "audio/listen/l3_0.mp3",
+"listen_l4_0": "audio/listen/l4_0.mp3",
+"listen_l5_0": "audio/listen/l5_0.mp3",
+"listen_l6_0": "audio/listen/l6_0.mp3",
+"listen_l6_1": "audio/listen/l6_1.mp3",
+"listen_l6_2": "audio/listen/l6_2.mp3",
+"listen_l6_3": "audio/listen/l6_3.mp3"
 }

@@ -996,6 +996,25 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .of-link:hover{border-color:var(--accent);background:var(--panel)}
 .of-en{color:var(--ink-faint);font-size:.82rem}
 .of-ext{margin-left:auto;color:var(--accent-2)}
+.exam-hub-card.listen{background:linear-gradient(135deg,rgba(112,72,232,.14),var(--panel-2))}
+/* listening practice items */
+.ls-item{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0}
+.ls-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ls-tag{font-size:.7rem;font-weight:700;color:#fff;background:#7048e8;border-radius:6px;padding:2px 8px}
+.ls-play{margin-left:auto;font-family:var(--sans-jp);font-size:.9rem;background:var(--accent);color:#fff;border:none;border-radius:999px;padding:7px 16px;cursor:pointer}
+.ls-play:hover{filter:brightness(1.08)}
+.ls-q{font-family:var(--serif-jp);font-size:1.05rem;line-height:1.8;margin:4px 0 8px}
+.ls-zh{display:block;font-size:.84rem;color:var(--zh)}
+.ls-opts{display:flex;flex-direction:column;gap:7px}
+.ls-opt{text-align:left;font-family:var(--serif-jp);font-size:1rem;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px 12px;cursor:pointer}
+.ls-opt:hover{border-color:var(--accent)}
+.ls-opt.correct{background:rgba(12,166,120,.16);border-color:var(--good,#0ca678)}
+.ls-opt.wrong{background:rgba(228,87,46,.12);border-color:var(--accent)}
+.ls-fb{margin-top:10px;font-size:.92rem;line-height:1.8}
+.ls-fb .ok{color:var(--good,#0ca678);font-weight:600} .ls-fb .no{color:var(--accent);font-weight:600}
+.ls-exp{color:var(--ink-dim);font-size:.86rem;margin:4px 0}
+.ls-script{background:var(--panel);border-radius:9px;padding:8px 12px;margin-top:8px;font-size:.92rem}
+.ls-line{line-height:1.9} .ls-line b{color:var(--accent-2);margin-right:6px}
 .exam-hub-card{text-align:left;border:1px solid var(--line);border-radius:14px;padding:18px;cursor:pointer;background:var(--panel-2);display:flex;flex-direction:column;gap:4px;transition:border-color .15s,transform .15s}
 .exam-hub-card:hover{border-color:var(--accent);transform:translateY(-2px)}
 .exam-hub-card.mock{background:linear-gradient(135deg,rgba(228,87,46,.16),var(--panel-2))}

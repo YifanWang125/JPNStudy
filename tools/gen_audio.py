@@ -45,6 +45,7 @@ DAILY      = os.path.join(ROOT, "js", "daily.js")
 REFER      = os.path.join(ROOT, "js", "reference.js")
 GOJUON     = os.path.join(ROOT, "js", "gojuon.js")
 PET_JS     = os.path.join(ROOT, "js", "pet.js")
+LISTENING  = os.path.join(ROOT, "js", "listening.js")
 AUDIO_DIR  = os.path.join(ROOT, "audio")
 VOCAB_DIR  = os.path.join(AUDIO_DIR, "vocab")
 MANIFEST   = os.path.join(AUDIO_DIR, "manifest.json")
@@ -73,6 +74,8 @@ ADULT_VOICE = {"c": (84, 0.82), "s": (17, 1.25)}   # 84 青山龍星/しっと�
 # (VOICEVOX's own pauses range ~0.8–1.1s and cluster unevenly → fast bits & slow bits).
 INTRO_VOICE = (16, 1.1)
 INTRO_PAUSE = 0.5
+# 🎧 listening practice — per-speaker voices (f女/m男), tempo-normalized like scenarios.
+LISTEN_VOICE = {"f": (16, 1.08), "m": (11, 0.80)}
 
 # ---- furigana / normalization (mirrors app.js toPlain + speechNorm) ----
 BRACKET = re.compile(r"\[[^\]]+\]")
@@ -166,6 +169,15 @@ def load_gojuon_words():
     except OSError:
         return []
     return re.findall(r'r:"([^"]+)"', src)
+
+def load_listening():
+    """聴解 items from js/listening.js (window.LISTENING = [...])."""
+    try:
+        src = open(LISTENING, encoding="utf-8").read()
+        src = src[src.rindex("window.LISTENING"):]     # the assignment (after the header comment, which also mentions it)
+        return json.loads(src[src.index("["): src.rindex("]") + 1])
+    except Exception:
+        return []
 
 def load_intro():
     """言霊 first-login intro narration — the jp:"…" lines inside `const INTRO=[…]` in pet.js."""
@@ -429,6 +441,14 @@ def main():
                     continue
                 h = hashlib.sha1(spoken.encode("utf-8")).hexdigest()[:12]
                 emit(f"x_{spoken}", jp, os.path.join(ex_d, f"{h}.{ext}"))
+        # 🎧 listening practice: per-line clips, per-speaker voice (key listen_<id>_<i>)
+        listen_d = os.path.join(base, "listen"); os.makedirs(listen_d, exist_ok=True)
+        for it in load_listening():
+            lid = it.get("id", "l")
+            for i, ln in enumerate(it.get("lines", [])):
+                spk, spd = LISTEN_VOICE.get(ln.get("sp"), (args.speaker, None))
+                emit(f"listen_{lid}_{i}", ln.get("jp", ""),
+                     os.path.join(listen_d, f"{lid}_{i}.{ext}"), speaker=spk, speed=spd)
         # 言霊 first-login intro narration — synthesized as ONE continuous passage
         # (key intro_all) so VOICEVOX phrases the whole thing like a real narrator,
         # not 5 disjoint clips stitched with gaps. intro_marks holds the start time

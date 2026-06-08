@@ -14,6 +14,7 @@
   "use strict";
   const T=(z,e)=>{ const L=window.LANG; if(L==="ja") return (e!=null&&window.JA_UI&&window.JA_UI[e]!=null)?window.JA_UI[e]:(e!=null?e:z); return (L==="en"&&e!=null)?e:z; };
   const tests=()=> (typeof TESTS!=="undefined"?TESTS:(window.TESTS||[]));
+  const ruby=s=>window.toRuby?window.toRuby(s):(typeof esc==="function"?esc(s):String(s==null?"":s));
 
   // ---- real N2 scoring model ----
   const PASS_TOTAL=90, PASS_SECTION=19, SECTION_MAX=60, TOTAL_MAX=180;
@@ -170,36 +171,44 @@
 
   /* ---------- AI 出题: expand the mock toward full written length (~74 Q, real structure) ---------- */
   const AI_KEY="jpn-mock-ai";
-  const MOCK_TARGET={ "語彙":32, "文法":24, "読解":18 };   // real N2 written length; listening practiced via official audio
+  const MOCK_TARGET={ "語彙":40, "文法":30, "読解":25 };   // ≈95 — full real-exam-length written mock (listening practiced separately)
   function aiOn(){ return !!(window.Assistant&&window.Assistant.hasKey&&window.Assistant.hasKey()); }
   function aiCache(){ try{ return JSON.parse(localStorage.getItem(AI_KEY)||"null")||{items:[]}; }catch(e){ return {items:[]}; } }
   function aiCount(){ return (aiCache().items||[]).length; }
   function authoredByCat(){ const m={}; tests().forEach(t=>(t.questions||[]).forEach(q=>{ (m[q.cat]=m[q.cat]||[]).push(q); })); return m; }
+  // fill the gap toward MOCK_TARGET across multiple batched Claude calls (one click → ~full mock)
   async function generateAI(onProgress){
     if(!aiOn()) return 0;
-    const have=authoredByCat();
-    const need=[
-      {cat:"語彙", n:Math.max(6, MOCK_TARGET["語彙"]-((have["語彙"]||[]).length)),
-        sys:`あなたは JLPT N2 の作問者。中国語母語の学習者向けに、文字・語彙の問題を作る。漢字には必ず「漢字[かな]」でふりがな。選択肢はちょうど4つ、答えは0〜3の番号。自然で正確な日本語のみ。`,
+    const have=authoredByCat(), cached=aiCache().items||[]; const cc={};
+    cached.forEach(q=>cc[q.cat]=(cc[q.cat]||0)+1);
+    const gap=cat=>Math.max(0,(MOCK_TARGET[cat]||0)-((have[cat]||[]).length)-(cc[cat]||0));
+    const specs={
+      "語彙":{ sys:`あなたは JLPT N2 の作問者。中国語母語の学習者向けに文字・語彙の問題を作る。漢字には必ず「漢字[かな]」でふりがな。選択肢はちょうど4つ、答えは0〜3の番号。自然で正確な日本語のみ。`,
         usr:n=>`N2 の文字・語彙問題を ${n} 問。漢字読み／文脈規定／言い換え類義 を混ぜる。JSON配列だけ出力（前後に説明やコードブロックを書かない）: [{"q":"問題文（ふりがな付き、空所は ＿＿）","options":["..","..","..",".."],"answer":0,"point":"短い解説(中国語可)"}]`},
-      {cat:"読解", n:Math.max(6, MOCK_TARGET["読解"]-((have["読解"]||[]).length)),
-        sys:`あなたは JLPT N2 の作問者。短文読解（100〜200字の本文＋設問）を作る。漢字には「漢字[かな]」でふりがな。選択肢4つ、答えは0〜3。自然で正確な日本語のみ。`,
+      "読解":{ sys:`あなたは JLPT N2 の作問者。短文読解（100〜200字の本文＋設問）を作る。漢字には「漢字[かな]」でふりがな。選択肢4つ、答えは0〜3。自然で正確な日本語のみ。`,
         usr:n=>`N2 の短文読解を ${n} 問。各問は本文と設問を q にまとめる（本文の後に改行 \\n を入れて「問：…」）。JSON配列だけ: [{"q":"本文…\\n問：…","options":["..","..","..",".."],"answer":0,"point":"読解"}]`}
-    ];
-    let made=0; const out=[];
-    for(const b of need){ if(b.n<=0) continue; if(onProgress) onProgress(b.cat);
-      try{
-        const txt=await window.Assistant.complete({system:b.sys, messages:[{role:"user",content:b.usr(b.n)}], max_tokens:3200});
-        const m=String(txt).match(/\[[\s\S]*\]/);
-        if(m) JSON.parse(m[0]).forEach(q=>{
-          if(q && typeof q.q==="string" && Array.isArray(q.options) && q.options.length===4 && typeof q.answer==="number" && q.answer>=0 && q.answer<4){
-            out.push({q:q.q, options:q.options, answer:q.answer, cat:b.cat, point:q.point||b.cat, day:0, explain:q.point||"", _ai:true}); made++;
-          }
-        });
-      }catch(e){}
+    };
+    const BATCH=10, MAXCALLS=10; let calls=0; const out=[];
+    for(const cat of ["語彙","読解"]){
+      let need=gap(cat); const sp=specs[cat];
+      while(need>0 && calls<MAXCALLS){
+        const n=Math.min(BATCH,need); calls++;
+        if(onProgress) onProgress(cat+" +"+n);
+        let got=0;
+        try{
+          const txt=await window.Assistant.complete({system:sp.sys, messages:[{role:"user",content:sp.usr(n)}], max_tokens:3400});
+          const m=String(txt).match(/\[[\s\S]*\]/);
+          if(m) JSON.parse(m[0]).forEach(q=>{
+            if(q && typeof q.q==="string" && Array.isArray(q.options) && q.options.length===4 && typeof q.answer==="number" && q.answer>=0 && q.answer<4){
+              out.push({q:q.q, options:q.options, answer:q.answer, cat, point:q.point||cat, day:0, explain:q.point||"", _ai:true}); got++;
+            }
+          });
+        }catch(e){ break; }
+        need-=n; if(got===0) break;          // model gave nothing parseable → stop this category
+      }
     }
     if(out.length){ const prev=aiCache().items||[]; try{ localStorage.setItem(AI_KEY, JSON.stringify({items:prev.concat(out)})); }catch(e){} }
-    return made;
+    return out.length;
   }
   // mock builder: authored + cached-AI, in real section order, capped to the target counts
   function buildFullMock(){
@@ -212,5 +221,41 @@
       questions:qs };
   }
 
-  window.Exam={ guideHTML, officialHTML, buildMock, buildFullMock, scoreMock, resultHTML, generateAI, aiCount };
+  /* ---------- 🎧 听力练习 (in-app, VOICEVOX; plays line-by-line) ---------- */
+  const LTYPE={ "課題理解":["課題理解","Task"], "ポイント理解":["要点理解","Point"], "概要理解":["概要理解","Gist"], "即時応答":["即时应答","Quick response"] };
+  function renderListening(c){
+    const items=(window.LISTENING||[]);
+    if(!items.length){ c.innerHTML=`<div class="exam-guide"><button class="exam-back" id="exam-back">← ${T("返回考试中心","Back to Exam Center")}</button><p class="hc-empty">${T("听力内容尚未加载。","Listening content not loaded.")}</p></div>`;
+      c.querySelectorAll("#exam-back").forEach(b=>b.onclick=()=>window.renderTestHome&&renderTestHome()); return; }
+    let h=`<div class="exam-guide"><button class="exam-back" id="exam-back">← ${T("返回考试中心","Back to Exam Center")}</button>
+      <h1>🎧 ${T("听力练习","Listening Practice")}</h1>
+      <p class="exam-lead">${T("点 ▶ 听一段日语（真人 VOICEVOX 配音），再选答案；听不懂可重听，最后看脚本核对。想练真考听力，请用「官方样题」里的真实音频。","Tap ▶ to hear a clip (VOICEVOX voices), then answer; replay as needed, then check the transcript. For real-exam audio, use the Official Samples.")}</p>`;
+    items.forEach((it,qi)=>{
+      const tg=LTYPE[it.type]||[it.type,it.type];
+      h+=`<div class="ls-item" data-q="${qi}">
+        <div class="ls-head"><span class="ls-tag">${esc(T(tg[0],tg[1]))}</span><button class="ls-play" data-q="${qi}">▶ ${T("播放","Play")}</button></div>
+        <div class="ls-q">${ruby(it.q)}${(it.zh&&window.LANG==="zh")?`<span class="ls-zh">${esc(it.zh)}</span>`:""}</div>
+        <div class="ls-opts">${it.options.map((o,j)=>`<button class="ls-opt" data-q="${qi}" data-j="${j}">${"ABCD"[j]}. ${ruby(o)}</button>`).join("")}</div>
+        <div class="ls-fb" id="ls-fb-${qi}"></div></div>`;
+    });
+    h+=`<button class="exam-back" id="exam-back2">← ${T("返回考试中心","Back to Exam Center")}</button></div>`;
+    c.innerHTML=h;
+    c.querySelectorAll("#exam-back,#exam-back2").forEach(b=>b.onclick=()=>window.renderTestHome&&renderTestHome());
+    c.querySelectorAll(".ls-play").forEach(b=>b.onclick=()=>{ const it=items[+b.dataset.q]; if(!it||!window.speakSequence) return;
+      window.speakSequence(it.lines.map((ln,i)=>({text:ln.jp, node:null, audioKey:`listen_${it.id}_${i}`}))); });
+    c.querySelectorAll(".ls-opt").forEach(b=>b.onclick=()=>{
+      const qi=+b.dataset.q, j=+b.dataset.j, it=items[qi], wrap=c.querySelector(`.ls-item[data-q="${qi}"]`);
+      if(wrap.dataset.done) return; wrap.dataset.done="1";
+      wrap.querySelectorAll(".ls-opt").forEach(o=>{ const oj=+o.dataset.j; if(oj===it.answer) o.classList.add("correct"); else if(oj===j) o.classList.add("wrong"); });
+      const script=it.lines.map(ln=>`<div class="ls-line"><b>${ln.sp==="f"?"A":"B"}</b> ${ruby(ln.jp)}</div>`).join("");
+      document.getElementById("ls-fb-"+qi).innerHTML=
+        `<div class="${j===it.answer?'ok':'no'}">${j===it.answer?"⭕ "+T("正解！","Correct!"):"✗ "+T("正解は","Answer:")+" "+"ABCD"[it.answer]}</div>`+
+        `${(it.explain&&window.LANG==="zh")?`<div class="ls-exp">${esc(it.explain)}</div>`:""}`+
+        `<div class="ls-script"><b>${T("脚本","Transcript")}：</b>${script}</div>`;
+      try{ if(window.Pet) Pet.onStudy(); }catch(e){}
+    });
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  window.Exam={ guideHTML, officialHTML, buildMock, buildFullMock, scoreMock, resultHTML, generateAI, aiCount, renderListening };
 })();
