@@ -161,7 +161,7 @@ ${courseIndex()}`;
     // by default. Hide the button when TTS is off so it's never a dead button. (R5 F3b)
     if(typeof ttsFallbackOn==="function" && !ttsFallbackOn()) return "";
     const t=jaText(full); if(!t) return "";
-    return `<button class="ai-speak" data-t="${esc(t)}" title="${T('朗读答案中的日语','Read the Japanese aloud')}">🔊 ${T('读日语','Read aloud')}</button>`;
+    return `<button class="ai-speak" data-t="${escAttr(t)}" title="${T('朗读答案中的日语','Read the Japanese aloud')}">🔊 ${T('读日语','Read aloud')}</button>`;
   }
 
   /* ---------------- UI ---------------- */

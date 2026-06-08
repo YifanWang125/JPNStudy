@@ -113,7 +113,8 @@
   }
   // accept both Hepburn (shi/chi/tsu/fu/ji…) and kunrei-shiki (si/ti/tu/hu/zi…) input (D4)
   const KUNREI={si:"shi",ti:"chi",tu:"tsu",hu:"fu",zi:"ji",di:"ji",du:"zu",
-    sya:"sha",syu:"shu",syo:"sho",tya:"cha",tyu:"chu",tyo:"cho",zya:"ja",zyu:"ju",zyo:"jo"};
+    sya:"sha",syu:"shu",syo:"sho",tya:"cha",tyu:"chu",tyo:"cho",zya:"ja",zyu:"ju",zyo:"jo",
+    o:"wo"};   // H8: を is keyed "wo"; accept the modern reading "o" too
   function checkQ(v){
     const c=quiz.cur, fb=document.getElementById("gj-qfb"); if(!c||!fb) return;
     const v2=(v||"").trim().toLowerCase().replace(/[^a-z]/g,"");

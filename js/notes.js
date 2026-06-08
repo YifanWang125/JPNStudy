@@ -90,8 +90,8 @@
         return `<a class="note-clink" data-cid="${id}">📎 ${text}</a>${first}`;
       }
       const id=titleToId(target); const text=label||target;
-      return id ? `<a class="note-nlink" data-nid="${id}">🔗 ${text}</a>`
-                : `<a class="note-broken" data-newtitle="${target}">🔗 ${text}</a>`;
+      return id ? `<a class="note-nlink" data-nid="${escAttr(id)}">🔗 ${esc(text)}</a>`
+                : `<a class="note-broken" data-newtitle="${escAttr(target)}">🔗 ${esc(text)}</a>`;
     });
     s=s.replace(/`([^`]+)`/g,(m,a)=>`<code>${a}</code>`);
     s=s.replace(/\*\*([^*\n]+)\*\*/g,"<b>$1</b>");
@@ -133,7 +133,7 @@
       </div>
       <p class="np-intro">${T("这里是你的<b>笔记库</b>（正式笔记），区别于课程大纲。用 <code>[[标题]]</code> 链接其它笔记，用「关联课程」把笔记接回某一课，并能溯源到知识点最早出现的那天。<br>💡 想<b>随手记</b>？用右下角 <b>🗒️ 速记本</b>（自动保存草稿），整理好按「保存为 Section」就会出现在这里。AI 问答也能一键存成笔记。","This is your <b>note library</b> (formal notes), separate from the syllabus. Use <code>[[Title]]</code> to link notes, use \"Link to lesson\" to tie a note back to a day, and trace a point back to where it first appeared.<br>💡 Want to <b>jot quickly</b>? Use the <b>🗒️ Quick notes</b> button (bottom-right; auto-saves a draft); press \"Save as Section\" and it shows up here. AI answers can be saved as notes too.")}</p>
       <div class="np-bar">
-        <input id="np-q" placeholder="${T("🔍 搜索标题 / 正文 / 标签","🔍 Search title / body / tags")}" value="${esc(N.q)}">
+        <input id="np-q" placeholder="${T("🔍 搜索标题 / 正文 / 标签","🔍 Search title / body / tags")}" value="${escAttr(N.q)}">
         <select id="np-filter">
           <option value="all"${N.filter==="all"?" selected":""}>${T("全部","All")}</option>
           <option value="manual"${N.filter==="manual"?" selected":""}>${T("✍️ 手写","✍️ Notes")}</option>
@@ -158,10 +158,10 @@
     return `<div class="np-detail">
       <div class="np-dhead"><button id="np-back">${T("← 返回","← Back")}</button>${badge(n)}<div class="np-dactions"><span class="np-autosave" id="np-autosave">${T("自动保存","Auto-saved")}</span><button id="np-del" class="np-danger">${T("删除","Delete")}</button><button id="np-save" class="primary">${T("完成","Done")}</button></div></div>
       ${prov}
-      <input id="np-title" class="np-title" placeholder="${T("标题…","Title…")}" value="${esc(n.title||"")}">
+      <input id="np-title" class="np-title" placeholder="${T("标题…","Title…")}" value="${escAttr(n.title||"")}">
       <div class="np-toolbar">
         <select id="np-course">${courseOptions()}</select>
-        <input id="np-tags" class="np-tags-in" placeholder="${T("标签，逗号分隔（如 语法, 音便）","Tags, comma-separated (e.g. grammar, onbin)")}" value="${esc((n.tags||[]).join(", "))}">
+        <input id="np-tags" class="np-tags-in" placeholder="${T("标签，逗号分隔（如 语法, 音便）","Tags, comma-separated (e.g. grammar, onbin)")}" value="${escAttr((n.tags||[]).join(", "))}">
       </div>
       <textarea id="np-body" class="np-body" placeholder="${T("写下你的理解…&#10;支持 **加粗**、- 列表、漢字[かな] 振假名。&#10;[[另一条笔记的标题]] 链接笔记；用上面「关联课程」插入课程链接。","Write your understanding…&#10;Supports **bold**, - lists, 漢字[かな] furigana.&#10;[[Another note title]] links notes; use \"Link to lesson\" above to insert a lesson link.")}">${esc(n.body||"")}</textarea>
       <div class="np-prevwrap"><div class="np-prevlabel">${T("预览","Preview")}</div><div class="np-preview" id="np-preview">${renderBody(n.body)}</div></div>

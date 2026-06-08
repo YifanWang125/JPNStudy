@@ -186,6 +186,69 @@
 
 ---
 
-> 顺序：A(内容 C1–C3) + D1(语言) + E(音色全局) + F3a/F3b/F3c(静音发声) + F4b(AI面板语言) 先做 → 宣布稳定版本 → B1 动画 + B3 布局 → B2 护栏 + B4/B5 → D2/D3 + F3d/F3e/F4b-附带 + C/D4 杂项。
+---
+
+## G.【高优先·朋友反馈复现】日文(ja)模式下，部分"课文讲解"仍显示中文
+**复现确认**（实测，非推测）：系统语言切到 **日本語** 时，同一条语法精讲——英文模式显示 *"Both give a reason. から is subjective…"*，日文模式却显示 **中文** *"两者都表原因。「から」主观…"*。词义、扩展学习同样如此。这正是朋友说的"课文讲解语言没随之替换"。
+
+**根因（已定位，单一模式问题）**：英文**数据是齐全的**（实测 30 天的 grammarEn/exp、例句、会话、reflect、extended、vocab、paragraph **0 缺失**）。问题纯在**渲染分支**：有些字段写成 `LANG==="en" ? 英文 : 中文`（二选一，en-vs-中文），是在加入"日本語"语言**之前**写的、之后没更新。于是 **ja 模式落到中文分支**。其余正确的地方都用 `zhen(zh,en)`（en/ja 都取英文）或 `LANG!=="zh"`——把这些 buggy 分支改成同样逻辑即可。
+
+**逐条修（把 `LANG==="en"` → `LANG!=="zh"`，或改用 `zhen()`）：**
+- 课文（HIGH，朋友所见）：
+  - `js/app.js:699` 语法精讲 exp：`LANG==="en"&&ge.exp ? …` → `LANG!=="zh"&&ge.exp ? esc(ge.exp) : linkTerms(g.zh)`
+  - `js/app.js:688` 词义 vc-mean：`LANG==="en" ? vocabEn… : zh` → `LANG!=="zh" ? (E.vocabEn&&E.vocabEn[v.w]||v.en||v.zh) : …`
+  - `js/app.js:712` 扩展学习 items：`LANG==="en"&&extEn[i] ? …` → `LANG!=="zh"&&(E.extEn||[])[i] ? …`
+  - `js/app.js:689` 词汇「拆解」部件释义 p.m：`LANG==="en"?(POS_EN[p.m]||p.m):p.m` → ja 也用英文（部件释义目前无独立英文数据，可至少用 POS_EN 映射，或补 partsEn；低于上面三条）。
+- 其它页（MED/LOW）：
+  - `js/app.js:1235` 基础页**表格** head/rows：`LANG==="en"&&e.head?…:b.head` → `LANG!=="zh"&&…`（否则 ja 下所有参考表格的中文列/表头仍是中文）。
+  - `js/produce.js:76` `promptZh`：`window.LANG==="en"?…:it.zh` → 含 ja（口语题副标题在 ja 下仍中文）。
+  - `js/app.js:1051` 主页"继续学习"的 session 标签、`js/app.js:1348` 场景小标题：同样 en-only，ja 落中文（小，顺手改）。
+- 数据缺口（LOW，影响 en+ja）：每天的 `source`/出典行无英文（`sourceEn` 缺）→ en 和 ja 下都显示中文那串"原创课文（…的语体与情感差别）"。可补 sourceEn，或接受。
+
+**验收**：系统语言＝日本語时，进入任意一天的「昼の理解」——语法精讲、词义、扩展、（基础页）表格 全部为**英文**（ja 模式用英文讲解，与既有设计一致），不再出现中文；英文模式保持正常；中文模式正常。建议**逐天扫一遍**（之前正是漏在个别字段上）。
+
+> ⚠️ G 是这轮最该修的：它就是朋友反馈、且 ja 模式（面向日本机构）下很扎眼。修法统一、低风险（数据已齐，只改判断条件）。
+
+---
+
+> 顺序：G(ja 讲解语言) + A(内容 C1–C3) + D1(语言) + E(音色全局) + F3a/F3b/F3c(静音发声) + F4b(AI面板语言) 先做 → 宣布稳定版本 → B1 动画 + B3 布局 → B2 护栏 + B4/B5 → D2/D3 + F3d/F3e + C/D4 杂项。
+> 注：D1/E/F/A 上一轮已验证完成；G 为本轮新发现（同类"加 ja 时漏改"的渲染分支）。
+
+---
+
+## H.【整站 holistic audit】四维并行专审 + 逐条复核（这是之前"整体 review"没做透、漏掉 ja bug 的教训）
+覆盖 i18n(三语) / 音频 / 各模块逻辑·状态·XSS / 内容。**每条都已 grep 复核确认。** 按严重度：
+
+### 🔴 HIGH
+- **H1【安全·存储型 XSS】`esc()` 不转义引号** → 属性上下文可被突破。
+  - 根因：`app.js:98` `esc()` 只转义 `& < >`，**不转义 `"`/`'`**。
+  - 命中：`notes.js:94` `data-newtitle="${target}"`（target 来自笔记正文，仅 &<> 被转义）→ 笔记里写 `[[a" onmouseover="…]]` 即可注入事件处理器；**笔记随导出/导入传播 → 持久且可分享**。同源问题：`notes.js:161` 笔记标题 `value=`、`app.js:1140` 名字 `value=`、`assistant.js:164` `data-t="${esc(t)}"`（AI 文本）。
+  - 修：加 `escAttr()`（在 esc 基础上再 `.replace(/"/g,"&quot;").replace(/'/g,"&#39;")`），用于所有"把 esc() 结果放进双引号属性"的地方。
+- **H2【i18n·大面积硬编码中文】en/ja 模式下仍显示中文的非课文 surface**（远超 G 段的课文字段）：
+  - **整个设置弹窗** `app.js:1124、1138–1162`（你的名字/发音评估引擎/进度备份/声音模型/真人音频 各 `<h3>`+说明+按钮+placeholder）+ 全部状态/alert/confirm（`已保存✓`/`已切换✓`/`试听中…`/`已导出✓`/`导入将覆盖…确定继续？`/`导入成功！`/`导入失败：` 等，约 1141–1216）+ Azure 连接测试串(392–414) + 发音错误串(585/611) + 评分行 `正确 N 字`(784)。
+  - **整个 AI 助手设置面板 + 其状态/错误/alert** `assistant.js:208–330`（含模型名 `Sonnet 4.6（推荐·均衡）`…、`greetingNeedsKey`、"此浏览器不支持语音输入" alert、`📘怎么获取API Key` 指南、测试连接全部反馈）。
+  - **词典/语法索引** `app.js:1241–1289`：glossary 标题 + grammar-index 标题硬编码；且 `GLOSSARY[].def` **只有中文、无 en/ja 数据** → en+ja 都显示中文（需补 defEn/defJa）。
+  - **planned-day 占位页** `app.js:839–845`（全 30 天已写，实际少见，低）。
+  - **pet.js**：`767` `trv=o=>window.LANG==="en"?o.en:o.zh` → 日记/事件"显示翻译"在 ja 下显示**中文**（数据有 en，应 `LANG!=="zh"?o.en:o.zh`）；`871/879` PAGE_LABEL 仅 zh/en，ja 漏；`586` langName ja 下日记译文用中文。
+  - 零散：FAB 标签(提问/速记/工具 915–917)、热力图 title/图例(995/997)、地图开关(899 回到今天/30天地图)、每日一句朗读 title(1057)、`notes.js:236`(速记 前缀)、`notes.js:27`(满存 alert)。
+- **H3【宠物核心承诺失效】産出(produce) 练习对宠物零成长**：`produce.js:207` 记 `jpn-produce-log`，但 `pet.js:60 progressXP()` **只读 `jpn-exercise-log`**，从不读 produce-log。→ 用户最重要的"开口说/写段落"产出练习，**完全不喂养宠物**（与 produce.js 头注释"Reps feed the pet's progress growth"自相矛盾）。修：`progressXP()` 计入 `jpn-produce-log`。
+
+### 🟡 MEDIUM
+- **H4【bug·测试计时器泄漏】** `showPage()` 只 stopSpeak/stopRec，**不清 `TEST.interval`**。测试中途点任意导航 → 测试页只是隐藏，1s 定时器继续跑，归零后在隐藏页**后台自动交卷**（改 DOM、存最佳分、`Pet.onStudy()`）。修：离开 test 且 `TEST` 未提交时 `clearInterval(TEST.interval)`。
+- **H5【宠物·XP 可刷 + 会"退化"】** (a) `pet.js:60` 练习 XP 是**所有完成集的累加和**（重复刷同一套即可无限涨，违背"best-score 不可刷/单调"设计，200 上限还会淘汰旧高分）；(b) `pet.js:201` `p.stage=ns` **无条件赋值**（`up` 只控 onStageUp）→ 当 studySXP 因上限淘汰而下降时，宠物会**降一个阶段**。修：XP 用 best/按天去重；阶段只升不降 `if(indexOf(ns)>indexOf(stage))`。
+- **H6【音频·备选音色覆盖不全】** 6 个备选音色相比默认各缺：vocab −81、ex −52、kana −42（默认在 D2/F3a/五十音扩充后增长，备选未重生成）。→ 选非默认音色时，这些新词条/例句/假名**回退默认音色发音**（能响、但音色不一致）。修：重跑 `tools/gen_audio.py --voice-dir <id>` 补齐到当前覆盖。
+- **H7【bug·发音结果存错句】** 评分是异步：录完某句后立刻切句/切模式，回调 `tryFinalize` 用 `pronKey()` 取的是**新**句的 key → 成绩/录音存到错误句的 history。修：录音开始时把 key 固定进 `PRON.pending.key`，finalize 用它。
+
+### 🟢 LOW
+- **H8** 五十音测验：「を」答案设为 `wo`，输 `o`（现代正确读音）被判错（KUNREI 表无 o→wo）。修：を 接受 `o`。
+- **H9** 宠物 roaming 永不去 notes 页：`pet.js:898` `Math.random()*4` 漏了 5 项数组的最后一项。修：`*STUDY_PAGES.length`。
+- **H10** produce 语音输入无防重入：连点两次 → 两个并行 recognizer 抢同一 textarea。修：模块级 activeRec 守卫 + 录音时禁用按钮。
+- **H11** 导入是"增量覆盖"（本地有、文件没有的 `jpn-*` 不清），confirm 文案"覆盖当前进度"言过其实；且导入后未重应用 LANG/theme。低，但建议确认文案改准。
+- **H12** 每天的 `source`/出典行无 `sourceEn` → en+ja 都中文（小）。
+
+### ✅ 复核确认正确（无需动，给你信心）
+测试评分与选项乱序-答案对应、最佳分保存逻辑；发音 finalize 状态机(R2-2，双就绪才落一条、mic 流关闭、URL revoke)；`diffStrings` LCS 评分；各模块 BUSY 标志（try/catch/finally 均复位，无卡死）；宠物 rAF 单循环+可见性暂停（无泄漏/重复）；localStorage 全 try/catch；宠物离线衰减 48h 上限（单次离开 HP 最多 −96，满血必活，死亡需持续疏忽=符合设计）；无静音的静态发声点、无 manifest 缺键；场景/宠物 intro 固定音色=有意为之；assistant SSE 解析健壮；`toRuby` 文本与注音都转义（仅属性引号问题见 H1）；cloze/order 答案索引完整；gojuon 假名/片假名转换与 findCell 无碰撞。
+
+> **给机构演示的"必修最小集"**：H1(XSS) + H2(设置/AI 面板中文，机构切日/英很扎眼) + G(课文讲解 ja) + H3(产出不喂宠物)。其余 H4–H12 紧随其后。
 > 提醒：协作里出现过的 Azure key 记得轮换。
 > 本轮 audit 已并入（D 段）。这是交付前的完整清单。

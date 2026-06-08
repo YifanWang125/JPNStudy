@@ -96,6 +96,9 @@ function computeStreak(){
 const KANJI = "\\u4e00-\\u9fff\\u3005\\u3006\\u3007\\u30f6";
 const RUBY_RE = new RegExp("([" + KANJI + "]+)\\[([^\\]]+)\\]","g");
 function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+/* esc() for ATTRIBUTE values — also escapes quotes so user text can't break out of value="…"
+   (H1: prevents stored-XSS via note titles / names / AI text placed in double-quoted attrs). */
+function escAttr(s){ return esc(String(s==null?"":s)).replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
 function toRuby(text){
   let out="", last=0, m;
   RUBY_RE.lastIndex=0;
@@ -685,8 +688,8 @@ function renderNoon(L){
     <div class="vcards">
     ${L.vocab.map(v=>`<div class="vcard">
       <div class="vc-head"><span class="v-word">${esc(v.w)}</span><span class="v-read">${esc(v.r)}</span><button class="play-w" data-w="${esc(v.r)}">🔊</button>${v.pos?`<span class="v-pos">${esc(posLabel(v.pos))}</span>`:""}</div>
-      <div class="vc-mean">${LANG==="en" ? esc((E.vocabEn&&E.vocabEn[v.w])||v.en||v.zh) : (linkTerms(v.zh)+(v.en?`<span class="v-en"> · ${esc(v.en)}</span>`:""))}</div>
-      ${v.parts?`<div class="vc-parts"><span class="vc-tag">${T("🧩 拆解","🧩 Breakdown")}</span>${v.parts.map(p=>`<span class="vc-part" ${p.r?`data-w="${esc(p.r)}"`:""}><b>${esc(p.p)}</b>${p.r?`<i>${esc(p.r)}</i>`:""}＝${esc(LANG==="en"?(POS_EN[p.m]||p.m):p.m)}</span>`).join('<span class="vc-plus">＋</span>')}</div>`:""}
+      <div class="vc-mean">${LANG!=="zh" ? esc((E.vocabEn&&E.vocabEn[v.w])||v.en||v.zh) : (linkTerms(v.zh)+(v.en?`<span class="v-en"> · ${esc(v.en)}</span>`:""))}</div>
+      ${v.parts?`<div class="vc-parts"><span class="vc-tag">${T("🧩 拆解","🧩 Breakdown")}</span>${v.parts.map(p=>`<span class="vc-part" ${p.r?`data-w="${esc(p.r)}"`:""}><b>${esc(p.p)}</b>${p.r?`<i>${esc(p.r)}</i>`:""}＝${esc(LANG!=="zh"?(POS_EN[p.m]||p.m):p.m)}</span>`).join('<span class="vc-plus">＋</span>')}</div>`:""}
       ${v.ex?`<div class="vc-ex" data-jp="${esc(v.ex.jp)}"><span class="vc-tag">${T("📝 例","📝 e.g.")}</span>${toRuby(v.ex.jp)}<span class="zh">${esc(zhen(v.ex.zh,(E.vocabExEn&&E.vocabExEn[v.w])))}</span></div>`:""}
     </div>`).join("")}
     </div></section>`;
@@ -696,7 +699,7 @@ function renderNoon(L){
     ${L.grammar.map(g=>{ const ge=(E.gramEn&&E.gramEn[g.point])||{}; return `<div class="gram">
       <h3>${esc(g.point)}</h3>
       <div class="label">${esc(g.label||"")}</div>
-      <div class="exp">${LANG==="en"&&ge.exp ? esc(ge.exp) : linkTerms(g.zh)}</div>
+      <div class="exp">${LANG!=="zh"&&ge.exp ? esc(ge.exp) : linkTerms(g.zh)}</div>
       ${g.examples.map((ex,k)=>`<div class="ex" data-jp="${esc(ex.jp)}">${toRuby(ex.jp)}<span class="zh">${esc(zhen(ex.zh,(ge.ex||[])[k]))}</span></div>`).join("")}
     </div>`; }).join("")}
   </section>`;
@@ -709,7 +712,7 @@ function renderNoon(L){
   /* extended */
   if(L.extended){
     html += `<section class="block"><h2>🌱 ${esc(zhen(L.extended.title, T(null,"Extended · synonyms & related")))}</h2>
-      <ul class="ext-list">${L.extended.items.map((it,i)=>`<li>${LANG==="en"&&(E.extEn||[])[i]?esc(E.extEn[i]):linkTerms(it)}</li>`).join("")}</ul></section>`;
+      <ul class="ext-list">${L.extended.items.map((it,i)=>`<li>${LANG!=="zh"&&(E.extEn||[])[i]?esc(E.extEn[i]):linkTerms(it)}</li>`).join("")}</ul></section>`;
   }
   body.innerHTML=html;
 
@@ -954,6 +957,7 @@ function makeDraggable(el, key, onTap){
 function showPage(p){
   STATE.page=p;
   stopSpeak(); if(PRON && PRON.recording) stopRec();
+  if(p!=="test" && TEST && !TEST.submitted){ try{ clearInterval(TEST.interval); }catch(e){} TEST=null; }  // H4: don't let an abandoned test keep ticking / auto-submit in the background
   document.querySelectorAll("#page-nav button").forEach(b=>b.classList.toggle("active",b.dataset.p===p));
   $("#page-home").style.display = p==="home"?"block":"none";
   $("#page-daily").style.display = p==="daily"?"block":"none";
@@ -1137,7 +1141,7 @@ function openSettings(){
       </section>
       <section><h3>👤 你的名字（可选）</h3>
         <p class="m-note">填了之后，主页会用它跟你打招呼（おかえりなさい、…！）。只存在本机浏览器。</p>
-        <label>名字 / Name <input type="text" id="usr-name" value="${esc(getName())}" placeholder="例如 Bob / 王"></label>
+        <label>名字 / Name <input type="text" id="usr-name" value="${escAttr(getName())}" placeholder="例如 Bob / 王"></label>
         <div class="m-actions"><button id="name-save" class="primary">保存</button><span id="name-status" class="m-note"></span></div>
       </section>
       ${window.Assistant?window.Assistant.settingsHTML():""}
@@ -1232,7 +1236,7 @@ function renderBlocks(blocks, eb){
     if(b.t==="note") return `<div class="r-note">${rubyMd(zhen(b.zh,e.en))}</div>`;
     if(b.t==="rules") return `<ul class="r-rules">${b.items.map((it,k)=>`<li>${rubyMd(zhen(it,(e.items||[])[k]))}</li>`).join("")}</ul>`;
     if(b.t==="ex") return b.items.map((ex,k)=>`<div class="r-ex" data-jp="${esc(ex.jp)}">${toRuby(ex.jp)}<span class="zh">${esc(zhen(ex.zh,(e.items||[])[k]))}</span></div>`).join("");
-    if(b.t==="table"){ const head=(LANG==="en"&&e.head)?e.head:b.head, rows=(LANG==="en"&&e.rows)?e.rows:b.rows;
+    if(b.t==="table"){ const head=(LANG!=="zh"&&e.head)?e.head:b.head, rows=(LANG!=="zh"&&e.rows)?e.rows:b.rows;
       return `<div class="r-table-wrap"><table class="r-table"><thead><tr>${head.map(h=>`<th>${toRuby(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${toRuby(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; }
     return "";
   }).join("");
@@ -1345,7 +1349,7 @@ function renderScenarios(){
     const dlg=adlg||s.dialogue||[];
     const keyPre=adlg?`scna_${s.id}_`:`scn_${s.id}_`;
     html+=`<div class="ref-section${i===0?" open":""}" data-id="scn-${esc(s.id)}">
-      <div class="ref-head"><span class="r-emoji">${s.icon||"🗺️"}</span><h2>${esc(s.title)} <span class="r-zh">${esc(LANG==="en"?(s.titleEn||s.titleZh||""):(s.titleZh||""))}</span></h2><span class="r-arrow">▸</span></div>
+      <div class="ref-head"><span class="r-emoji">${s.icon||"🗺️"}</span><h2>${esc(s.title)} <span class="r-zh">${esc(LANG!=="zh"?(s.titleEn||s.titleZh||""):(s.titleZh||""))}</span></h2><span class="r-arrow">▸</span></div>
       <div class="ref-body">
         ${s.intro?`<p class="scn-intro">${esc(zhen(s.intro.zh,s.intro.en))}</p>`:""}
         ${(s.vocab&&s.vocab.length)?`<h4 class="scn-h">${T("🔑 キーワード","🔑 Key words")}</h4><div class="scn-vocab">${s.vocab.map(v=>`<div class="scn-v tappable" data-jp="${esc(v.r||v.w)}" data-key="v_${esc(speechNorm(v.r||v.w))}" title="${T('点击朗读','tap to hear')}"><b class="v-word">${esc(v.w)}</b><span class="v-read">${esc(v.r||"")}</span><span class="v-mean">${esc(zhen(v.zh,v.en))}</span><span class="tap-spk">🔊</span></div>`).join("")}</div>`:""}
@@ -1425,7 +1429,7 @@ function renderQuiz(){
   let html=`<div class="quiz-bar"><span class="q-title">${esc(d.title)}</span><span class="q-count" id="q-count"></span><span class="timer" id="timer">--:--</span><button id="quit-test">${T("退出","Quit")}</button></div>`;
   d.questions.forEach((q,i)=>{
     const optsHtml=TEST.order[i].map((origJ,pos)=>`<div class="q-opt" data-i="${i}" data-j="${origJ}"><span class="mark">${"ABCD"[pos]}</span><span>${toRuby(q.options[origJ])}</span></div>`).join("");
-    html+=`<div class="q-card" data-i="${i}"><span class="q-num">${T("問","Q")} ${i+1}</span><span class="q-cat">${esc(LANG==="en"?(CAT_EN[q.cat]||q.cat):q.cat)}</span>
+    html+=`<div class="q-card" data-i="${i}"><span class="q-num">${T("問","Q")} ${i+1}</span><span class="q-cat">${esc(LANG!=="zh"?(CAT_EN[q.cat]||q.cat):q.cat)}</span>
       <div class="q-text">${toRuby(q.q)}</div>
       <div class="q-opts">${optsHtml}</div>
       <div class="q-explain" id="exp-${i}"></div></div>`;
@@ -1480,7 +1484,7 @@ function showEvaluation(auto){
   const pct=Math.round(score/total*100), passed=pct>=60;
   const cats={};
   d.questions.forEach((q,i)=>{ const c=q.cat; (cats[c]=cats[c]||{n:0,ok:0,wrong:[]}); cats[c].n++; if(TEST.answers[i]===q.answer) cats[c].ok++; else cats[c].wrong.push({point:q.point,day:q.day}); });
-  const cd=c=>LANG==="en"?(CAT_EN[c]||c):c;
+  const cd=c=>LANG!=="zh"?(CAT_EN[c]||c):c;
   let catRows="";
   Object.keys(cats).forEach(c=>{ const o=cats[c], p=Math.round(o.ok/o.n*100); catRows+=`<div class="row"><span class="lab">${esc(cd(c))}</span><div class="bar"><i style="width:${p}%"></i></div><span class="pct">${o.ok}/${o.n}</span></div>`; });
   const strong=Object.keys(cats).filter(c=>cats[c].ok/cats[c].n>=0.8);

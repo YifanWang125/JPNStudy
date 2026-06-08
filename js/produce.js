@@ -20,7 +20,7 @@
   const lessons=()=> (typeof LESSONS!=="undefined"?LESSONS:[]);
   const prog=()=> (typeof PROG!=="undefined"?PROG:{});
 
-  let DRILL="sentence", CARDS=null, BUSY=false;
+  let DRILL="sentence", CARDS=null, BUSY=false, SR_ACTIVE=false;
 
   /* ---------- which content has the user actually studied ---------- */
   function studiedPool(){
@@ -73,7 +73,7 @@
     {jp:"最近[さいきん]、うれしかったことは 何[なん]ですか？", zh:"最近有什么开心的事？", en:"What's something that made you happy recently?"},
     {jp:"あなたの町[まち]について 教[おし]えてください。", zh:"介绍一下你住的地方。", en:"Tell me about the town where you live."},
   ];
-  const promptZh=it=> (window.LANG==="en" ? (it.en||it.zh) : it.zh);
+  const promptZh=it=> (window.LANG!=="zh" ? (it.en||it.zh) : it.zh);
 
   /* ---------- render ---------- */
   function render(){
@@ -154,17 +154,20 @@
   }
 
   function startSR(){
+    if(SR_ACTIVE) return;                                // H10: ignore re-taps while already listening
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR) return;
     const ta=document.querySelector('#pr-body .ex-ta[data-i="0"]'), status=document.getElementById("pr-status"), btn=document.querySelector("#pr-body .pr-mic");
     let rec; try{ rec=new SR(); }catch(e){ if(status) status.textContent="⚠️ "+T("无法使用麦克风","Can't use the mic"); return; }
     rec.lang="ja-JP"; rec.interimResults=true; rec.maxAlternatives=1; let finalT="";
+    const release=()=>{ SR_ACTIVE=false; if(btn){ btn.classList.remove("rec"); btn.disabled=false; } };
+    SR_ACTIVE=true;
     if(status) status.textContent="🔴 "+T("听着呢…请用日语说","Listening… speak in Japanese");
-    if(btn) btn.classList.add("rec");
+    if(btn){ btn.classList.add("rec"); btn.disabled=true; }
     rec.onresult=e=>{ let interim=""; for(let k=e.resultIndex;k<e.results.length;k++){ const r=e.results[k]; if(r.isFinal) finalT+=r[0].transcript; else interim+=r[0].transcript; } if(ta) ta.value=finalT+interim; };
-    rec.onerror=()=>{ if(status) status.textContent="⚠️ "+T("没听清，可手动输入","Didn't catch that — you can type instead"); if(btn) btn.classList.remove("rec"); };
-    rec.onend=()=>{ if(status) status.textContent=(ta&&ta.value.trim())?("✓ "+T("识别完成，点「批改」","Got it — tap Check")):T("没听到，再试一次","Nothing heard — try again"); if(btn) btn.classList.remove("rec"); };
+    rec.onerror=()=>{ if(status) status.textContent="⚠️ "+T("没听清，可手动输入","Didn't catch that — you can type instead"); release(); };
+    rec.onend=()=>{ if(status) status.textContent=(ta&&ta.value.trim())?("✓ "+T("识别完成，点「批改」","Got it — tap Check")):T("没听到，再试一次","Nothing heard — try again"); release(); };
     try{ rec.start(); setTimeout(()=>{ try{ rec.stop(); }catch(e){} }, 15000); }
-    catch(e){ if(status) status.textContent="⚠️ "+T("麦克风启动失败","Mic failed to start"); if(btn) btn.classList.remove("rec"); }
+    catch(e){ if(status) status.textContent="⚠️ "+T("麦克风启动失败","Mic failed to start"); release(); }
   }
 
   /* ---------- grading (Claude BYOK; offline = show model / encourage) ---------- */

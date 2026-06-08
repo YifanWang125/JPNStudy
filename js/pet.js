@@ -58,6 +58,7 @@
     for(const id in b){ const t=b[id]; if(t&&t.total) pr += (t.score/t.total*100)*1.2; }
     const pb=pronBest(); if(pb>0) pr += pb*0.8;        // best pronunciation
     let exCorrect=0; J("jpn-exercise-log",[]).forEach(x=>{ exCorrect+=(x.score||0); });
+    J("jpn-produce-log",[]).forEach(()=>{ exCorrect+=1; });   // H3: 産出 (speak/write) reps feed growth too
     pr += exCorrect*1.6;                               // PRODUCTION reps (highest-value output) → strong growth
     return Math.round(pr);
   }
@@ -198,7 +199,7 @@
     // hatch / stage-up
     if(p.stage==="egg" && studySXP()>=(p.hatchAt||Infinity)) hatch(p);
     else if(p.stage!=="egg"){ const ns=stageOf(p);
-      if(ns!==p.stage){ const ord=["hatchling","child","teen","adult","elder"]; const up=ord.indexOf(ns)>ord.indexOf(p.stage); p.stage=ns; if(up) onStageUp(p); }
+      if(ns!==p.stage){ const ord=["hatchling","child","teen","adult","elder"]; if(ord.indexOf(ns)>ord.indexOf(p.stage)){ p.stage=ns; onStageUp(p); } }  // H5: only ever ADVANCE — never regress a stage if XP dips
     }
   }
   function milestone(p,label){ p.milestones=p.milestones||[]; p.milestones.push({ts:now(),label}); while(p.milestones.length>50) p.milestones.shift(); }
@@ -583,7 +584,7 @@
   function generateDiary(batch,p){
     if(!aiOn()||!batch||batch.ai||batch._aip) return;
     batch._aip=true;
-    const langName=(window.LANG==="en")?"英語":"中国語";
+    const langName=(window.LANG!=="zh")?"英語":"中国語";   // ja-mode explanations use English too
     const user=`${petMemory(p)}\n\n上のできごとをもとに、${p.name||"わたし"}の一人称の「日記[にっき]」を3〜4文で書いて。\nそのあと、改行して「===」だけの行を入れ、改行して${langName}の訳を書いて。`;
     window.Assistant.complete({ system:personaSystem(p), messages:[{role:"user",content:user}], model:"claude-haiku-4-5", max_tokens:430 })
       .then(txt=>{ const parts=String(txt).split(/\n?===\n?/); batch.ai={ jp:(parts[0]||"").trim(), tr:(parts[1]||"").trim() }; delete batch._aip; save();
@@ -764,7 +765,7 @@
 
   // ---- B1 log/diary overlay (Japanese reading surface) ----------------------
   let LOG_TR=false;
-  const trv=o=>(window.LANG==="en"?o.en:o.zh);
+  const trv=o=>(window.LANG!=="zh"?o.en:o.zh);   // ja-mode diary translation shows English, not Chinese
   function openLog(){ const p=pet(); if(!p) return; S.logSeen=now(); save();
     let ov=document.getElementById("pet-log-ov");
     if(!ov){ ov=document.createElement("div"); ov.id="pet-log-ov"; ov.className="pet-log-ov";
@@ -876,7 +877,7 @@
     test:["テスト、ファイト！じぶんを ためそう！","ぜったい できるよ！"],
     notes:["メモ、えらい！あとで 見返[みかえ]そうね。","かいたこと、わすれないでね！"],
   };
-  function pageLabel(pg){ const l=PAGE_LABEL[pg]; return l?(window.LANG==="en"?l[1]:l[0]):pg; }
+  function pageLabel(pg){ const l=PAGE_LABEL[pg]; return l?(window.LANG!=="zh"?l[1]:l[0]):pg; }   // ja → English label (no ja label data)
   function pageLine(pg){ const a=PAGE_LINES[pg]||["がんばって！"]; return a[Math.floor(Math.random()*a.length)]; }
   let ROAM_T=0;
   function petRoam(pg,found){
@@ -895,7 +896,7 @@
     const p=pet(); if(!p||p.diedAt||p.stage==="egg") return;
     if(S.out){ if(now()-S.out.since > 14*3.6e6){ S.out=null; save(); } return; }   // came home after a while
     if(now()-(S.outAt||0) < 3*3.6e6) return;                                        // not too often
-    if(Math.random()<0.22){ const pg=STUDY_PAGES[Math.floor(Math.random()*4)]; S.out={page:pg,since:now()}; S.outAt=now(); save(); }
+    if(Math.random()<0.22){ const pg=STUDY_PAGES[Math.floor(Math.random()*STUDY_PAGES.length)]; S.out={page:pg,since:now()}; S.outAt=now(); save(); }  // H9: include all study pages (was *4, missed notes)
   }
   function onPageVisit(pg){
     const p=pet(); if(!p||p.diedAt||p.stage==="egg") return;
