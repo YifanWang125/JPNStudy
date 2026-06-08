@@ -983,6 +983,52 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .pr-status{font-size:.85rem;color:var(--ink-dim);margin:7px 0;min-height:1.1em}
 .pr-good{color:var(--accent-2);font-weight:600;margin-bottom:5px}
 
+/* ====================== 📝 N2 EXAM CENTER (exam.js) ====================== */
+.exam-hub{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0 8px}
+@media (max-width:640px){.exam-hub{grid-template-columns:1fr}}
+.exam-hub-card{text-align:left;border:1px solid var(--line);border-radius:14px;padding:18px;cursor:pointer;background:var(--panel-2);display:flex;flex-direction:column;gap:4px;transition:border-color .15s,transform .15s}
+.exam-hub-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.exam-hub-card.mock{background:linear-gradient(135deg,rgba(228,87,46,.16),var(--panel-2))}
+.ehc-ico{font-size:1.7rem}
+.ehc-tt{font-family:var(--serif-jp);font-size:1.15rem;color:var(--accent-2);font-weight:700}
+.ehc-d{font-size:.84rem;color:var(--ink-dim);line-height:1.6}
+.test-sub{font-family:var(--serif-jp);font-size:1.05rem;color:var(--ink-dim);margin:18px 0 8px}
+/* guide */
+.exam-guide{max-width:760px}
+.exam-back{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:7px 14px;color:var(--ink-dim);cursor:pointer;font-size:.88rem;margin:4px 0 12px}
+.exam-back:hover{border-color:var(--accent);color:var(--ink)}
+.exam-lead{color:var(--ink-dim);line-height:1.8;margin-bottom:8px}
+.exam-sec{margin:22px 0;border-top:1px solid var(--line);padding-top:14px}
+.exam-sec h2{font-family:var(--serif-jp);color:var(--accent-2);font-size:1.18rem;margin-bottom:10px}
+.exam-sec h3{font-size:.98rem;color:var(--ink);margin:12px 0 4px}
+.exam-tbl{width:100%;border-collapse:collapse;font-size:.9rem;margin:6px 0}
+.exam-tbl th,.exam-tbl td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+.exam-tbl th{background:var(--panel);color:var(--ink-dim)}
+.exam-tbl .ec-c{white-space:nowrap;color:var(--accent-2);font-weight:600}
+.exam-note{font-size:.85rem;color:var(--ink-dim);line-height:1.7;margin-top:8px}
+.exam-callout{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:14px 16px;line-height:1.8}
+.exam-callout ul{margin:6px 0 6px 18px}.exam-callout li{margin:2px 0}
+.exam-big{font-size:1.05rem;background:rgba(228,87,46,.1);border-radius:8px;padding:8px 12px;margin:8px 0}
+.exam-q{margin:6px 0 6px 2px;list-style:none;padding:0}
+.exam-q li{padding:5px 0;border-bottom:1px dashed var(--line);line-height:1.7;font-size:.92rem}
+.exam-tip{background:var(--panel-2);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:10px 14px;margin:10px 0}
+.exam-tip b{color:var(--accent-2)}.exam-tip p{margin-top:3px;font-size:.9rem;line-height:1.75;color:var(--ink)}
+/* mock result */
+.exam-result{border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+.exam-result.pass{border-color:var(--good,#0ca678);background:rgba(12,166,120,.08)}
+.exam-result.fail{border-color:var(--accent);background:rgba(228,87,46,.08)}
+.exr-verdict{font-family:var(--serif-jp);font-size:1.15rem;font-weight:700;margin-bottom:14px}
+.exr-row{display:flex;align-items:center;gap:10px;margin:10px 0}
+.exr-lab{flex:0 0 42%;font-size:.86rem;color:var(--ink-dim);line-height:1.4}
+.exr-bar{position:relative;flex:1;height:14px;background:var(--line);border-radius:99px;overflow:visible}
+.exr-fill{display:block;height:100%;border-radius:99px}
+.exr-fill.ok{background:var(--good,#0ca678)} .exr-fill.no{background:var(--accent)}
+.exr-thr{position:absolute;top:-3px;width:2px;height:20px;background:var(--ink);opacity:.55}
+.exr-num{flex:0 0 auto;font-weight:700;font-size:.9rem}
+.exr-num.ok{color:var(--good,#0ca678)} .exr-num.no{color:var(--accent)}
+.exr-note{font-size:.82rem;color:var(--ink-dim);line-height:1.7;margin-top:12px}
+.eval-box.mock .eval-sub{font-size:.85rem;color:var(--ink-dim);margin:4px 0 10px}
+
 /* ============================== 🥚 STUDY PET ============================== */
 :root{ --pixel:'DotGothic16','Noto Sans JP',monospace; }
 /* first-time 言霊 world intro (cinematic, staged) */

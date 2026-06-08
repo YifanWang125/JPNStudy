@@ -1398,7 +1398,14 @@ function renderTestHome(){
   if(TEST&&TEST.interval) clearInterval(TEST.interval);
   TEST=null;
   const c=$("#page-test"); const best=loadTestBest();
-  let html=`<div class="test-intro"><h1>${T("📝 N2 模拟测试","📝 N2 Mock Tests")}</h1><p>${T("4 套限时测试，全部以 N2 标准评分。每套对应一周的语法重点；交卷后给出<b>分项自评</b>（文法 / 語彙 / 読解）和针对性的复习建议。","4 timed tests scored to N2 standard. Each covers one week's grammar; after you submit you get a <b>category self-assessment</b> (Grammar / Vocabulary / Reading) and targeted review tips.")}</p></div><div class="test-grid">`;
+  const mb=best["mock"];
+  let html=`<div class="test-intro"><h1>${T("📝 N2 考试中心","📝 N2 Exam Center")}</h1><p>${T("先「考前指导」把考试吃透，再用「完整模拟考」按真实结构＋JLPT 计分练手。下面的周测可作日常快速诊断。","First read the Guide to learn the exam cold, then drill the Full Mock (real structure + JLPT-style scoring). The weekly sets below are quick daily diagnostics.")}</p></div>
+    <div class="exam-hub">
+      <button class="exam-hub-card guide" id="exam-go-guide"><span class="ehc-ico">📋</span><span class="ehc-tt">${T("考前指导","Exam Guide")}</span><span class="ehc-d">${T("结构 / 时间 / 评分 / 合格线 / 应试技巧 / 当天流程","structure · timing · scoring · pass line · tactics · day-of")}</span></button>
+      <button class="exam-hub-card mock" id="exam-go-mock"><span class="ehc-ico">🎯</span><span class="ehc-tt">${T("完整模拟考 · 105分","Full Mock · 105 min")}</span><span class="ehc-d">${T("真实题型顺序 ＋ JLPT 计分估算（各科 /60 ≥19；总分 ≥90）","real section order + JLPT score (each /60 ≥19; total ≥90)")}${mb?` · ${T("上次","last")} ${mb.score}/${mb.total}`:""}</span></button>
+    </div>
+    <h2 class="test-sub">${T("📝 周测 · 快速练习","📝 Weekly sets · quick practice")}</h2>
+    <div class="test-grid">`;
   TESTS.forEach(t=>{
     const b=best[t.id], et=ENT(t.id);
     html+=`<div class="test-card" data-id="${t.id}">
@@ -1412,12 +1419,21 @@ function renderTestHome(){
   });
   html+=`</div>`;
   c.innerHTML=html;
+  if($("#exam-go-guide")) $("#exam-go-guide").onclick=()=>renderExamGuide();
+  if($("#exam-go-mock")) $("#exam-go-mock").onclick=()=>{ if(window.Exam) startTest(Exam.buildMock()); };
   c.querySelectorAll(".test-card").forEach(card=>card.onclick=()=>startTest(parseInt(card.dataset.id,10)));
+}
+function renderExamGuide(){
+  const c=$("#page-test"); if(!window.Exam) return;
+  c.innerHTML=Exam.guideHTML();
+  c.querySelectorAll("#exam-back,#exam-back2").forEach(b=>b.onclick=()=>renderTestHome());
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 
 function shuffled(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
-function startTest(id){
-  const def=TESTS.find(t=>t.id===id);
+function startTest(idOrDef){
+  const def=(idOrDef&&typeof idOrDef==="object") ? idOrDef : TESTS.find(t=>t.id===idOrDef);
+  if(!def) return;
   TEST={ def, answers:new Array(def.questions.length).fill(null), remaining:def.timeMin*60, interval:null, submitted:false,
          order:def.questions.map(()=>shuffled([0,1,2,3])) };  // display order of options per question
   renderQuiz();
@@ -1481,6 +1497,17 @@ function finishTest(auto){
 function showEvaluation(auto){
   const d=TEST.def, total=d.questions.length;
   const score=d.questions.reduce((s,q,i)=>s+(TEST.answers[i]===q.answer?1:0),0);
+  if(d.isMock && window.Exam){                       // realistic mock → JLPT-style result
+    const res=Exam.scoreMock(d, TEST.answers);
+    const used=d.timeMin*60-Math.max(0,TEST.remaining), tm=Math.floor(used/60), ts=used%60;
+    const html=`<div class="eval-box mock">${Exam.resultHTML(res)}
+      <div class="eval-sub">${score}/${total} ${T("题答对","correct")} · ${T("用时","time")} ${tm}:${String(ts).padStart(2,"0")}${auto?T(" · ⏰ 时间到，自动交卷"," · ⏰ time up, auto-submitted"):""}</div>
+      <div class="eval-actions"><button class="review" id="ev-review">${T("查看逐题解析 ↓","See per-question review ↓")}</button><button class="retry" id="ev-retry">${T("再考一次","Retry")}</button></div></div>`;
+    $("#page-test").insertAdjacentHTML("afterbegin",html);
+    $("#ev-retry").onclick=()=>{ if(window.Exam) startTest(Exam.buildMock()); };
+    $("#ev-review").onclick=()=>{ const q=document.querySelector(".q-card"); if(q) q.scrollIntoView({behavior:"smooth"}); };
+    return;
+  }
   const pct=Math.round(score/total*100), passed=pct>=60;
   const cats={};
   d.questions.forEach((q,i)=>{ const c=q.cat; (cats[c]=cats[c]||{n:0,ok:0,wrong:[]}); cats[c].n++; if(TEST.answers[i]===q.answer) cats[c].ok++; else cats[c].wrong.push({point:q.point,day:q.day}); });
