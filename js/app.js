@@ -524,7 +524,10 @@ async function startRec(L){
   try{ stream=await navigator.mediaDevices.getUserMedia({audio:true}); }
   catch(e){ if(res) res.innerHTML=`<div class="pron-unsupported">${T("无法使用麦克风：","Can't use the mic: ")}${esc(String(e.name||e))}${T("。请允许麦克风权限，并用 <b>http://localhost</b> 打开（file:// 不行）。",". Allow mic permission and open via <b>http://localhost</b> (not file://).")}</div>`; return; }
   PRON.stream=stream; PRON.chunks=[]; PRON._scored=false;
-  PRON.pending={ url:null, urlReady:false, score:undefined, scoreReady:false };
+  // R6-3: lock the target sentence/paragraph AT RECORD START. pronKey() reads the
+  // current PRON.idx/mode, which can change (user jumps to another sentence) before
+  // the async score returns — without this, the score would land on the wrong line.
+  PRON.pending={ url:null, urlReady:false, score:undefined, scoreReady:false, key:pronKey() };
   try{
     const rec=new MediaRecorder(stream); PRON.recorder=rec;
     rec.ondataavailable=e=>{ if(e.data&&e.data.size) PRON.chunks.push(e.data); };
@@ -548,7 +551,7 @@ function stopRec(){
   // R2-2: never finalize on stop alone — wait for the score callback; the recorder is stopped inside gotScore.
 }
 function gotScore(L, obj){
-  if(!PRON.pending){ PRON.pending={url:null,urlReady:true,score:undefined,scoreReady:false}; }
+  if(!PRON.pending){ PRON.pending={url:null,urlReady:true,score:undefined,scoreReady:false,key:pronKey()}; }
   PRON.pending.score=obj; PRON.pending.scoreReady=true;
   PRON.recording=false; updatePronBtn();
   if(PRON.recorder && PRON.recorder.state==="recording"){ try{ PRON.recorder.stop(); }catch(e){ PRON.pending.urlReady=true; tryFinalize(L); } }
@@ -558,7 +561,7 @@ function tryFinalize(L){
   const p=PRON.pending; if(!p || !p.scoreReady || !p.urlReady) return;   // both audio + score must be ready → ONE record
   PRON.pending=null;
   const obj = p.score || {type:"basic",overall:0,heard:"",html:"",noscore:true};
-  const key=pronKey();
+  const key = p.key || pronKey();   // R6-3: use the key captured at record start, not the (possibly-changed) current one
   const arr=PRON.history[key]||(PRON.history[key]=[]);
   arr.push({url:p.url||null, score:(obj.overall||0), data:obj, ts:Date.now()});
   while(arr.length>3){ const old=arr.shift(); if(old.url) try{URL.revokeObjectURL(old.url);}catch(e){} }
