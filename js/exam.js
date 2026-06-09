@@ -239,7 +239,7 @@
       const tg=LTYPE[it.type]||[it.type,it.type];
       h+=`<div class="ls-item" data-q="${qi}">
         <div class="ls-head"><span class="ls-tag">${esc(T(tg[0],tg[1]))}</span><button class="ls-play" data-q="${qi}">▶ ${T("播放","Play")}</button></div>
-        <div class="ls-q">${ruby(it.q)}${(it.zh&&window.LANG==="zh")?`<span class="ls-zh">${esc(it.zh)}</span>`:""}</div>
+        <div class="ls-q">${ruby(it.q)}${(()=>{ const sum=window.LANG==="zh"?it.zh:(it.qEn||""); return sum?`<span class="ls-zh">${esc(sum)}</span>`:""; })()}</div>
         <div class="ls-opts">${it.options.map((o,j)=>`<button class="ls-opt" data-q="${qi}" data-j="${j}">${"ABCD"[j]}. ${ruby(o)}</button>`).join("")}</div>
         <div class="ls-fb" id="ls-fb-${qi}"></div></div>`;
     });
@@ -255,7 +255,7 @@
       const script=it.lines.map(ln=>`<div class="ls-line"><b>${ln.sp==="f"?"A":"B"}</b> ${ruby(ln.jp)}</div>`).join("");
       document.getElementById("ls-fb-"+qi).innerHTML=
         `<div class="${j===it.answer?'ok':'no'}">${j===it.answer?"⭕ "+T("正解！","Correct!"):"✗ "+T("正解は","Answer:")+" "+"ABCD"[it.answer]}</div>`+
-        `${(it.explain&&window.LANG==="zh")?`<div class="ls-exp">${esc(it.explain)}</div>`:""}`+
+        `${(()=>{ const ex=window.LANG==="zh"?it.explain:(it.explainEn||""); return ex?`<div class="ls-exp">${esc(ex)}</div>`:""; })()}`+
         `<div class="ls-script"><b>${T("脚本","Transcript")}：</b>${script}</div>`;
       try{ if(window.Pet) Pet.onStudy(); }catch(e){}
     });

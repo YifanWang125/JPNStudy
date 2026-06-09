@@ -17,8 +17,9 @@ window.LISTENING = [
     ],
     "q":"男[おとこ]の人[ひと]はこれから何[なに]をしますか。",
     "options":["資料[しりょう]を印刷[いんさつ]する","会議室[かいぎしつ]を予約[よやく]する","参加者[さんかしゃ]にメールを送[おく]る","会議[かいぎ]に出席[しゅっせき]する"],
-    "answer":2, "zh":"男的人接下来要做什么？",
-    "explain":"资料已印好、会议室由女方预约——男方要做的是给参加者发邮件。" },
+    "answer":2, "zh":"男的人接下来要做什么？", "qEn":"What will the man do next?",
+    "explain":"资料已印好、会议室由女方预约——男方要做的是给参加者发邮件。",
+    "explainEn":"The materials are already printed and the woman will book the meeting room, so the man's remaining task is to email the participants." },
 
   { "id":"l2", "type":"ポイント理解",
     "lines":[
@@ -27,8 +28,9 @@ window.LISTENING = [
     ],
     "q":"女[おんな]の人[ひと]はどうして遅[おく]れましたか。",
     "options":["電車[でんしゃ]が遅[おく]れたから","鍵[かぎ]が見[み]つからなかったから","寝坊[ねぼう]をしたから","道[みち]が混[こ]んでいたから"],
-    "answer":1, "zh":"女的为什么迟到了？",
-    "explain":"她说电车没问题，是出门前找不到家里的钥匙、一直在找。" },
+    "answer":1, "zh":"女的为什么迟到了？", "qEn":"Why was the woman late?",
+    "explain":"她说电车没问题，是出门前找不到家里的钥匙、一直在找。",
+    "explainEn":"She says the train was fine — before leaving she couldn't find her house key and kept searching for it." },
 
   { "id":"l3", "type":"概要理解",
     "lines":[
@@ -36,22 +38,25 @@ window.LISTENING = [
     ],
     "q":"このアナウンスは、主[おも]に何[なに]について話[はな]していますか。",
     "options":["閉店[へいてん]の時間[じかん]","二階[にかい]で行[おこな]われているイベント","駐車場[ちゅうしゃじょう]の場所[ばしょ]","商品[しょうひん]の値段[ねだん]"],
-    "answer":1, "zh":"这则广播主要在说什么？",
-    "explain":"广播在介绍二楼正在举办的北海道物产展（一个活动/イベント）。" },
+    "answer":1, "zh":"这则广播主要在说什么？", "qEn":"What is this announcement mainly about?",
+    "explain":"广播在介绍二楼正在举办的北海道物产展（一个活动/イベント）。",
+    "explainEn":"The announcement is introducing the Hokkaido products fair — an event being held on the second floor." },
 
   { "id":"l4", "type":"即時応答",
     "lines":[ {"sp":"f", "jp":"お先[さき]に失礼[しつれい]します。"} ],
     "q":"適切[てきせつ]な応答[おうとう]はどれですか。",
     "options":["お疲[つか]れさまでした。","いただきます。","おかげさまで。","どういたしまして。"],
-    "answer":0, "zh":"（同事下班先走）最合适的回应是？",
-    "explain":"对方下班先走，回「お疲れさまでした」最自然。" },
+    "answer":0, "zh":"（同事下班先走）最合适的回应是？", "qEn":"(A colleague is leaving work ahead of you) Which reply fits best?",
+    "explain":"对方下班先走，回「お疲れさまでした」最自然。",
+    "explainEn":"When someone leaves work ahead of you, replying 「お疲れさまでした」 is the most natural." },
 
   { "id":"l5", "type":"即時応答",
     "lines":[ {"sp":"m", "jp":"悪[わる]いけど、これ、コピーしておいてくれる？"} ],
     "q":"適切[てきせつ]な応答[おうとう]はどれですか。",
     "options":["はい、すぐにやります。","はい、コピーしました。","いいえ、まだ来[き]ていません。","では、お先[さき]に。"],
-    "answer":0, "zh":"（被拜托去复印）最合适的回应是？",
-    "explain":"被请求「帮我复印」，还没做，回「はい、すぐにやります」最贴切。" },
+    "answer":0, "zh":"（被拜托去复印）最合适的回应是？", "qEn":"(You're asked to make some copies) Which reply fits best?",
+    "explain":"被请求「帮我复印」，还没做，回「はい、すぐにやります」最贴切。",
+    "explainEn":"Asked to make copies and not having done it yet, 「はい、すぐにやります」 (\"Yes, I'll do it right away\") fits best." },
 
   { "id":"l6", "type":"ポイント理解",
     "lines":[
@@ -62,6 +67,7 @@ window.LISTENING = [
     ],
     "q":"二人[ふたり]は今夜[こんや]、何[なに]を食[た]べることにしましたか。",
     "options":["イタリア料理[りょうり]","パスタ","お寿司[すし]","中華料理[ちゅうかりょうり]"],
-    "answer":2, "zh":"两人今晚决定吃什么？",
-    "explain":"男方昨天吃了意面、今天想吃和食；最后同意去车站前的寿司店。" }
+    "answer":2, "zh":"两人今晚决定吃什么？", "qEn":"What did the two decide to eat tonight?",
+    "explain":"男方昨天吃了意面、今天想吃和食；最后同意去车站前的寿司店。",
+    "explainEn":"He had pasta yesterday and wants Japanese food today; they agree on the sushi place by the station." }
 ];
