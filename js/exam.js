@@ -227,7 +227,7 @@
   }
 
   /* ---------- 🎧 听力练习 (in-app, VOICEVOX; plays line-by-line) ---------- */
-  const LTYPE={ "課題理解":["課題理解","Task"], "ポイント理解":["要点理解","Point"], "概要理解":["概要理解","Gist"], "即時応答":["即时应答","Quick response"] };
+  const LTYPE={ "課題理解":["課題理解","Task"], "ポイント理解":["要点理解","Point"], "概要理解":["概要理解","Gist"], "即時応答":["即时应答","Quick response"], "統合理解":["综合理解","Integrated"] };
   function renderListening(c){
     const items=(window.LISTENING||[]);
     if(!items.length){ c.innerHTML=`<div class="exam-guide"><button class="exam-back" id="exam-back">← ${T("返回考试中心","Back to Exam Center")}</button><p class="hc-empty">${T("听力内容尚未加载。","Listening content not loaded.")}</p></div>`;

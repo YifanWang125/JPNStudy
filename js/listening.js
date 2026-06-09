@@ -69,5 +69,89 @@ window.LISTENING = [
     "options":["イタリア料理[りょうり]","パスタ","お寿司[すし]","中華料理[ちゅうかりょうり]"],
     "answer":2, "zh":"两人今晚决定吃什么？", "qEn":"What did the two decide to eat tonight?",
     "explain":"男方昨天吃了意面、今天想吃和食；最后同意去车站前的寿司店。",
-    "explainEn":"He had pasta yesterday and wants Japanese food today; they agree on the sushi place by the station." }
+    "explainEn":"He had pasta yesterday and wants Japanese food today; they agree on the sushi place by the station." },
+
+  { "id":"l7", "type":"課題理解",
+    "lines":[
+      {"sp":"f", "jp":"レポートですが、来週[らいしゅう]の月曜[げつよう]までに出[だ]せばいいですか。"},
+      {"sp":"m", "jp":"いえ、今週[こんしゅう]の金曜[きんよう]までです。それから、メールではなく、紙[かみ]で出[だ]してください。"},
+      {"sp":"f", "jp":"分[わ]かりました。表紙[ひょうし]は必要[ひつよう]ですか。"},
+      {"sp":"m", "jp":"表紙[ひょうし]はいりません。本文[ほんぶん]だけで大丈夫[だいじょうぶ]です。"}
+    ],
+    "q":"学生[がくせい]はレポートをどのように出[だ]しますか。",
+    "options":["メールで送[おく]る","紙[かみ]で金曜[きんよう]までに出[だ]す","表紙[ひょうし]をつけて出[だ]す","月曜[げつよう]までに出[だ]す"],
+    "answer":1, "zh":"学生要怎么交报告？", "qEn":"How should the student submit the report?",
+    "explain":"老师说不是邮件、要用纸交，截止本周五，且不需要封面。",
+    "explainEn":"The teacher says: not by email but on paper, by this Friday, and no cover page is needed." },
+
+  { "id":"l8", "type":"ポイント理解",
+    "lines":[
+      {"sp":"f", "jp":"最近[さいきん]、ジムで見[み]かけないけど、やめちゃったの？"},
+      {"sp":"m", "jp":"うん、続[つづ]けたかったんだけど、会費[かいひ]がちょっと高[たか]くてね。今[いま]は家[いえ]の近[ちか]くを走[はし]ってるよ。"}
+    ],
+    "q":"男[おとこ]の人[ひと]はどうしてジムをやめましたか。",
+    "options":["時間[じかん]がないから","会費[かいひ]が高[たか]いから","家[いえ]から遠[とお]いから","けがをしたから"],
+    "answer":1, "zh":"男的为什么不去健身房了？", "qEn":"Why did the man quit the gym?",
+    "explain":"他说想继续，但会费有点贵；现在改在家附近跑步。",
+    "explainEn":"He says he wanted to keep going, but the membership fee was a bit high; now he runs near home instead." },
+
+  { "id":"l9", "type":"概要理解",
+    "lines":[
+      {"sp":"m", "jp":"お客様[きゃくさま]にお知[し]らせいたします。ただいま、強[つよ]い風[かぜ]の影響[えいきょう]で、電車[でんしゃ]が約[やく]十分[じゅっぷん]遅[おく]れて運転[うんてん]しております。お急[いそ]ぎのところ、ご迷惑[めいわく]をおかけして申[もう]し訳[わけ]ございません。"}
+    ],
+    "q":"このアナウンスは主[おも]に何[なに]を伝[つた]えていますか。",
+    "options":["電車[でんしゃ]が遅[おく]れていること","電車[でんしゃ]が止[と]まったこと","天気[てんき]が良[よ]くなること","切符[きっぷ]の買[か]い方[かた]"],
+    "answer":0, "zh":"这则广播主要在传达什么？", "qEn":"What is this announcement mainly conveying?",
+    "explain":"因强风影响，电车晚点约十分钟运行——主旨是「电车延误」。",
+    "explainEn":"Because of strong winds, trains are running about ten minutes late — the main point is that the trains are delayed." },
+
+  { "id":"l10", "type":"即時応答",
+    "lines":[ {"sp":"m", "jp":"あのう、この席[せき]、空[あ]いていますか。"} ],
+    "q":"適切[てきせつ]な応答[おうとう]はどれですか。",
+    "options":["ええ、どうぞ。","いいえ、空[あ]きました。","はい、座[すわ]りました。","では、失礼[しつれい]しました。"],
+    "answer":0, "zh":"（问座位空不空）最合适的回应是？", "qEn":"(\"Is this seat free?\") Which reply fits best?",
+    "explain":"被问「这个座位空着吗」，请对方坐下回「ええ、どうぞ」最自然。",
+    "explainEn":"Asked whether the seat is free, 「ええ、どうぞ」 (\"Yes, go ahead\") is the natural reply." },
+
+  { "id":"l11", "type":"即時応答",
+    "lines":[ {"sp":"f", "jp":"課長[かちょう]、今[いま]、お時間[じかん]よろしいでしょうか。"} ],
+    "q":"適切[てきせつ]な応答[おうとう]はどれですか。",
+    "options":["はい、何[なん]でしょうか。","いいえ、よろしくないです。","では、いただきます。","お時間[じかん]どうぞ。"],
+    "answer":0, "zh":"（问课长现在是否方便）最合适的回应是？", "qEn":"(Asking the section chief if he has a moment) Which reply fits best?",
+    "explain":"下属问「现在方便吗」，上司回「はい、何でしょうか」最自然。",
+    "explainEn":"When a subordinate asks if you have a moment, 「はい、何でしょうか」 (\"Yes, what is it?\") is the natural reply." },
+
+  { "id":"l12", "type":"即時応答",
+    "lines":[ {"sp":"m", "jp":"せっかくだから、もう少[すこ]しいてくださいよ。"} ],
+    "q":"適切[てきせつ]な応答[おうとう]はどれですか。",
+    "options":["それじゃ、あと三十分[さんじゅっぷん]だけ。","はい、もう帰[かえ]りました。","いいえ、来[き]ませんでした。","では、いただきます。"],
+    "answer":0, "zh":"（挽留：「难得，再多待会儿吧」）最合适的回应是？", "qEn":"(\"Since you're here, do stay a little longer\") Which reply fits best?",
+    "explain":"对方挽留「再多待一会儿」，答应再留一会回「それじゃ、あと三十分だけ」最贴切。",
+    "explainEn":"When someone urges you to stay longer, agreeing with 「それじゃ、あと三十分だけ」 (\"OK, just 30 more minutes then\") fits best." },
+
+  { "id":"l13", "type":"統合理解",
+    "lines":[
+      {"sp":"f", "jp":"田中[たなか]さんの送別会[そうべつかい]、プレゼント、何[なに]がいいかな。"},
+      {"sp":"m", "jp":"そうだね。前[まえ]に手帳[てちょう]がほしいって言[い]ってたよ。"},
+      {"sp":"f", "jp":"いいね。でも、もう自分[じぶん]で買[か]っちゃったかもしれない。お花[はな]はどう？"},
+      {"sp":"m", "jp":"お花[はな]は持[も]って帰[かえ]るのが大変[たいへん]だよ。やっぱり、言[い]ってたものにしよう。"}
+    ],
+    "q":"二人[ふたり]は何[なに]をプレゼントすることにしましたか。",
+    "options":["手帳[てちょう]","お花[はな]","本[ほん]","お菓子[かし]"],
+    "answer":0, "zh":"两人决定送什么礼物？", "qEn":"What did the two decide to give as a gift?",
+    "explain":"田中说过想要记事本；鲜花不好带回去——最后决定送他说过想要的「记事本」。",
+    "explainEn":"Tanaka had said he wanted a planner; flowers are hard to carry home — so they settle on the planner he'd mentioned." },
+
+  { "id":"l14", "type":"課題理解",
+    "lines":[
+      {"sp":"f", "jp":"引[ひ]っ越[こ]しの手続[てつづ]き、何[なに]からすればいい？"},
+      {"sp":"m", "jp":"まず、市役所[しやくしょ]で住所[じゅうしょ]の変更[へんこう]をして。それが終[お]わってから、電気[でんき]とガスに連絡[れんらく]するといいよ。"},
+      {"sp":"f", "jp":"銀行[ぎんこう]は？"},
+      {"sp":"m", "jp":"銀行[ぎんこう]は一番[いちばん]最後[さいご]でいいよ。"}
+    ],
+    "q":"女[おんな]の人[ひと]は最初[さいしょ]に何[なに]をしますか。",
+    "options":["市役所[しやくしょ]で住所[じゅうしょ]を変更[へんこう]する","電気[でんき]とガスに連絡[れんらく]する","銀行[ぎんこう]に行[い]く","引[ひ]っ越[こ]しの会社[かいしゃ]を探[さが]す"],
+    "answer":0, "zh":"女的最先做什么？", "qEn":"What will the woman do first?",
+    "explain":"男方说先去市役所变更住址，再联系水电气，银行放最后——最先是「去市役所改住址」。",
+    "explainEn":"He says to first change her address at city hall, then contact the utilities, with the bank last — so first is the city-hall address change." }
 ];
