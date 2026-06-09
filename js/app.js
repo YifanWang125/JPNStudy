@@ -310,7 +310,7 @@ function renderDayHead(L){
     <span class="week-chip">${WEEK_LABELS[L.week]||""}</span>
     <h1>${esc(L.theme)}<span class="level-badge">${L.level}</span></h1>
     <div class="theme-zh">${esc(zhen(L.themeZh, EH.themeEn))}</div>
-    <div class="source">${T("📖 来源 / Source","📖 Source")}：${esc(L.source)}</div>
+    <div class="source">${T("📖 来源 / Source","📖 Source")}：${esc(zhen(L.source, L.sourceEn))}</div>
     <div class="goals">${(L.goals||[]).map((g,i)=>`<span>🎯 ${esc(zhen(g,(EH.goalsEn||[])[i]))}</span>`).join("")}</div>
   `;
 }

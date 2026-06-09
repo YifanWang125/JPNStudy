@@ -15,6 +15,7 @@ const LESSONS = [
   theme: "はじめの一歩 — 自己紹介と毎日",
   themeZh: "第一步 —— 自我介绍与每天的生活",
   source: "原创课文（按 N4 语法点校准 · Original text calibrated to N4 grammar）",
+  sourceEn: "Original text (calibrated to N4 grammar)",
   goals: [
     "巩固 は/が、です・ます 体系",
     "掌握「〜ています」表进行 / 习惯",
@@ -157,6 +158,7 @@ const LESSONS = [
   theme: "趣味と習慣 — 好きなことで学ぶ",
   themeZh: "兴趣与习惯 —— 用喜欢的事来学习",
   source: "原创课文（N4 语法点：〜ようになる / 〜たり〜たり / 〜ながら / 〜と思う）",
+  sourceEn: "Original text (N4 grammar: 〜ようになる / 〜たり〜たり / 〜ながら / 〜と思う)",
   goals: [
     "掌握「〜ようになる」表示变化（学会了/变得能…）",
     "掌握「〜たり〜たりする」列举动作",
@@ -282,6 +284,7 @@ const LESSONS = [
   theme: "私の勉強の方法 — 続けるコツ",
   themeZh: "我的学习方法 —— 坚持的窍门",
   source: "原创课文（N4→N3 过渡：〜なければならない / 〜たほうがいい / 可能形 / 〜つもり）",
+  sourceEn: "Original text (N4→N3 bridge: 〜なければならない / 〜たほうがいい / potential form / 〜つもり)",
   goals:[
     "掌握义务「〜なければならない」与建议「〜たほうがいい」",
     "复习可能形（话せる・覚えられる）",
@@ -411,6 +414,7 @@ const LESSONS = [
   theme:"私の町 — 場所と存在",
   themeZh:"我住的地方 —— 场所与存在句",
   source:"原创课文（N4：场所·存在 ある/いる·位置名词·形容词描写）",
+  sourceEn: "Original text (N4: place & existence ある/いる, position nouns, adjective description)",
   goals:["掌握「〜に〜があります／います」与 ある・いる","位置名词（近く·横·中·間）","用形容词描写一个地方"],
   paragraph:[
     { jp:"私[わたし]が住[す]んでいる町[まち]は、とても静[しず]かな所[ところ]です。", zh:"我住的小镇是个非常安静的地方。" },
@@ -500,6 +504,7 @@ const LESSONS = [
   theme:"思い出 — 経験を語る",
   themeZh:"回忆 —— 讲述一段经历",
   source:"原创课文（N4：过去经验 〜たことがある·时间从句 〜とき·过去叙述）",
+  sourceEn: "Original text (N4: past experience 〜たことがある, time clauses 〜とき, past narration)",
   goals:["掌握「〜たことがある」表经验","「〜とき」前的时态变化","连贯地用过去式叙述"],
   paragraph:[
     { jp:"去年[きょねん]の夏[なつ]、私[わたし]は初[はじ]めて一人[ひとり]で旅行[りょこう]に行[い]きました。", zh:"去年夏天，我第一次一个人去旅行。" },
@@ -591,6 +596,7 @@ const LESSONS = [
   theme:"これからの計画 — 予定と意志",
   themeZh:"今后的计划 —— 预定与意志",
   source:"原创课文（N4：计划 〜予定·意志 〜（よ）うと思う·期限 〜までに）",
+  sourceEn: "Original text (N4: plans 〜予定, intention 〜（よ）うと思う, deadlines 〜までに)",
   goals:["区分「〜予定／〜つもり／〜（よ）うと思う」","「〜までに」期限 vs「まで」持续","「〜かどうか」是否"],
   paragraph:[
     { jp:"来月[らいげつ]から、私[わたし]は新[あたら]しい目標[もくひょう]に向[む]かって頑張[がんば]るつもりです。", zh:"从下个月起，我打算朝着新的目标努力。" },
@@ -688,6 +694,7 @@ const LESSONS = [
   theme:"第一週まとめ — 私の今",
   themeZh:"第一周总结 —— 一篇整合本周语法的小作文",
   source:"复习课文（整合 Day1–6 全部语法点的 self-essay 范文）",
+  sourceEn: "Review text (self-essay integrating all Day 1–6 grammar)",
   goals:["在一篇短文里复用本周全部语法","看语法如何自然组合成段落","仿写一篇属于你自己的 self-essay"],
   paragraph:[
     { jp:"私[わたし]は中国[ちゅうごく]から来[き]た学生[がくせい]で、今[いま]、日本語[にほんご]を勉強[べんきょう]しています。", zh:"我是来自中国的学生，现在正在学日语。" },
@@ -753,6 +760,7 @@ const LESSONS = [
   theme:"原因と理由 — なぜ日本語を学ぶのか",
   themeZh:"原因与理由 —— 我为什么学日语",
   source:"原创课文（N3：〜ので/〜ため/〜おかげで/〜せいで 的语体与情感差别）",
+  sourceEn: "Original text (N3: register & nuance of 〜ので/〜ため/〜おかげで/〜せいで)",
   goals:["「〜ので」vs「〜から」的礼貌度","「〜おかげで」(正)与「〜せいで」(负)","「〜というのは…ことだ」下定义"],
   paragraph:[
     { jp:"日本語[にほんご]の勉強[べんきょう]を始[はじ]めたのには、いくつかの理由[りゆう]があります。", zh:"我开始学日语，是有几个理由的。" },
@@ -843,6 +851,7 @@ const LESSONS = [
   theme:"受身と使役 — されること・させられること",
   themeZh:"被动与使役 —— 被做的事·被迫做的事",
   source:"原创课文（N3：受身形·使役形·使役受身·迷惑受身）",
+  sourceEn: "Original text (N3: passive, causative, causative-passive, adversative passive)",
   goals:["受身形与使役形的构成","使役受身「〜（さ）せられる」表被迫","迷惑受身 表受害/困扰"],
   paragraph:[
     { jp:"日本語[にほんご]は今[いま]、世界中[せかいじゅう]の多[おお]くの人[ひと]に学[まな]ばれています。", zh:"如今，日语正被世界各地的很多人学习着。" },
@@ -927,6 +936,7 @@ const LESSONS = [
   theme:"条件表現 — と・たら・ば・なら",
   themeZh:"条件表达 —— 四兄弟的区别",
   source:"原创课文（N3 核心难点：と/たら/ば/なら 的语感与用法）",
+  sourceEn: "Original text (N3 key challenge: feel & usage of と/たら/ば/なら)",
   goals:["「と」必然结果·「たら」万能假设","「ば」一般条件·「なら」承接前提","在给建议的语境中分辨四者"],
   paragraph:[
     { jp:"日本語[にほんご]が上手[じょうず]になりたいなら、毎日[まいにち]少[すこ]しでも続[つづ]けることが大切[たいせつ]です。", zh:"如果想把日语学好，每天哪怕一点点地坚持都很重要。" },
@@ -1011,6 +1021,7 @@ const LESSONS = [
   theme:"伝聞と推量 — そうだ・らしい・ようだ",
   themeZh:"传闻与推测 —— 听说的、看起来的、好像的",
   source:"原创课文（N3：信息来源与确信度，様態 vs 伝聞 的接续差别）",
+  sourceEn: "Original text (N3: information source & certainty; 様態 vs 伝聞 connection differences)",
   goals:["分辨「降るそうだ」(听说)与「降りそうだ」(眼看要)","らしい/ようだ/みたい 的确信度","用「〜によると」引出消息来源"],
   paragraph:[
     { jp:"天気予報[てんきよほう]によると、明日[あした]は雨[あめ]が降[ふ]るそうです。", zh:"据天气预报说，明天会下雨。" },
@@ -1095,6 +1106,7 @@ const LESSONS = [
   theme:"敬語の基礎 — はじめてのご挨拶",
   themeZh:"敬语基础 —— 一段正式的自我介绍",
   source:"原创课文（N3：尊敬語·謙譲語·丁寧語 与商务固定表达）",
+  sourceEn: "Original text (N3: honorific / humble / polite speech & set business expressions)",
   goals:["谦让语压低自己（参る·申す·拝見）","尊敬语抬高对方（いらっしゃる·ご覧になる）","掌握商务高频固定句"],
   paragraph:[
     { jp:"本日[ほんじつ]は、お忙[いそが]しい中[なか]、お時間[じかん]をいただき、ありがとうございます。", zh:"今天在您百忙之中抽空（接见我），非常感谢。" },
@@ -1176,6 +1188,7 @@ const LESSONS = [
   theme:"物語 — アリとキリギリス",
   themeZh:"读故事 —— 《蚂蚁与蚱蜢》",
   source:"イソップ寓話（公有领域 / Aesop's Fables · 简易改写叙事文）",
+  sourceEn: "Aesop's Fables (public domain · simplified narrative adaptation)",
   goals:["引用的「と」(〜と言いました)","「〜てばかりいる」老是只…","劝告的「〜なさい」与「〜てしまう」"],
   paragraph:[
     { jp:"昔[むかし]々[むかし]、よく働[はたら]くアリと、歌[うた]ばかり歌[うた]っているキリギリスがいました。", zh:"很久很久以前，有勤劳的蚂蚁，和总在唱歌的蚱蜢。" },
@@ -1264,6 +1277,7 @@ const LESSONS = [
   theme:"第二週まとめ — この一週間で",
   themeZh:"第二周总结 —— 整合 N3 语法的反思短文",
   source:"复习课文（整合 Day8–13：原因·受身/使役·条件·伝聞·敬语）",
+  sourceEn: "Review text (Day 8–13: cause, passive/causative, conditionals, hearsay, keigo)",
   goals:["在一篇短文里复用 N3 语法","盖假名朗读自测","写一段属于你自己的 N3 反思短文"],
   paragraph:[
     { jp:"この一週間[いっしゅうかん]で、私[わたし]は多[おお]くの新[あたら]しい表現[ひょうげん]を学[まな]びました。", zh:"这一周里，我学到了许多新的表达。" },
@@ -1329,6 +1343,7 @@ const LESSONS = [
   theme:"ジョブズ① — 点と点をつなぐ",
   themeZh:"乔布斯斯坦福演讲① —— 串起人生的点",
   source:"Steve Jobs, Stanford 大学卒業式スピーチ 2005（要旨を日本語に再構成・名句は短く引用）",
+  sourceEn: "Steve Jobs, Stanford commencement speech 2005 (gist recomposed in Japanese; famous lines briefly quoted)",
   goals:["「〜という＋名词」给名词加内容","「たとえ〜ても」即使…也","「〜しかない」别无他法·「〜かもしれない」"],
   paragraph:[
     { jp:"スティーブ・ジョブズは、スタンフォード大学[だいがく]の卒業式[そつぎょうしき]で、自分[じぶん]の人生[じんせい]について三[みっ]つの話[はなし]をしました。", zh:"史蒂夫·乔布斯在斯坦福大学的毕业典礼上，讲了三个关于自己人生的故事。" },
@@ -1415,6 +1430,7 @@ const LESSONS = [
   theme:"ジョブズ② — 愛と喪失",
   themeZh:"乔布斯斯坦福演讲② —— 热爱与失去",
   source:"Steve Jobs, Stanford 2005（要旨を日本語に再構成・名句は短く引用）",
+  sourceEn: "Steve Jobs, Stanford 2005 (gist recomposed in Japanese; famous lines briefly quoted)",
   goals:["「〜てしまう」遗憾/完了","「〜ように感じる」感觉像…","「〜なければ」否定条件 + 特殊数读"],
   paragraph:[
     { jp:"二[ふた]つ目[め]の話[はなし]は、「愛[あい]と喪失[そうしつ]」についてです。", zh:"第二个故事，是关于“热爱与失去”。" },
@@ -1500,6 +1516,7 @@ const LESSONS = [
   theme:"ジョブズ③ — 死について / Stay hungry",
   themeZh:"乔布斯斯坦福演讲③ —— 关于死亡 / 求知若饥",
   source:"Steve Jobs, Stanford 2005（要旨を日本語に再構成・名句は短く引用）",
+  sourceEn: "Steve Jobs, Stanford 2005 (gist recomposed in Japanese; famous lines briefly quoted)",
   goals:["「〜てはいけない」禁止","「〜であれ」文语命令(格言体)","「〜以来」自…以来·「〜（よ）うとする」"],
   paragraph:[
     { jp:"三[みっ]つ目[め]の話[はなし]は、「死[し]」についてです。", zh:"第三个故事，是关于“死亡”。" },
@@ -1584,6 +1601,7 @@ const LESSONS = [
   theme:"意見を述べる — 点数か、伝わる喜びか",
   themeZh:"陈述观点 —— 是分数，还是“传达的喜悦”",
   source:"原创课文（N2：论述结构·提出主张·引用根据）",
+  sourceEn: "Original text (N2: argument structure, stating claims, citing evidence)",
   goals:["「〜について」(关于) vs「〜に対して」(针对/态度)","委婉主张「〜のではないか」","「〜と言える」可以说"],
   paragraph:[
     { jp:"言語[げんご]を学[まな]ぶことについて、私[わたし]は一[ひと]つの意見[いけん]を持[も]っています。", zh:"关于学习语言这件事，我有一个看法。" },
@@ -1667,6 +1685,7 @@ const LESSONS = [
   theme:"社会とテクノロジー — 便利さの代償",
   themeZh:"社会与科技 —— 便利的代价",
   source:"原创课文（N2：时事·科技论说文风格，抽象名词活用）",
+  sourceEn: "Original text (N2: current-affairs / tech essay style, using abstract nouns)",
   goals:["「〜化する」「〜的」造词","「〜つつある」渐变(书面)·「〜に伴って」随着","「〜ば〜ほど」越…越"],
   paragraph:[
     { jp:"近年[きんねん]、私[わたし]たちの生活[せいかつ]は急速[きゅうそく]に変化[へんか]しつつあります。", zh:"近年来，我们的生活正在急速地变化。" },
@@ -1752,6 +1771,7 @@ const LESSONS = [
   theme:"対比と逆接 — 続けられる人、続かない人",
   themeZh:"对比与转折 —— 坚持下来的人，坚持不了的人",
   source:"原创课文（N2：转折·让步·对比 的精细差别）",
+  sourceEn: "Original text (N2: fine distinctions of contrast, concession & comparison)",
   goals:["「〜反面」「〜一方で」并列两面","「〜にもかかわらず」尽管(书面)","「〜がち」容易/动辄(多负面)"],
   paragraph:[
     { jp:"何[なに]かを身[み]につけるとき、人[ひと]にはそれぞれ合[あ]ったやり方[かた]があります。", zh:"在掌握某样东西时，每个人都有各自适合的方法。" },
@@ -1834,6 +1854,7 @@ const LESSONS = [
   theme:"第三週まとめ — スピーチから学んだこと",
   themeZh:"第三周总结 —— 我从演讲里学到的",
   source:"复习课文（整合 乔布斯三段演讲 + N2 论述句型）",
+  sourceEn: "Review text (the three Jobs-speech passages + N2 argumentative patterns)",
   goals:["「〜にちがいない」一定·「〜わけではない」并非","「〜に対する」对…的(名词修饰)","用朗读·影子跟读法巩固演讲"],
   paragraph:[
     { jp:"私[わたし]はこの一週間[いっしゅうかん]で、スティーブ・ジョブズのスピーチを通[とお]して、多[おお]くのことを学[まな]びました。", zh:"这一周，我通过史蒂夫·乔布斯的演讲，学到了很多。" },
@@ -1901,6 +1922,7 @@ const LESSONS = [
   theme:"村上春樹 — 壁と卵",
   themeZh:"村上春树 —— 《高墙与鸡蛋》",
   source:"村上春樹 エルサレム賞 受賞スピーチ 2009「壁と卵」（核心名句を短く引用・解説は再構成）",
+  sourceEn: "Haruki Murakami, Jerusalem Prize speech 2009 \"Of Walls and Eggs\" (key lines briefly quoted; commentary recomposed)",
   goals:["「AとはBのことだ」下定义","「どんなに〜ても」无论多么","「〜やすい/〜にくい」与比喻表达"],
   paragraph:[
     { jp:"作家[さっか]の村上春樹[むらかみはるき]は、ある授賞式[じゅしょうしき]で、忘[わす]れられないスピーチをしました。", zh:"作家村上春树，在一次颁奖典礼上，做了一场令人难忘的演讲。" },
@@ -1985,6 +2007,7 @@ const LESSONS = [
   theme:"書き言葉と話し言葉 — 二つの顔",
   themeZh:"书面语与口语 —— 语言的两副面孔",
   source:"原创课文（N2：である体 vs です・ます体·缩约形·语体切换）",
+  sourceEn: "Original text (N2: である vs です・ます style, contractions, register switching)",
   goals:["「である」体与缩约形","按场面·对象使用「使い分ける」","识别书面/口语专用连接词"],
   paragraph:[
     { jp:"日本語[にほんご]には、書[か]き言葉[ことば]と話[はな]し言葉[ことば]という、二[ふた]つの顔[かお]があります。", zh:"日语有书面语和口语两副面孔。" },
@@ -2068,6 +2091,7 @@ const LESSONS = [
   theme:"N2文法① — をめぐって・にあたって・次第",
   themeZh:"N2 语法① —— 围绕·之际·取决于 / 一…就",
   source:"原创课文（N2 文法集中训练 I：会议·计划场景）",
+  sourceEn: "Original text (N2 grammar focus I: meeting & planning scenes)",
   goals:["「〜をめぐって」围绕(争议)","「〜にあたって」之际(重大场合)","「次第」的三种用法"],
   paragraph:[
     { jp:"新[あたら]しい制度[せいど]の導入[どうにゅう]をめぐって、社内[しゃない]で活発[かっぱつ]な議論[ぎろん]が続[つづ]いています。", zh:"围绕新制度的引入，公司内部正持续展开热烈的讨论。" },
@@ -2155,6 +2179,7 @@ const LESSONS = [
   theme:"N2文法② — 遅すぎることはない",
   themeZh:"N2 语法② —— 永远不嫌晚",
   source:"原创课文（N2 文法集中训练 II：学习·成长主题）",
+  sourceEn: "Original text (N2 grammar focus II: study & growth theme)",
   goals:["「〜ざるを得ない」不得不","「〜どころか」岂止/反而","「〜にすぎない」只不过·「〜さえ/こそ」"],
   paragraph:[
     { jp:"今[いま]の社会[しゃかい]では、変化[へんか]のスピードが速[はや]く、誰[だれ]もが学[まな]び続[つづ]けざるを得[え]ません。", zh:"在如今的社会，变化的速度很快，谁都不得不持续学习。" },
@@ -2240,6 +2265,7 @@ const LESSONS = [
   theme:"N2文法③ — 試験の前夜に",
   themeZh:"N2 语法③ —— 考试前夜",
   source:"原创课文（N2 文法集中训练 III：备考心态主题）",
+  sourceEn: "Original text (N2 grammar focus III: exam-mindset theme)",
   goals:["「〜たところで」即使…也白搭","「〜ないことには」不…就无法","「〜まい」否定意志/推量"],
   paragraph:[
     { jp:"試験[しけん]の前日[ぜんじつ]になって、いくら焦[あせ]ったところで、できることは限[かぎ]られています。", zh:"到了考试前一天，再怎么着急，能做的也有限。" },
@@ -2323,6 +2349,7 @@ const LESSONS = [
   theme:"論説文 — 努力は報われるか",
   themeZh:"读论说文 —— 努力会有回报吗",
   source:"原创课文（N2：论说文阅读策略，である体·仿真题材）",
+  sourceEn: "Original text (N2: expository reading strategy, である style, exam-like material)",
   goals:["抓「主張·根拠·結論」的标记词","「だからといって〜ない」并不因此就…","「〜としても」即使…也"],
   paragraph:[
     { jp:"「努力[どりょく]は必[かなら]ず報[むく]われる」とよく言[い]われるが、本当[ほんとう]にそうだろうか。", zh:"人们常说“努力一定有回报”，但真的如此吗？" },
@@ -2403,6 +2430,7 @@ const LESSONS = [
   theme:"第四週まとめ — この一か月を振り返って",
   themeZh:"第四周总结 —— 回望这一个月",
   source:"复习课文（整合 Day22–27：N2 高阶句型集中复用）",
+  sourceEn: "Review text (Day 22–27: concentrated reuse of advanced N2 patterns)",
   goals:["在一篇短文里复用 N2 句型","盖假名朗读较硬的文章","写一段属于你自己的 N2 反思短文"],
   paragraph:[
     { jp:"この一[いっ]か月[げつ]を振[ふ]り返[かえ]ると、自分[じぶん]でも驚[おどろ]くほど、多[おお]くのことを学[まな]んできました。", zh:"回望这一个月，连我自己都吃惊，竟学到了这么多。" },
@@ -2471,6 +2499,7 @@ const LESSONS = [
   theme:"総合演習 — 私の小さな物語",
   themeZh:"综合演练 —— 写一篇属于你自己的演讲（范文＋大作业）",
   source:"产出任务（范文仿乔布斯/村上结构，用本月语法创作）",
+  sourceEn: "Production task (model essay echoing Jobs/Murakami structure, using this month's grammar)",
   goals:["掌握演讲的四段式结构","「〜ていただきたい」「〜うちに」","把书面语法用到“说”里"],
   paragraph:[
     { jp:"皆[みな]さん、今日[きょう]は私[わたし]の小[ちい]さな物語[ものがたり]を、聞[き]いていただきたいと思[おも]います。", zh:"各位，今天我想请大家听一听我的一个小故事。" },
@@ -2554,6 +2583,7 @@ const LESSONS = [
   theme:"振り返りと次の一歩 — その先へ",
   themeZh:"回顾与下一步 —— 考试当天，以及更远处",
   source:"复习与展望（情感收束 + N2 当日应试策略，见“扩展学习”）",
+  sourceEn: "Review & send-off (emotional wrap-up + exam-day strategy; see \"Extended study\")",
   goals:["温习收束句型","「〜つもりはない」无意…","把考试看作旅途中的「通過点」"],
   paragraph:[
     { jp:"ついに、三十日[さんじゅうにち]の学[まな]びの旅[たび]も、最終日[さいしゅうび]を迎[むか]えました。", zh:"终于，这三十天的学习之旅，也迎来了最后一天。" },

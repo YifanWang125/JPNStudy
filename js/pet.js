@@ -57,11 +57,19 @@
     const b=J("jpn-test-best",{});                    // mastery = best test scores (un-gameable)
     for(const id in b){ const t=b[id]; if(t&&t.total) pr += (t.score/t.total*100)*1.2; }
     const pb=pronBest(); if(pb>0) pr += pb*0.8;        // best pronunciation
-    let exCorrect=0; J("jpn-exercise-log",[]).forEach(x=>{ exCorrect+=(x.score||0); });
-    J("jpn-produce-log",[]).forEach(()=>{ exCorrect+=1; });   // H3: 産出 (speak/write) reps feed growth too
-    pr += exCorrect*1.6;                               // PRODUCTION reps (highest-value output) → strong growth
+    // H5a: exercise/produce reward DAILY PROGRESS, not raw rep count. Re-grinding the
+    // same set in one day no longer keeps stacking XP — take each day's BEST exercise
+    // score, and count produce practice once per day. (Across days it still grows,
+    // which is genuine continued effort, like the active-dates floor.)
+    const exBestByDay={};
+    J("jpn-exercise-log",[]).forEach(x=>{ const k=dayKey(x.ts); const s=x.score||0; if(s>(exBestByDay[k]||0)) exBestByDay[k]=s; });
+    let exCorrect=0; for(const k in exBestByDay) exCorrect+=exBestByDay[k];
+    const prodDays={}; J("jpn-produce-log",[]).forEach(x=>{ prodDays[dayKey(x.ts)]=1; });   // H3: 産出 (speak/write) feeds growth, once per day
+    exCorrect += Object.keys(prodDays).length;
+    pr += exCorrect*1.6;                               // PRODUCTION (highest-value output) → strong growth
     return Math.round(pr);
   }
+  function dayKey(ts){ const d=new Date(ts||0); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
   function pronBest(){ let m=0; J("jpn-pron-log",[]).forEach(x=>{ if((x.score||0)>m) m=x.score; }); return m; }
   function studySXP(){ return effortXP()+progressXP(); }
   // recent improvement (for the pet to NOTICE & comment) — last two distinct attempts
