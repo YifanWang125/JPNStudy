@@ -134,10 +134,10 @@
   }
   function resultHTML(res){
     const bar=(label,o)=>{
-      const pct=Math.round(o.scaled/SECTION_MAX*100), thr=Math.round(PASS_SECTION/SECTION_MAX*100);
+      const pct=Math.round(o.scaled/SECTION_MAX*100), thr=Math.round(PASS_SECTION/SECTION_MAX*100), few=o.n<8;
       return `<div class="exr-row"><span class="exr-lab">${label}</span>
         <div class="exr-bar"><i class="exr-fill ${o.pass?'ok':'no'}" style="width:${pct}%"></i><span class="exr-thr" style="left:${thr}%" title="${T('合格线 19','pass 19')}"></span></div>
-        <span class="exr-num ${o.pass?'ok':'no'}">${o.scaled}/60 ${o.pass?'✓':'✗'}</span></div>`;
+        <span class="exr-num ${few?'':(o.pass?'ok':'no')}">${o.scaled}/60 ${few?('· '+T(`样本仅${o.n}题`,`only ${o.n}Q`)):(o.pass?'✓':'✗')}</span></div>`;
     };
     return `<div class="exam-result ${res.onTrack?'pass':'fail'}">
       <div class="exr-verdict">${res.onTrack?("🎉 "+T("两个笔试科目均达标","Both written sections on track")):("⚠️ "+T("还没稳过——看下面哪一科拖后腿","Not safe yet — see which section is dragging"))}</div>
@@ -175,18 +175,22 @@
   function aiOn(){ return !!(window.Assistant&&window.Assistant.hasKey&&window.Assistant.hasKey()); }
   function aiCache(){ try{ return JSON.parse(localStorage.getItem(AI_KEY)||"null")||{items:[]}; }catch(e){ return {items:[]}; } }
   function aiCount(){ return (aiCache().items||[]).length; }
-  function authoredByCat(){ const m={}; tests().forEach(t=>(t.questions||[]).forEach(q=>{ (m[q.cat]=m[q.cat]||[]).push(q); })); return m; }
+  function authoredByCat(){ const m={}; tests().forEach(t=>{
+      const en=(window.EN_TESTS&&window.EN_TESTS[t.id]&&window.EN_TESTS[t.id].q)||[];
+      (t.questions||[]).forEach((q,idx)=>{ const qq=Object.assign({}, q, {_explainEn:(en[idx]||{}).explainEn||""}); (m[qq.cat]=m[qq.cat]||[]).push(qq); });
+    }); return m; }
   // fill the gap toward MOCK_TARGET across multiple batched Claude calls (one click → ~full mock)
   async function generateAI(onProgress){
     if(!aiOn()) return 0;
     const have=authoredByCat(), cached=aiCache().items||[]; const cc={};
     cached.forEach(q=>cc[q.cat]=(cc[q.cat]||0)+1);
     const gap=cat=>Math.max(0,(MOCK_TARGET[cat]||0)-((have[cat]||[]).length)-(cc[cat]||0));
+    const RULE=`重要：選択肢はちょうど4つ、正解は<必ず一つだけ>になるよう、誤答は明確に不正解にする。日本語は自然でN2相当。answerは正解の番号(0-3)。`;
     const specs={
-      "語彙":{ sys:`あなたは JLPT N2 の作問者。中国語母語の学習者向けに文字・語彙の問題を作る。漢字には必ず「漢字[かな]」でふりがな。選択肢はちょうど4つ、答えは0〜3の番号。自然で正確な日本語のみ。`,
-        usr:n=>`N2 の文字・語彙問題を ${n} 問。漢字読み／文脈規定／言い換え類義 を混ぜる。JSON配列だけ出力（前後に説明やコードブロックを書かない）: [{"q":"問題文（ふりがな付き、空所は ＿＿）","options":["..","..","..",".."],"answer":0,"point":"短い解説(中国語可)"}]`},
-      "読解":{ sys:`あなたは JLPT N2 の作問者。短文読解（100〜200字の本文＋設問）を作る。漢字には「漢字[かな]」でふりがな。選択肢4つ、答えは0〜3。自然で正確な日本語のみ。`,
-        usr:n=>`N2 の短文読解を ${n} 問。各問は本文と設問を q にまとめる（本文の後に改行 \\n を入れて「問：…」）。JSON配列だけ: [{"q":"本文…\\n問：…","options":["..","..","..",".."],"answer":0,"point":"読解"}]`}
+      "語彙":{ sys:`あなたは JLPT N2 の作問者。中国語母語の学習者向けに文字・語彙の問題を作る。漢字には必ず「漢字[かな]」でふりがな。${RULE}`,
+        usr:n=>`N2 の文字・語彙問題を ${n} 問。漢字読み／文脈規定／言い換え類義 を混ぜる。${RULE} JSON配列だけ出力（前後に説明やコードブロックを書かない）: [{"q":"問題文（ふりがな付き、空所は ＿＿）","options":["..","..","..",".."],"answer":0,"point":"短い解説(中国語可)"}]`},
+      "読解":{ sys:`あなたは JLPT N2 の作問者。短文読解（100〜200字の本文＋設問）を作る。漢字には「漢字[かな]」でふりがな。${RULE}`,
+        usr:n=>`N2 の短文読解を ${n} 問。各問は本文と設問を q にまとめる（本文の後に改行 \\n を入れて「問：…」）。${RULE} JSON配列だけ: [{"q":"本文…\\n問：…","options":["..","..","..",".."],"answer":0,"point":"読解"}]`}
     };
     const BATCH=10, MAXCALLS=10; let calls=0; const out=[];
     for(const cat of ["語彙","読解"]){
@@ -216,8 +220,9 @@
     ai.forEach(q=>{ (aiByCat[q.cat]=aiByCat[q.cat]||[]).push(q); });
     const qs=[];
     ["語彙","文法","読解"].forEach(cat=>{ const pool=(have[cat]||[]).concat(aiByCat[cat]||[]); const t=MOCK_TARGET[cat]||pool.length; pool.slice(0,t).forEach(q=>qs.push(q)); });
-    return { id:"mock", isMock:true, full:true, timeMin:105,
-      title:T(`🎯 完整模拟考 · ${qs.length}题`,`🎯 Full Mock · ${qs.length} Q`),
+    const aiN=qs.filter(q=>q._ai).length;
+    return { id:"mock", isMock:true, full:true, timeMin:105, aiCount:aiN,
+      title:T(`🎯 模拟考 · ${qs.length}题`,`🎯 Mock · ${qs.length} Q`),
       questions:qs };
   }
 

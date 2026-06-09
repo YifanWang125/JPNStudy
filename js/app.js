@@ -276,10 +276,11 @@ const $ = sel => document.querySelector(sel);
  * ==========================================================================*/
 function render(){
   stopSpeak();
+  if(!lessonByDay(STATE.day)) STATE.day=Math.min(Math.max(1,STATE.day||1),TOTAL_DAYS);  // R6-8: never render an invalid day
   if(window.Assistant && window.Assistant.refreshCtx) window.Assistant.refreshCtx();  // R3-2
   localStorage.setItem("jpn-last-day", STATE.day);
   localStorage.setItem("jpn-last-session", STATE.session);   // remember which sub-page (morning/noon/night) for "继续学习"
-  const L = lessonByDay(STATE.day);
+  const L = lessonByDay(STATE.day) || lessonByDay(1);
   renderHeader(L);
   if(L.planned){ renderPlanned(L); return; }
   renderDayHead(L);
@@ -1467,9 +1468,10 @@ function startTest(idOrDef){
 function renderQuiz(){
   const c=$("#page-test"); const d=TEST.def;
   let html=`<div class="quiz-bar"><span class="q-title">${esc(d.title)}</span><span class="q-count" id="q-count"></span><span class="timer" id="timer">--:--</span><button id="quit-test">${T("退出","Quit")}</button></div>`;
+  if(d.isMock && d.aiCount) html+=`<div class="mock-aiwarn">${T(`⚠️ 本卷含 ${d.aiCount} 道 AI 生成题（<b>未审校</b>，可能有误），仅作额外练习；权威满分卷请用「官方样题」。`,`⚠️ This paper contains ${d.aiCount} AI-generated questions (<b>unreviewed</b>, may contain errors) — extra practice only; for authoritative material use the Official Samples.`)}</div>`;
   d.questions.forEach((q,i)=>{
     const optsHtml=TEST.order[i].map((origJ,pos)=>`<div class="q-opt" data-i="${i}" data-j="${origJ}"><span class="mark">${"ABCD"[pos]}</span><span>${toRuby(q.options[origJ])}</span></div>`).join("");
-    html+=`<div class="q-card" data-i="${i}"><span class="q-num">${T("問","Q")} ${i+1}</span><span class="q-cat">${esc(LANG!=="zh"?(CAT_EN[q.cat]||q.cat):q.cat)}</span>
+    html+=`<div class="q-card" data-i="${i}"><span class="q-num">${T("問","Q")} ${i+1}</span><span class="q-cat">${esc(LANG!=="zh"?(CAT_EN[q.cat]||q.cat):q.cat)}</span>${q._ai?`<span class="q-aitag">✨ ${T("AI·未审校","AI·unreviewed")}</span>`:""}
       <div class="q-text">${toRuby(q.q)}</div>
       <div class="q-opts">${optsHtml}</div>
       <div class="q-explain" id="exp-${i}"></div></div>`;
@@ -1506,7 +1508,10 @@ function finishTest(auto){
     const okTxt = got===q.answer?`<span style="color:var(--good)">✓ ${T("正解","Correct")}</span>`:(got===null?`<span style="color:var(--ink-faint)">— ${T("未作答","Unanswered")}</span>`:`<span style="color:var(--bad)">✗ ${T("不正解","Incorrect")}</span>`);
     const correctLetter="ABCD"[TEST.order[i].indexOf(q.answer)];
     const eq=(ENT(d.id).q||[])[i]||{};
-    exp.innerHTML=`<div>${okTxt} · ${T("正解","Answer")}：${correctLetter}</div><div><span class="gp">${esc(q.point)}</span> — ${toRuby(zhen(q.explain, eq.explainEn))} <a data-day="${q.day}">→ ${T("复习 Day "+q.day,"Review Day "+q.day)}</a></div>`;
+    const enExp = d.isMock ? (q._explainEn||"") : (eq.explainEn||"");          // R6-5: mock carries its own EN explain
+    const dayLink = q.day ? ` <a data-day="${q.day}">→ ${T("复习 Day "+q.day,"Review Day "+q.day)}</a>` : "";  // R6-8: no link for AI day:0
+    const aiMark = q._ai ? ` <span class="q-aimark">✨ ${T("AI·未审校","AI·unreviewed")}</span>` : "";
+    exp.innerHTML=`<div>${okTxt} · ${T("正解","Answer")}：${correctLetter}</div><div><span class="gp">${esc(q.point)}</span>${aiMark} — ${toRuby(zhen(q.explain, enExp))}${dayLink}</div>`;
     exp.classList.add("show");
   });
   showEvaluation(auto);
@@ -1528,7 +1533,7 @@ function showEvaluation(auto){
       <div class="eval-sub">${score}/${total} ${T("题答对","correct")} · ${T("用时","time")} ${tm}:${String(ts).padStart(2,"0")}${auto?T(" · ⏰ 时间到，自动交卷"," · ⏰ time up, auto-submitted"):""}</div>
       <div class="eval-actions"><button class="review" id="ev-review">${T("查看逐题解析 ↓","See per-question review ↓")}</button><button class="retry" id="ev-retry">${T("再考一次","Retry")}</button></div></div>`;
     $("#page-test").insertAdjacentHTML("afterbegin",html);
-    $("#ev-retry").onclick=()=>{ if(window.Exam) startTest(Exam.buildMock()); };
+    $("#ev-retry").onclick=()=>{ if(window.Exam) startTest(Exam.buildFullMock()); };
     $("#ev-review").onclick=()=>{ const q=document.querySelector(".q-card"); if(q) q.scrollIntoView({behavior:"smooth"}); };
     return;
   }

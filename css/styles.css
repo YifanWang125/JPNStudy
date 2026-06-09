@@ -1057,6 +1057,9 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .exr-num.ok{color:var(--good,#0ca678)} .exr-num.no{color:var(--accent)}
 .exr-note{font-size:.82rem;color:var(--ink-dim);line-height:1.7;margin-top:12px}
 .eval-box.mock .eval-sub{font-size:.85rem;color:var(--ink-dim);margin:4px 0 10px}
+.mock-aiwarn{background:rgba(228,87,46,.1);border:1px solid var(--accent);border-radius:10px;padding:9px 13px;margin:10px 0;font-size:.86rem;line-height:1.7;color:var(--ink)}
+.q-aitag{display:inline-block;font-size:.66rem;font-weight:700;color:#fff;background:#7048e8;border-radius:6px;padding:1px 7px;margin-left:6px}
+.q-aimark{font-size:.78rem;color:#7048e8;font-weight:600}
 
 /* ============================== 🥚 STUDY PET ============================== */
 :root{ --pixel:'DotGothic16','Noto Sans JP',monospace; }
