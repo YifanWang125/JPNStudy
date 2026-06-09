@@ -1126,7 +1126,7 @@ function openSettings(){
   const cfg=getAzureCfg()||{key:"",region:""};
   const ov=$("#modal-overlay"); ov.style.display="flex";
   ov.innerHTML=`<div class="modal">
-    <div class="modal-head"><h2>⚙️ 设置</h2><button id="modal-close">✕</button></div>
+    <div class="modal-head"><h2>⚙️ ${T("设置","Settings")}</h2><button id="modal-close">✕</button></div>
     <div class="modal-body">
       <section><h3>${T("🌐 语言 / Language","🌐 Language")}</h3>
         <p class="m-note">${T("选择界面 / 讲解语言（日语原文不变）。选「日本語」时，界面为日语、讲解用英文。","Choose the interface / explanation language (the Japanese itself never changes). With 日本語, the UI is Japanese and explanations show in English.")}</p>
@@ -1140,31 +1140,31 @@ function openSettings(){
           ${[["light",T("☀️ 浅色","☀️ Light")],["dark",T("🌙 深色","🌙 Dark")],["auto",T("🖥 跟随系统","🖥 System")]].map(([v,l])=>`<button data-theme-val="${v}" class="${getTheme()===v?"on":""}">${l}</button>`).join("")}
         </div>
       </section>
-      <section><h3>👤 你的名字（可选）</h3>
-        <p class="m-note">填了之后，主页会用它跟你打招呼（おかえりなさい、…！）。只存在本机浏览器。</p>
-        <label>名字 / Name <input type="text" id="usr-name" value="${escAttr(getName())}" placeholder="例如 Bob / 王"></label>
-        <div class="m-actions"><button id="name-save" class="primary">保存</button><span id="name-status" class="m-note"></span></div>
+      <section><h3>👤 ${T("你的名字（可选）","Your name (optional)")}</h3>
+        <p class="m-note">${T("填了之后，主页会用它跟你打招呼（おかえりなさい、…！）。只存在本机浏览器。","If set, the home page greets you with it (おかえりなさい、…！). Stored on this device only.")}</p>
+        <label>${T("名字","Name")} <input type="text" id="usr-name" value="${escAttr(getName())}" placeholder="${T("例如 Bob / 王","e.g. Bob / 王")}"></label>
+        <div class="m-actions"><button id="name-save" class="primary">${T("保存","Save")}</button><span id="name-status" class="m-note"></span></div>
       </section>
       ${window.Assistant?window.Assistant.settingsHTML():""}
-      <section><h3>🎤 发音评估引擎</h3>
-        <p class="m-note">不填则用浏览器识别（近似）。填入 Azure 语音服务的 <b>Key + Region</b> 可获得逐音素＋语调评分（免费层每月 5 小时）。仅存于本机浏览器，不上传。</p>
-        <label>Azure Key <input type="password" id="az-key" value="${esc(cfg.key||"")}" placeholder="Speech 资源的密钥"></label>
-        <label>Region <input type="text" id="az-region" value="${esc(cfg.region||"")}" placeholder="如 japaneast / eastus"></label>
-        <div class="m-actions"><button id="az-test" class="primary">🔌 测试连接</button><button id="az-save">保存</button><button id="az-clear">清除</button><span id="az-status" class="m-note"></span></div>
+      <section><h3>🎤 ${T("发音评估引擎","Pronunciation engine")}</h3>
+        <p class="m-note">${T("不填则用浏览器识别（近似）。填入 Azure 语音服务的 <b>Key + Region</b> 可获得逐音素＋语调评分（免费层每月 5 小时）。仅存于本机浏览器，不上传。","Leave blank to use browser recognition (approximate). Add an Azure Speech <b>Key + Region</b> for phoneme + prosody scoring (free tier: 5 h/month). Stored on this device only; never uploaded.")}</p>
+        <label>Azure Key <input type="password" id="az-key" value="${escAttr(cfg.key||"")}" placeholder="${T("Speech 资源的密钥","Speech resource key")}"></label>
+        <label>Region <input type="text" id="az-region" value="${escAttr(cfg.region||"")}" placeholder="${T("如 japaneast / eastus","e.g. japaneast / eastus")}"></label>
+        <div class="m-actions"><button id="az-test" class="primary">🔌 ${T("测试连接","Test connection")}</button><button id="az-save">${T("保存","Save")}</button><button id="az-clear">${T("清除","Clear")}</button><span id="az-status" class="m-note"></span></div>
         <div class="conn-status" id="az-conn"></div>
       </section>
-      <section><h3>💾 进度备份</h3>
-        <p class="m-note">进度只存在本机浏览器，清缓存就会丢。考前建议导出一份。</p>
-        <div class="m-actions"><button id="exp-prog" class="primary">导出进度 JSON</button><button id="imp-prog">导入进度…</button><input type="file" id="imp-file" accept="application/json" style="display:none"><span id="bk-status" class="m-note"></span></div>
+      <section><h3>💾 ${T("进度备份","Progress backup")}</h3>
+        <p class="m-note">${T("进度只存在本机浏览器，清缓存就会丢。考前建议导出一份。","Progress lives only in this browser — clearing cache loses it. Export a copy before the exam.")}</p>
+        <div class="m-actions"><button id="exp-prog" class="primary">${T("导出进度 JSON","Export progress JSON")}</button><button id="imp-prog">${T("导入进度…","Import progress…")}</button><input type="file" id="imp-file" accept="application/json" style="display:none"><span id="bk-status" class="m-note"></span></div>
       </section>
-      <section><h3>🎙️ 声音模型 / Voice</h3>
-        <p class="m-note">选择朗读用的声音。每个角色都有「普通版」和「有意思版」，切换后全站真人语音都会用它。</p>
-        <label>声音 <select id="voice-sel">${voiceOptionsHTML()}</select></label>
+      <section><h3>🎙️ ${T("声音模型","Voice model")}</h3>
+        <p class="m-note">${T("选择朗读用的声音。每个角色都有「普通版」和「有意思版」，切换后全站真人语音都会用它。","Pick the voice used for read-aloud. Each character has a standard and a fun version; switching applies site-wide.")}</p>
+        <label>${T("声音","Voice")} <select id="voice-sel">${voiceOptionsHTML()}</select></label>
         <p class="m-note" id="voice-desc"></p>
-        <div class="m-actions"><button id="voice-demo">▶ 试听</button><span id="voice-status" class="m-note"></span></div>
+        <div class="m-actions"><button id="voice-demo">▶ ${T("试听","Preview")}</button><span id="voice-status" class="m-note"></span></div>
       </section>
-      <section><h3>🔊 真人音频（VOICEVOX）</h3>
-        <p class="m-note">${Object.keys(AUDIO_MANIFEST).length?`已加载 <b>${Object.keys(AUDIO_MANIFEST).length}</b> 条预生成真人音频 ✓ ${T("（课文・单词・例句・每日一句・场景全覆盖）","(lessons, vocab, examples, daily phrases & scenarios all covered)")}`:"当前使用系统 TTS（机械音）。"} 要新增声音：启动 VOICEVOX（或 AivisSpeech）引擎后运行 <code>python3 tools/gen_audio.py --voice-dir &lt;名字&gt; --speaker &lt;id&gt;</code>，再在 <code>audio/voices.js</code> 注册即可（详见 README）。需通过本地服务器打开。</p>
+      <section><h3>🔊 ${T("真人音频（VOICEVOX）","Real-voice audio (VOICEVOX)")}</h3>
+        <p class="m-note">${Object.keys(AUDIO_MANIFEST).length?T(`已加载 <b>${Object.keys(AUDIO_MANIFEST).length}</b> 条预生成真人音频 ✓ （课文・单词・例句・每日一句・场景全覆盖）`,`<b>${Object.keys(AUDIO_MANIFEST).length}</b> pre-generated real-voice clips loaded ✓ (lessons, vocab, examples, daily phrases & scenarios)`):T("当前使用系统 TTS（机械音）。","Currently using system TTS (robotic).")} ${T("要新增声音：启动 VOICEVOX（或 AivisSpeech）引擎后运行","To add a voice: start the VOICEVOX (or AivisSpeech) engine, run")} <code>python3 tools/gen_audio.py --voice-dir &lt;name&gt; --speaker &lt;id&gt;</code>${T("，再在 <code>audio/voices.js</code> 注册即可（详见 README）。需通过本地服务器打开。"," and register it in <code>audio/voices.js</code> (see README). Open via a local server.")}</p>
         <label class="m-check"><input type="checkbox" id="tts-fb"> ${T("缺音频时用系统语音兜底（机械音，默认关闭）","Fall back to the system voice when a clip is missing (robotic; off by default)")}</label>
         <p class="m-note">${T("默认关闭——你不喜欢那个机械音。现在内容已全部用真人音频，几乎用不到兜底。","Off by default — you disliked the robotic voice. All content now uses real-voice audio, so the fallback is rarely needed.")}</p>
       </section>
@@ -1173,9 +1173,9 @@ function openSettings(){
   ov.onclick=(e)=>{ if(e.target===ov) closeSettings(); };
   $("#theme-pick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ setTheme(b.dataset.themeVal); $("#theme-pick").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); });
   $("#lang-pick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ if(getLang()===b.dataset.langVal) return; setLang(b.dataset.langVal); applyLang(); showPage(STATE.page); openSettings(); });
-  $("#name-save").onclick=()=>{ const v=$("#usr-name").value.trim(); if(v) localStorage.setItem("jpn-name",v); else localStorage.removeItem("jpn-name"); $("#name-status").textContent="已保存 ✓"; };
-  $("#az-save").onclick=()=>{ const key=$("#az-key").value.trim(), region=$("#az-region").value.trim(); if(key&&region){ localStorage.setItem("jpn-azure-cfg",JSON.stringify({key,region})); $("#az-status").textContent="已保存 ✓ 发音评估将用 Azure"; } else { $("#az-status").textContent="Key 和 Region 都要填"; } };
-  $("#az-clear").onclick=()=>{ localStorage.removeItem("jpn-azure-cfg"); $("#az-key").value=""; $("#az-region").value=""; $("#az-status").textContent="已清除，将用浏览器识别"; const cc=$("#az-conn"); if(cc){ cc.className="conn-status"; cc.textContent=""; } };
+  $("#name-save").onclick=()=>{ const v=$("#usr-name").value.trim(); if(v) localStorage.setItem("jpn-name",v); else localStorage.removeItem("jpn-name"); $("#name-status").textContent=T("已保存 ✓","Saved ✓"); };
+  $("#az-save").onclick=()=>{ const key=$("#az-key").value.trim(), region=$("#az-region").value.trim(); if(key&&region){ localStorage.setItem("jpn-azure-cfg",JSON.stringify({key,region})); $("#az-status").textContent=T("已保存 ✓ 发音评估将用 Azure","Saved ✓ — Azure will be used"); } else { $("#az-status").textContent=T("Key 和 Region 都要填","Enter both Key and Region"); } };
+  $("#az-clear").onclick=()=>{ localStorage.removeItem("jpn-azure-cfg"); $("#az-key").value=""; $("#az-region").value=""; $("#az-status").textContent=T("已清除，将用浏览器识别","Cleared — browser recognition will be used"); const cc=$("#az-conn"); if(cc){ cc.className="conn-status"; cc.textContent=""; } };
   if($("#az-test")) $("#az-test").onclick=()=>testAzureConn();
   $("#exp-prog").onclick=exportProgress;
   $("#imp-prog").onclick=()=>$("#imp-file").click();
@@ -1188,8 +1188,8 @@ function openSettings(){
   const vdesc=()=>{ const v=VOICES.find(x=>x.id===$("#voice-sel").value)||VOICES[0]; if($("#voice-desc")) $("#voice-desc").textContent=v?v.desc||"":""; };
   if($("#voice-sel")){
     vdesc();
-    $("#voice-sel").onchange=()=>{ setVoice($("#voice-sel").value); vdesc(); $("#voice-status").textContent="已切换 ✓"; };
-    $("#voice-demo").onclick=()=>{ stopSpeak(); $("#voice-status").textContent="试听中…"; speakSequence([{text:"日本語[にほんご]を勉強[べんきょう]しています。",node:null,audioKey:"d1_s1"}]).then(()=>{ if($("#voice-status")) $("#voice-status").textContent=""; }); };
+    $("#voice-sel").onchange=()=>{ setVoice($("#voice-sel").value); vdesc(); $("#voice-status").textContent=T("已切换 ✓","Switched ✓"); };
+    $("#voice-demo").onclick=()=>{ stopSpeak(); $("#voice-status").textContent=T("试听中…","Playing…"); speakSequence([{text:"日本語[にほんご]を勉強[べんきょう]しています。",node:null,audioKey:"d1_s1"}]).then(()=>{ if($("#voice-status")) $("#voice-status").textContent=""; }); };
   }
 }
 function closeSettings(){ const ov=$("#modal-overlay"); ov.style.display="none"; ov.innerHTML=""; }
@@ -1202,7 +1202,7 @@ function exportProgress(){
   const d=new Date(), stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
   a.href=url; a.download=`jpn-progress-${stamp}.json`; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1500);
-  const st=$("#bk-status"); if(st) st.textContent="已导出 ✓";
+  const st=$("#bk-status"); if(st) st.textContent=T("已导出 ✓","Exported ✓");
 }
 function importProgress(e){
   const file=e.target.files&&e.target.files[0]; if(!file) return;
@@ -1210,15 +1210,17 @@ function importProgress(e){
   reader.onload=()=>{
     try{
       const obj=JSON.parse(reader.result);
-      if(!obj||typeof obj.data!=="object") throw new Error("文件格式不符");
-      if(!confirm("导入将覆盖当前进度，确定继续？")){ return; }
+      if(!obj||typeof obj.data!=="object") throw new Error(T("文件格式不符","unrecognized file format"));
+      if(!confirm(T("导入会用文件里的进度覆盖同名项（不会清除文件里没有的项）。确定继续？","Importing overwrites matching items with the file's data (items not in the file are kept). Continue?"))){ return; }
       Object.keys(obj.data).forEach(k=>{ if(/^jpn-/.test(k)) localStorage.setItem(k, obj.data[k]); });
       PROG=loadProg();
       if(window.Notes && window.Notes.reload) window.Notes.reload();
+      try{ setLang(getLang()); applyLang(); }catch(e){}        // R6-11: re-apply imported language…
+      try{ setTheme(getTheme()); }catch(e){}                    // …and theme
       const last=parseInt(localStorage.getItem("jpn-last-day")||"1",10); STATE.day=(last>=1&&last<=TOTAL_DAYS)?last:1;
-      alert("导入成功！进度已恢复。");
+      alert(T("导入成功！进度已恢复。","Import complete — your progress has been restored."));
       closeSettings(); showPage(STATE.page);
-    }catch(err){ alert("导入失败："+err.message); }
+    }catch(err){ alert(T("导入失败：","Import failed: ")+err.message); }
   };
   reader.readAsText(file);
 }
@@ -1244,16 +1246,17 @@ function renderBlocks(blocks, eb){
 }
 /* ---- term glossary + auto-linker (用户反馈 #2b/2c): 把 自動詞/な形容詞/音便 等术语在词义里变成可点的解释 ---- */
 const GLOSSARY = [
-  {term:"自動詞", aliases:["自動詞","自动词"], def:"自动词（intransitive）：动作不带宾语、表示主体自身的变化或动作，如 開[あ]く・始[はじ]まる・変[か]わる。多与「が」搭配。↔ 他动词。"},
-  {term:"他動詞", aliases:["他動詞","他动词"], def:"他动词（transitive）：动作作用于宾语，需要「を」，如 開[あ]ける・始[はじ]める・変[か]える。很多自他成对：開く↔開ける。"},
-  {term:"な形容詞", aliases:["な形容詞","な形容词","な形"], def:"な形容词（也叫“形容动词”）：修饰名词时加「な」（静[しず]かな町[まち]），更像名词，要靠 だ／な／です 撑。"},
-  {term:"い形容詞", aliases:["い形容詞","い形容词","い形"], def:"い形容词：以「い」结尾，会自己变时态（高[たか]い→高[たか]かった），更像动词。"},
-  {term:"可能形", aliases:["可能形"], def:"可能形：表示“能/会做”。書[か]く→書[か]ける、食[た]べる→食[た]べられる、する→できる。"},
-  {term:"受身形", aliases:["受身形","受身"], def:"受身（被动）：“被…”。書[か]く→書[か]かれる、食[た]べる→食[た]べられる；施动者用「に」。"},
-  {term:"使役形", aliases:["使役形","使役"], def:"使役：“让/使…做”。書[か]く→書[か]かせる、食[た]べる→食[た]べさせる。"},
-  {term:"使役受身", aliases:["使役受身"], def:"使役受身：“被迫做”（不情愿）。書[か]く→書[か]かされる、食[た]べる→食[た]べさせられる。"},
-  {term:"音便", aliases:["音便"], def:"音便：为了顺口发生的音变，主要在第1组动词的 て形/た形：書[か]く→書[か]いて、飲[の]む→飲[の]んで、話[はな]す→話[はな]して。详见“动词的活用”。"}
+  {term:"自動詞", aliases:["自動詞","自动词"], def:"自动词（intransitive）：动作不带宾语、表示主体自身的变化或动作，如 開[あ]く・始[はじ]まる・変[か]わる。多与「が」搭配。↔ 他动词。", defEn:"Intransitive verb: no direct object; describes the subject's own change/action (開く・始まる・変わる). Usually takes が. ↔ transitive."},
+  {term:"他動詞", aliases:["他動詞","他动词"], def:"他动词（transitive）：动作作用于宾语，需要「を」，如 開[あ]ける・始[はじ]める・変[か]える。很多自他成对：開く↔開ける。", defEn:"Transitive verb: acts on an object, needs を (開ける・始める・変える). Many pair with an intransitive: 開く↔開ける."},
+  {term:"な形容詞", aliases:["な形容詞","な形容词","な形"], def:"な形容词（也叫“形容动词”）：修饰名词时加「な」（静[しず]かな町[まち]），更像名词，要靠 だ／な／です 撑。", defEn:"na-adjective (a.k.a. 'adjectival noun'): adds な before a noun (静かな町); behaves like a noun, propped up by だ／な／です."},
+  {term:"い形容詞", aliases:["い形容詞","い形容词","い形"], def:"い形容词：以「い」结尾，会自己变时态（高[たか]い→高[たか]かった），更像动词。", defEn:"i-adjective: ends in い and conjugates for tense itself (高い→高かった); behaves more like a verb."},
+  {term:"可能形", aliases:["可能形"], def:"可能形：表示“能/会做”。書[か]く→書[か]ける、食[た]べる→食[た]べられる、する→できる。", defEn:"Potential form: 'can / be able to.' 書く→書ける, 食べる→食べられる, する→できる."},
+  {term:"受身形", aliases:["受身形","受身"], def:"受身（被动）：“被…”。書[か]く→書[か]かれる、食[た]べる→食[た]べられる；施动者用「に」。", defEn:"Passive: 'to be …ed.' 書く→書かれる, 食べる→食べられる; the agent takes に."},
+  {term:"使役形", aliases:["使役形","使役"], def:"使役：“让/使…做”。書[か]く→書[か]かせる、食[た]べる→食[た]べさせる。", defEn:"Causative: 'make / let someone do.' 書く→書かせる, 食べる→食べさせる."},
+  {term:"使役受身", aliases:["使役受身"], def:"使役受身：“被迫做”（不情愿）。書[か]く→書[か]かされる、食[た]べる→食[た]べさせられる。", defEn:"Causative-passive: 'be made to do' (unwillingly). 書く→書かされる, 食べる→食べさせられる."},
+  {term:"音便", aliases:["音便"], def:"音便：为了顺口发生的音变，主要在第1组动词的 て形/た形：書[か]く→書[か]いて、飲[の]む→飲[の]んで、話[はな]す→話[はな]して。详见“动词的活用”。", defEn:"Euphonic change (onbin): a sound change for ease of pronunciation, mainly in Group-1 verbs' て/た forms: 書く→書いて, 飲む→飲んで, 話す→話して."}
 ];
+function glossDef(g){ return (LANG!=="zh" && g.defEn) ? g.defEn : g.def; }
 let _glossRe=null, _glossMap=null;
 function glossRegex(){
   if(_glossRe) return _glossRe;
@@ -1265,12 +1268,12 @@ function glossRegex(){
 }
 function linkTerms(text){
   if(text==null) return "";
-  return esc(String(text)).replace(glossRegex(), m=>{ const i=_glossMap[m]; const def=GLOSSARY[i].def.replace(/\[[^\]]+\]/g,""); return `<span class="gloss" data-g="${i}" title="${esc(def)}">${m}</span>`; });
+  return esc(String(text)).replace(glossRegex(), m=>{ const i=_glossMap[m]; const def=glossDef(GLOSSARY[i]).replace(/\[[^\]]+\]/g,""); return `<span class="gloss" data-g="${i}" title="${escAttr(def)}">${m}</span>`; });
 }
 function glossarySection(){
-  const items=GLOSSARY.map((g,i)=>`<div class="gloss-item" id="gloss-${i}"><b>${esc(g.term)}</b> ${rubyMd(g.def)}</div>`).join("");
+  const items=GLOSSARY.map((g,i)=>`<div class="gloss-item" id="gloss-${i}"><b>${esc(g.term)}</b> ${rubyMd(glossDef(g))}</div>`).join("");
   return `<div class="ref-section" data-id="glossary">
-    <div class="ref-head"><span class="r-emoji">📖</span><h2>语法术语小词典 <span class="r-zh">自動詞 / な形容詞 / 音便… 在单词页点这些术语会跳到这里</span></h2><span class="r-arrow">▸</span></div>
+    <div class="ref-head"><span class="r-emoji">📖</span><h2>${T("语法术语小词典","Grammar Term Glossary")} <span class="r-zh">${T("自動詞 / な形容詞 / 音便… 在单词页点这些术语会跳到这里","自動詞 / な形容詞 / 音便… tap these terms on a vocab card to jump here")}</span></h2><span class="r-arrow">▸</span></div>
     <div class="ref-body">${items}</div></div>`;
 }
 function gotoGlossary(idx){
@@ -1290,7 +1293,7 @@ function grammarIndexSection(){
     items += `<div class="gidx-item" data-day="${l.day}"><span class="d">D${l.day}</span><b>${esc(g.point)}</b></div>`;
   }); }});
   return `<div class="ref-section" data-id="grammar-index">
-    <div class="ref-head"><span class="r-emoji">🗂️</span><h2>全文法インデックス <span class="r-zh">全部语法点索引 · 点击跳到对应天</span></h2><span class="r-arrow">▸</span></div>
+    <div class="ref-head"><span class="r-emoji">🗂️</span><h2>全文法インデックス <span class="r-zh">${T("全部语法点索引 · 点击跳到对应天","All grammar points · tap to jump to its day")}</span></h2><span class="r-arrow">▸</span></div>
     <div class="ref-body"><div class="gidx-grid">${items}</div></div></div>`;
 }
 function renderGeneral(){
