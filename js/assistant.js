@@ -18,10 +18,11 @@
   const LS_CFG  = "jpn-ai-cfg";
   const API_URL = "https://api.anthropic.com/v1/messages";
   const MODELS  = [
-    { id:"claude-sonnet-4-6", name:"Sonnet 4.6（推荐 · 均衡）" },
-    { id:"claude-haiku-4-5",  name:"Haiku 4.5（最快 · 最省）" },
-    { id:"claude-opus-4-8",   name:"Opus 4.8（最强 · 较贵）" },
+    { id:"claude-sonnet-4-6", zh:"Sonnet 4.6（推荐 · 均衡）", en:"Sonnet 4.6 (recommended · balanced)" },
+    { id:"claude-haiku-4-5",  zh:"Haiku 4.5（最快 · 最省）",  en:"Haiku 4.5 (fastest · cheapest)" },
+    { id:"claude-opus-4-8",   zh:"Opus 4.8（最强 · 较贵）",   en:"Opus 4.8 (strongest · pricier)" },
   ];
+  const modelName = (m)=> (typeof T==="function" ? T(m.zh,m.en) : m.zh);
   function cfg(){ try{ return JSON.parse(localStorage.getItem(LS_CFG))||{}; }catch(e){ return {}; } }
   function saveCfg(c){ try{ localStorage.setItem(LS_CFG, JSON.stringify(c)); }catch(e){} }
   function hasKey(){ return !!cfg().key; }
@@ -205,8 +206,8 @@ ${courseIndex()}`;
     const box=$id("ai-sel");
     if(sel && sel.length<=80){
       box.style.display="block";
-      box.innerHTML=`选中：「${esc(sel)}」 <button id="ai-sel-ask">就这句提问</button>`;
-      $id("ai-sel-ask").onclick=()=>{ $id("ai-text").value=`「${sel}」 这里是什么意思／怎么用？`; box.style.display="none"; autoGrow($id("ai-text")); $id("ai-text").focus(); };
+      box.innerHTML=`${T("选中","Selected")}：「${esc(sel)}」 <button id="ai-sel-ask">${T("就这句提问","Ask about this")}</button>`;
+      $id("ai-sel-ask").onclick=()=>{ $id("ai-text").value=`「${sel}」 ${T("这里是什么意思／怎么用？","— what does this mean / how is it used?")}`; box.style.display="none"; autoGrow($id("ai-text")); $id("ai-text").focus(); };
     } else box.style.display="none";
     setTimeout(()=>$id("ai-text").focus(),60);
   }
@@ -234,19 +235,19 @@ ${courseIndex()}`;
       body.innerHTML=fmt(full)+`<div class="ai-actions">${speakBtn(full)}${(window.Notes&&window.Notes.saveBtnHTML)?window.Notes.saveBtnHTML():""}</div>`;
       if(window.Notes && window.Notes.bindSaveBtn) window.Notes.bindSaveBtn(node, { q, a:full, day:STATE.day, session:STATE.session });
     }catch(e){
-      body.innerHTML=`<span class="ai-err">出错了：${esc(e.message)}</span><div class="ai-note">检查 ⚙ 里的 API Key / 模型名是否正确、账户是否有额度。</div>`;
+      body.innerHTML=`<span class="ai-err">${T("出错了","Error")}：${esc(e.message)}</span><div class="ai-note">${T("检查 ⚙ 里的 API Key / 模型名是否正确、账户是否有额度。","Check the API key / model name in ⚙ settings, and that your account has credit.")}</div>`;
     }finally{
       busy=false; $id("ai-send").disabled=false; scrollBot();
     }
   }
-  function greetingNeedsKey(){ return `还没设置 API Key。点右上角 ⚙ → 「AI 学习助手」填入你的 Claude API Key（仅存本机，可在 Anthropic 控制台设消费上限）。<a id="ai-go-set">去设置</a>`; }
+  function greetingNeedsKey(){ return `${T("还没设置 API Key。点右上角 ⚙ → 「AI 学习助手」填入你的 Claude API Key（仅存本机，可在 Anthropic 控制台设消费上限）。","No API key yet. Top-right ⚙ → \"AI Assistant\" → enter your Claude API key (stored on this device only; you can set a spend cap in the Anthropic console).")}<a id="ai-go-set">${T("去设置","Set up")}</a>`; }
   function wireGreeting(){
     const go=$id("ai-go-set"); if(go) go.onclick=()=>{ close(); if(window.openSettings) openSettings(); };
   }
 
   function mic(){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SR){ alert("此浏览器不支持语音输入，建议用 Chrome。"); return; }
+    if(!SR){ alert(T("此浏览器不支持语音输入，建议用 Chrome。","This browser doesn't support voice input — try Chrome.")); return; }
     const r=new SR(); r.lang="zh-CN"; r.interimResults=false; r.maxAlternatives=1;
     const btn=$id("ai-mic"); btn.classList.add("rec");
     r.onresult=(e)=>{ const t=e.results[0][0].transcript; const ta=$id("ai-text"); ta.value=(ta.value?ta.value+" ":"")+t; autoGrow(ta); };
@@ -292,42 +293,42 @@ ${courseIndex()}`;
   // settings-panel HTML + wiring (called by app.js openSettings)
   function settingsHTML(){
     const c=cfg();
-    return `<section><h3>🤖 AI 学习助手（Claude）</h3>
-      <p class="m-note">填入你自己的 <b>Anthropic (Claude) API Key</b> 即可在学习时随时提问（右下角 🤖）。Key 只存本机浏览器、直接发往 Anthropic，不经过任何中间服务器。建议在 <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a> 给该 Key 设个消费上限。</p>
+    return `<section><h3>🤖 ${T("AI 学习助手（Claude）","AI Study Assistant (Claude)")}</h3>
+      <p class="m-note">${T("填入你自己的 <b>Anthropic (Claude) API Key</b> 即可在学习时随时提问（右下角 🤖）。Key 只存本机浏览器、直接发往 Anthropic，不经过任何中间服务器。建议在 <a href=\"https://console.anthropic.com/\" target=\"_blank\" rel=\"noopener\">console.anthropic.com</a> 给该 Key 设个消费上限。","Enter your own <b>Anthropic (Claude) API key</b> to ask questions while you study (🤖 bottom-right). The key is stored only in this browser and sent directly to Anthropic — never through any middleman server. We recommend setting a spend cap on the key at <a href=\"https://console.anthropic.com/\" target=\"_blank\" rel=\"noopener\">console.anthropic.com</a>.")}</p>
       <label>API Key <input type="password" id="ai-key" value="${esc(c.key||"")}" placeholder="sk-ant-..."></label>
-      <label>模型 <select id="ai-model">${MODELS.map(m=>`<option value="${m.id}"${(c.model||MODELS[0].id)===m.id?" selected":""}>${esc(m.name)}</option>`).join("")}</select></label>
-      <div class="m-actions"><button id="ai-test" class="primary">🔌 测试连接</button><button id="ai-save">保存</button><button id="ai-clear-key">清除</button><span id="ai-key-status" class="m-note"></span></div>
+      <label>${T("模型","Model")} <select id="ai-model">${MODELS.map(m=>`<option value="${m.id}"${(c.model||MODELS[0].id)===m.id?" selected":""}>${esc(modelName(m))}</option>`).join("")}</select></label>
+      <div class="m-actions"><button id="ai-test" class="primary">🔌 ${T("测试连接","Test connection")}</button><button id="ai-save">${T("保存","Save")}</button><button id="ai-clear-key">${T("清除","Clear")}</button><span id="ai-key-status" class="m-note"></span></div>
       <div class="conn-status" id="ai-conn"></div>
-      <details class="ai-guide"><summary>📘 怎么获取 API Key？（点开看图文步骤）</summary>
+      <details class="ai-guide"><summary>📘 ${T("怎么获取 API Key？（点开看图文步骤）","How to get an API key (step-by-step)")}</summary>
         <ol>
-          <li>打开 <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>，注册 / 登录（支持邮箱、Google）。</li>
-          <li>首次需要在 <b>Billing（账单）</b> 里充值一点额度（最低约 $5；按用量计费，问答很便宜，几乎用不完）。</li>
-          <li>左侧进入 <b>API Keys</b> → <b>Create Key</b>，给它起个名字（如 <code>jpn-study</code>），点 <b>Copy</b> 复制（形如 <code>sk-ant-...</code>，只显示一次）。</li>
-          <li><b>强烈建议</b>：在 <b>Limits / Usage limits</b> 给这个 Key 设一个每月上限（如 $5），防止意外超支。</li>
-          <li>回到这里，把 Key 粘进上面的输入框 → <b>保存</b>。完成！点右下角 🤖 就能用了。</li>
+          <li>${T("打开 <a href=\"https://console.anthropic.com/\" target=\"_blank\" rel=\"noopener\">console.anthropic.com</a>，注册 / 登录（支持邮箱、Google）。","Open <a href=\"https://console.anthropic.com/\" target=\"_blank\" rel=\"noopener\">console.anthropic.com</a> and sign up / log in (email or Google).")}</li>
+          <li>${T("首次需要在 <b>Billing（账单）</b> 里充值一点额度（最低约 $5；按用量计费，问答很便宜，几乎用不完）。","First time, add a little credit under <b>Billing</b> (about $5 minimum; pay-as-you-go, and Q&A is very cheap).")}</li>
+          <li>${T("左侧进入 <b>API Keys</b> → <b>Create Key</b>，给它起个名字（如 <code>jpn-study</code>），点 <b>Copy</b> 复制（形如 <code>sk-ant-...</code>，只显示一次）。","Go to <b>API Keys</b> → <b>Create Key</b>, name it (e.g. <code>jpn-study</code>), and <b>Copy</b> it (looks like <code>sk-ant-...</code>; shown only once).")}</li>
+          <li>${T("<b>强烈建议</b>：在 <b>Limits / Usage limits</b> 给这个 Key 设一个每月上限（如 $5），防止意外超支。","<b>Strongly recommended</b>: set a monthly cap under <b>Limits / Usage limits</b> (e.g. $5) to avoid surprise charges.")}</li>
+          <li>${T("回到这里，把 Key 粘进上面的输入框 → <b>保存</b>。完成！点右下角 🤖 就能用了。","Come back here, paste the key into the box above → <b>Save</b>. Done — tap 🤖 bottom-right to use it.")}</li>
         </ol>
-        <p class="m-note">完整图文版见仓库 <code>docs/API-KEY-GUIDE.md</code>。Key 只存在你这台电脑的浏览器里，直接发往 Anthropic，不经过任何第三方。</p>
+        <p class="m-note">${T("完整图文版见仓库 <code>docs/API-KEY-GUIDE.md</code>。Key 只存在你这台电脑的浏览器里，直接发往 Anthropic，不经过任何第三方。","Full illustrated guide in <code>docs/API-KEY-GUIDE.md</code>. The key lives only in this browser and goes straight to Anthropic — no third party.")}</p>
       </details>
-      <p class="m-note">提示：助手会自动结合你“当前所在那一课”的课文、单词、语法来回答，并标注知识点最早出现在第几天（可点 Day N 跳转）。若提示模型不存在，改这里的模型名即可。</p>
+      <p class="m-note">${T("提示：助手会自动结合你“当前所在那一课”的课文、单词、语法来回答，并标注知识点最早出现在第几天（可点 Day N 跳转）。若提示模型不存在，改这里的模型名即可。","Tip: the assistant automatically uses your current lesson's text, vocab, and grammar, and cites the day a point first appeared (tap Day N to jump). If a model is reported missing, just change the model above.")}</p>
     </section>`;
   }
   function bindSettings(){
     const save=$id("ai-save"); if(!save) return;
     save.onclick=()=>{ const key=$id("ai-key").value.trim(), m=$id("ai-model").value;
-      saveCfg({ key, model:m }); $id("ai-key-status").textContent = key?"已保存 ✓":"已保存（未填 Key）"; };
-    $id("ai-clear-key").onclick=()=>{ saveCfg({ model:$id("ai-model").value }); $id("ai-key").value=""; $id("ai-key-status").textContent="已清除 Key"; $id("ai-conn").className="conn-status"; $id("ai-conn").textContent=""; };
+      saveCfg({ key, model:m }); $id("ai-key-status").textContent = key?T("已保存 ✓","Saved ✓"):T("已保存（未填 Key）","Saved (no key entered)"); };
+    $id("ai-clear-key").onclick=()=>{ saveCfg({ model:$id("ai-model").value }); $id("ai-key").value=""; $id("ai-key-status").textContent=T("已清除 Key","Key cleared"); $id("ai-conn").className="conn-status"; $id("ai-conn").textContent=""; };
     const test=$id("ai-test"); if(test) test.onclick=async()=>{
       const key=($id("ai-key").value||"").trim()||cfg().key, mdl=$id("ai-model").value;
       const box=$id("ai-conn");
-      if(!key){ box.className="conn-status bad"; box.textContent="✗ 先填入 API Key 再测试"; return; }
-      box.className="conn-status testing"; box.textContent="🔌 正在连接 Claude…";
+      if(!key){ box.className="conn-status bad"; box.textContent=T("✗ 先填入 API Key 再测试","✗ Enter an API key before testing"); return; }
+      box.className="conn-status testing"; box.textContent=T("🔌 正在连接 Claude…","🔌 Connecting to Claude…");
       test.disabled=true;
       try{
         const r=await ping(key, mdl);
-        if(r.ok){ box.className="conn-status ok"; box.textContent=`✓ 连接成功！模型 ${r.model} · 响应 ${r.ms}ms。已自动保存，点右下角 🤖 即可使用。`;
-          saveCfg({ key, model:mdl }); $id("ai-key-status").textContent="已验证并保存 ✓"; }
-        else{ box.className="conn-status bad"; box.textContent=`✗ 连接失败（${r.status}）：${r.error}`; }
-      }catch(e){ box.className="conn-status bad"; box.textContent=`✗ 出错：${e.message}（多半是网络问题、Key 写错、或模型名过时）`; }
+        if(r.ok){ box.className="conn-status ok"; box.textContent=T(`✓ 连接成功！模型 ${r.model} · 响应 ${r.ms}ms。已自动保存，点右下角 🤖 即可使用。`,`✓ Connected! Model ${r.model} · ${r.ms}ms. Saved automatically — tap 🤖 bottom-right to use it.`);
+          saveCfg({ key, model:mdl }); $id("ai-key-status").textContent=T("已验证并保存 ✓","Verified & saved ✓"); }
+        else{ box.className="conn-status bad"; box.textContent=T(`✗ 连接失败（${r.status}）：${r.error}`,`✗ Connection failed (${r.status}): ${r.error}`); }
+      }catch(e){ box.className="conn-status bad"; box.textContent=T(`✗ 出错：${e.message}（多半是网络问题、Key 写错、或模型名过时）`,`✗ Error: ${e.message} (likely network, wrong key, or outdated model name)`); }
       finally{ test.disabled=false; }
     };
   }

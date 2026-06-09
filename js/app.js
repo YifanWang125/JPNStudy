@@ -842,11 +842,11 @@ function renderPlanned(L){
     </div>
     <div class="planned-box">
       <div class="big">🗓️</div>
-      <h2>这一天已规划好</h2>
-      <p>主题、级别与来源都已排定，完整内容（课文＋音频＋语法＋抄写）会随你的进度逐日填充。</p>
-      <div class="source" style="color:var(--ink-faint);font-size:.85rem">📖 来源 / Source：${esc(L.source)}</div>
+      <h2>${T("这一天已规划好","This day is planned")}</h2>
+      <p>${T("主题、级别与来源都已排定，完整内容（课文＋音频＋语法＋抄写）会随你的进度逐日填充。","The theme, level, and source are set; the full content (text + audio + grammar + copywork) fills in day by day as you progress.")}</p>
+      <div class="source" style="color:var(--ink-faint);font-size:.85rem">📖 ${T("来源","Source")}：${esc(L.source)}</div>
       <div class="goals">${(L.goals||[]).map(g=>`<span>🎯 ${esc(g)}</span>`).join("")}</div>
-      <p style="margin-top:18px;color:var(--ink-faint)">想现在就解锁这一天？告诉我「把 Day ${L.day} 写出来」，我就为你生成完整课文。</p>
+      <p style="margin-top:18px;color:var(--ink-faint)">${T("想现在就解锁这一天？告诉我「把 Day "+L.day+" 写出来」，我就为你生成完整课文。","Want to unlock this day now? Tell me \"write out Day "+L.day+"\" and I'll generate the full lesson.")}</p>
     </div>
   `;
 }
@@ -883,7 +883,7 @@ function renderMap(){
           const dots=["morning","noon","night"].map(s=>`<i class="${p[s]?'':'off'}">●</i>`).join(" ");
           return `<div class="map-card" data-day="${l.day}">
             <span class="lv">${l.level}</span>
-            <div class="d">Day ${l.day}${l.planned?' · 计划中':''}</div>
+            <div class="d">Day ${l.day}${l.planned?' · '+T('计划中','planned'):''}</div>
             <div class="th">${esc(l.theme)}</div>
             <div class="thz">${esc(l.themeZh)}</div>
             ${l.planned?'':`<div class="prog">🌅☀️🌙 ${dots}</div>`}
@@ -900,7 +900,7 @@ function toggleMap(show){
   const v=$("#map-view"), main=$("#page-daily");
   v.classList.toggle("show",show);
   main.style.display = show?"none":"block";
-  $("#map-toggle").textContent = show?"← 回到今天":"🗺️ 30天地图";
+  $("#map-toggle").textContent = show?T("← 回到今天","← Back to today"):T("🗺️ 30天地图","🗺️ 30-day map");
   if(show) renderMap();
 }
 
@@ -916,9 +916,9 @@ function buildFabMenu(){
   if(document.getElementById("fab-menu")) return;
   const wrap=document.createElement("div"); wrap.id="fab-menu";
   wrap.innerHTML=`<div class="fab-actions">
-      <button class="fab-act" data-act="ai">🤖 <span>提问</span></button>
-      <button class="fab-act" data-act="note">🗒️ <span>速记</span></button>
-    </div><button class="fab-main" id="fab-main" title="工具">✦</button>`;
+      <button class="fab-act" data-act="ai">🤖 <span>${T("提问","Ask")}</span></button>
+      <button class="fab-act" data-act="note">🗒️ <span>${T("速记","Note")}</span></button>
+    </div><button class="fab-main" id="fab-main" title="${T('工具','Tools')}">✦</button>`;
   document.body.appendChild(wrap);
   const setOpen=(on)=>wrap.classList.toggle("open", on);
   document.getElementById("fab-main").onclick=(e)=>{ e.stopPropagation(); setOpen(!wrap.classList.contains("open")); };
@@ -997,9 +997,9 @@ function dayOfYear(){
 function heatmapHTML(){
   let cells="";
   LESSONS.forEach(l=>{ const p=PROG[l.day]||{}; const c=["morning","noon","night"].filter(s=>p[s]).length;
-    cells+=`<div class="hm-cell lv${c}" data-day="${l.day}" title="Day ${l.day}：${c}/3 完成">${l.day}</div>`; });
+    cells+=`<div class="hm-cell lv${c}" data-day="${l.day}" title="${T('Day '+l.day+'：'+c+'/3 完成','Day '+l.day+': '+c+'/3 done')}">${l.day}</div>`; });
   return `<div class="hm-grid">${cells}</div>
-    <div class="hm-legend">每天完成数：<span class="hm-cell lv0">0</span><span class="hm-cell lv1">1</span><span class="hm-cell lv2">2</span><span class="hm-cell lv3">3</span> · 点格子跳到那天</div>`;
+    <div class="hm-legend">${T("每天完成数","Sessions per day")}：<span class="hm-cell lv0">0</span><span class="hm-cell lv1">1</span><span class="hm-cell lv2">2</span><span class="hm-cell lv3">3</span> · ${T("点格子跳到那天","tap a cell to jump to that day")}</div>`;
 }
 
 function renderHome(){
@@ -1059,7 +1059,7 @@ function renderHome(){
     <div class="home-grid">
       <section class="home-card">
         <h2>${T("💬 每日一句","💬 Phrase of the Day")}</h2>
-        <div class="phrase-jp" data-jp="${esc(ph.jp)}">${toRuby(ph.jp)} <button class="phrase-play" title="朗读">🔊</button></div>
+        <div class="phrase-jp" data-jp="${esc(ph.jp)}">${toRuby(ph.jp)} <button class="phrase-play" title="${T('朗读','Read aloud')}">🔊</button></div>
         <div class="phrase-zh">${esc(zhen(ph.zh, phEn.en))}</div>
         <div class="phrase-note">${esc(zhen(ph.note, phEn.noteEn))}</div>
         <div class="phrase-ex" data-jp="${esc(ph.ex.jp)}">「${toRuby(ph.ex.jp)}」<span class="zh">${esc(zhen(ph.ex.zh, phEn.exEn))}</span></div>

@@ -24,7 +24,7 @@
 
   /* ---------- store ---------- */
   function load(){ try{ const o=JSON.parse(localStorage.getItem(LS)); if(o&&o.notes) return o; }catch(e){} return {_schema:1, notes:{}}; }
-  function save(s){ try{ localStorage.setItem(LS, JSON.stringify(s)); }catch(e){ alert("保存失败（本地存储已满？）"); } }
+  function save(s){ try{ localStorage.setItem(LS, JSON.stringify(s)); }catch(e){ alert(T("保存失败（本地存储已满？）","Save failed (local storage full?)")); } }
   let STORE=load();
   function allNotes(){ return Object.values(STORE.notes).sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||"")); }
   function getNote(id){ return STORE.notes[id]; }
@@ -233,7 +233,7 @@
     const assoc=document.getElementById("qn-assoc").checked, day=STATE.day, theme=(LESSONS[day-1]||{}).theme||"";
     const first=text.split("\n").find(x=>x.trim())||"";
     const body=text + (assoc?`\n\n${T("关联","Linked")}：[[course:d:${day}|Day ${day} · ${theme}]]`:"");
-    const id=createNote({ title:first.slice(0,28)||((LANG==="en"?"Note ":"速记 ")+new Date().toISOString().slice(0,10)),
+    const id=createNote({ title:first.slice(0,28)||((LANG!=="zh"?"Note ":"速记 ")+new Date().toISOString().slice(0,10)),
       body, tags:assoc?[T("速记","quick"),"Day"+day]:[T("速记","quick")], provenance:{kind:"manual", source:"scratch"} });
     renderRecent();
     qStatus(`${T("已存为 Section ✓","Saved as a Section ✓")} <a class="qn-view" data-nid="${id}">${T("查看","View")}</a> · <a class="qn-clear">${T("清空草稿","Clear draft")}</a>`);
