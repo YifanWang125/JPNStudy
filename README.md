@@ -10,14 +10,16 @@ A daily Japanese study site built around your three-session rhythm and your real
 
 **👉 https://yifanwang125.github.io/JPNStudy/**
 
-任何电脑、任何浏览器，**点开就能用**——不用安装、不用命令行。课文、翻译、抄写、测试、考试中心、错题本全都正常。
-*Open it on any computer, any browser — nothing to install.* Reading, writing, tests, the Exam Center and Mistakes notebook all work online.
+任何电脑，**点开就能用**——不用安装、不用命令行。课文、翻译、抄写、测试、考试中心、错题本、**真人音频(VOICEVOX)**、**🎤录音发音评估**全都在线可用（用 **Chrome**，首次点「允许」麦克风）。
+*Open it on any computer — nothing to install.* Everything works online, **including the real-voice (VOICEVOX) audio and 🎤 mic pronunciation** — just use **Chrome** and click "Allow" on the mic prompt the first time.
 
 > ⚠️ 网址**区分大小写**：必须是 `JPNStudy`（大写 J P N S），写成 `jpnstudy` 会 404。
 > The URL is **case-sensitive** — it must be `JPNStudy`, not `jpnstudy`.
 >
-> 只有两项功能需要本地服务器（见下）：🎤 **录音发音评估**（浏览器只在 `localhost`/`https` 给麦克风权限）和 **VOICEVOX 真人音频**。线上版这两项会自动回退到系统语音。
-> Only two features need the local server below: 🎤 mic-based pronunciation scoring, and VOICEVOX real-voice audio. Online, both fall back to the system voice.
+> ✅ **真人音频不用装任何东西**——MP3 已随仓库发布、由 Pages 直接提供（点任意句子即播）。VOICEVOX 引擎只有**你想生成新音频**时才需要（见下）。
+> Real-voice audio needs **zero setup** — the MP3s ship in the repo and Pages serves them (tap any sentence). You only need the VOICEVOX engine if **you** want to generate *new* audio.
+> 🎤 录音发音评估需要**安全上下文**——线上 `https` 站点本身就满足；只有**双击本地文件(`file://`)** 时麦克风才会被浏览器禁用。也建议用 Chrome/Edge（语音识别 API 最稳）；更精细的逐音素评分可在 ⚙ 填自己的免费 Azure Key。
+> Mic pronunciation needs a **secure context** — the live `https` site already qualifies; only **double-clicking a local file (`file://`)** disables the mic. Use Chrome/Edge (best speech-API support); for phoneme-level scoring, add your own free Azure key in ⚙.
 
 ---
 

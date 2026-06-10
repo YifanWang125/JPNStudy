@@ -36,9 +36,9 @@ function applyLang(){
   document.documentElement.setAttribute("lang", LANG);
   const fm=document.getElementById("footer-motto"); if(fm) fm.textContent={en:"· a little every day, one step at a time.",ja:"· 毎日少しずつ、一歩ずつ。",zh:"· 每天一点点，一步一步来。"}[LANG];
   const fn=document.getElementById("footer-note"); if(fn) fn.textContent={
-    en:"Progress is saved in this browser · real-voice audio (VOICEVOX), falls back to system TTS · open via a local server (localhost) for recording & pronunciation scoring",
-    ja:"学習データはこのブラウザに保存されます · 音声は VOICEVOX（無い場合はシステム音声）· 録音と発音採点はローカルサーバー（localhost）で開いてください",
-    zh:"进度自动保存在本机浏览器 · 真人音频(VOICEVOX)，缺失时回退系统语音 · 录音与发音评估请用本地服务器(localhost)打开"}[LANG];
+    en:"Progress is saved in this browser · real-voice audio (VOICEVOX) plays online too; falls back to system TTS only if a clip is missing · recording & pronunciation need a secure context (the https site or localhost) + Chrome/Edge",
+    ja:"学習データはこのブラウザに保存されます · 音声(VOICEVOX)はオンラインでも再生（無い場合のみシステム音声）· 録音と発音採点は安全な接続（https サイトか localhost）と Chrome/Edge が必要",
+    zh:"进度自动保存在本机浏览器 · 真人音频(VOICEVOX)在线也能播放，仅在缺失时回退系统语音 · 录音/发音评估需安全上下文（https 站点或 localhost）+ Chrome/Edge"}[LANG];
 }
 /* UI string: T("中文","English"). zh by default; en in en-mode; in ja-mode use the Japanese
    override (window.JA_UI keyed by the English) and fall back to English, then Chinese. */
