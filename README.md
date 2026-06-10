@@ -6,11 +6,26 @@
 A daily Japanese study site built around your three-session rhythm and your real weak spot:
 *you know what the kanji mean, but not how to read them.*
 
+## 🌐 在线访问 · Live site
+
+**👉 https://yifanwang125.github.io/JPNStudy/**
+
+任何电脑、任何浏览器，**点开就能用**——不用安装、不用命令行。课文、翻译、抄写、测试、考试中心、错题本全都正常。
+*Open it on any computer, any browser — nothing to install.* Reading, writing, tests, the Exam Center and Mistakes notebook all work online.
+
+> ⚠️ 网址**区分大小写**：必须是 `JPNStudy`（大写 J P N S），写成 `jpnstudy` 会 404。
+> The URL is **case-sensitive** — it must be `JPNStudy`, not `jpnstudy`.
+>
+> 只有两项功能需要本地服务器（见下）：🎤 **录音发音评估**（浏览器只在 `localhost`/`https` 给麦克风权限）和 **VOICEVOX 真人音频**。线上版这两项会自动回退到系统语音。
+> Only two features need the local server below: 🎤 mic-based pronunciation scoring, and VOICEVOX real-voice audio. Online, both fall back to the system voice.
+
 ---
 
-## 怎么打开 · How to open
+## 怎么本地运行 · How to run locally
 
-### ✅ 推荐：本地服务器（启用录音/发音评估必需）
+> 想要**录音发音评估 + 真人音频**，或在本地改代码，就用本地服务器。否则直接用上面的在线版即可。
+
+### ✅ 推荐：本地服务器
 
 在项目目录运行，然后打开 **http://127.0.0.1:4173** ：
 
@@ -19,8 +34,8 @@ python3 -m http.server 4173
 ```
 
 > 🎤 发音评估要用麦克风，而浏览器**只在安全上下文**（`https://` 或 `localhost`）才允许麦克风。
-> VOICEVOX 真人音频也需要通过 http 加载。所以**日常请用本地服务器打开**。
-> Mic (pronunciation check) only works over a secure context — i.e. `http://localhost`. Use the local server.
+> VOICEVOX 真人音频也需要通过 http 加载。所以要用这两项功能时请用本地服务器打开。
+> Mic (pronunciation check) only works over a secure context — i.e. `http://localhost`. Use the local server for that.
 
 ### 快速预览：双击 `index.html`（file://）
 
@@ -68,13 +83,16 @@ python3 -m http.server 4173
 
 ---
 
-## 四个页面 · Four pages（顶部切换）
+## 页面 · Pages（顶部切换）
 
+- **🏠 主页** — 个人面板：言霊宠物、继续学习、连续天数(streak)、30 天热力图、每日一句、今日任务、测试最佳分。
 - **📖 每日** — 30 天课程（早/午/夜三段 + 抄写 + 🎤发音评估）。
-- **📚 基础总览** — 动词分组与变位表、形容词、助词、助数词与特殊读音、日期读法、敬语速查、**全语法索引**（点击跳到对应天）、关西弁(大阪)入门。
-- **📝 测试** — 4 套限时 N2 模拟（对应四周），交卷后给**分项自评**（文法/語彙/読解 + 复习建议），成绩自动保存。
-- **📊 进度** — 连续学习天数(streak)、30 天热力图、已学词条/语法点、分周完成度、测试最佳分。
-- 右上 **⚙️ 设置** — 发音引擎(Azure key) / 进度导出导入 / VOICEVOX 说明。
+- **📚 基础** — 五十音図、动词分组与变位、形容词、助词、助数词与特殊读音、日期读法、敬语速查、**全语法索引**（点击跳到对应天）、关西弁(大阪)入门。
+- **🗺️ 场景** — 情景日语（医院/便利店/餐厅/健身房·钱汤/酒店/夜生活），真人配音对话 + 关键词 + 礼仪文化提示。
+- **📝 测试 → N2 考试中心** — 考前指导、**模拟考**（真实结构 + JLPT 计分）、🎧听力练习、官方样题外链、**📕错题本**（自动收集错题 + 针对性复习）；下方还有 5 套限时周测。
+- **🗣️ 产出** — 输出训练：造句阶梯、写段落、开口说（语音识别），Claude 批改（需 Key，离线有兜底）。
+- **📓 笔记** — 智能笔记：Markdown、`[[wikilink]]`、关联课程、AI 问答存为笔记、随手速记本。
+- 右下 **🤖 AI 助手** — 结合当前课文的 Claude 问答（BYOK）。右上 **⚙️ 设置** — 发音引擎(Azure key) / 声音模型 / 进度导出导入 / VOICEVOX / AI Key。多语言：中文 / English / 日本語。
 
 ## 🎤 发音评估 · Pronunciation check（每日「朝の朗読」内）
 
@@ -125,17 +143,32 @@ VOICEVOX_URL=http://localhost:10101 python3 tools/gen_audio.py --voice-dir aivis
 
 ```
 JPN/
-├── index.html
+├── index.html             # 入口；按 ?v=... 缓存版本加载所有 js/css
 ├── css/styles.css
 ├── js/
-│   ├── lessons.js       # 30 天课程内容
-│   ├── reference.js     # 「基础总览」参考内容
-│   ├── tests.js         # 4 套测试题
-│   └── app.js           # 渲染/音频/抄写/测试/发音评估/进度/设置
-├── tools/gen_audio.py   # VOICEVOX 音频预生成脚本
-├── audio/               # 运行脚本后出现：MP3 + manifest.json
-└── BUILD-TASKS.md       # Review→Build 规格（已按此实现）
+│   ├── lessons.js         # 30 天课程内容（课文/词汇/语法/对话/抄写…）
+│   ├── reference.js       # 「基础」参考内容（9 个板块）
+│   ├── gojuon.js          # 五十音図 + 练习
+│   ├── scenarios.js / scenarios-adult.js   # 场景对话
+│   ├── tests.js           # 5 套周测 + 题库（供模拟考抽题）
+│   ├── listening.js       # 🎧 听力练习题（14 条，真人 VOICEVOX）
+│   ├── exam.js            # N2 考试中心：指导 / 模拟考 / AI 出题 / 听力
+│   ├── daily.js           # 每日一句
+│   ├── produce.js         # 🗣️ 产出（造句/段落/说出来）
+│   ├── notes.js           # 📓 智能笔记 + 速记本
+│   ├── assistant.js       # 🤖 AI 学习助手（BYOK Claude）
+│   ├── pet.js             # 🥚 言霊 学习宠物 + 言霊开场白
+│   ├── i18n-en.js         # 全站英文内容（EN / EN_REF / EN_TESTS / EN_DAILY）
+│   ├── i18n-ja.js         # 日文 UI 词条
+│   └── app.js             # 主程序：渲染/音频/抄写/测试/发音评估/进度/设置/错题本/i18n
+├── tools/gen_audio.py     # VOICEVOX 音频预生成 + 读音校验(--verify)
+├── audio/                 # MP3 + manifest.js（脚本生成）；voices/ 为备选音色
+├── docs/                  # API-KEY 指南、分析笔记
+└── BUILD-TASKS*.md        # Review→Build 规格（历轮）
 ```
+
+> 数据存哪：进度只在**本机浏览器 localStorage**（`jpn-*` 键），可在 ⚙ 导出/导入备份。错题本存 `jpn-wrong`，已并入备份。
 
 想加内容？复制 `lessons.js` 里 Day 1 的对象结构，照着填即可。
 汉字读音写法：`漢字[かんじ]`，假名（送り仮名）写在括号外，例如 `食[た]べる`。
+**改了 js/css 后**：记得把 `index.html` 里的 `?v=YYYYMMDDzN` 版本号 +1（缓存刷新；线上同理）。
