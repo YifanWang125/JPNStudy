@@ -1197,7 +1197,7 @@ function openSettings(){
 }
 function closeSettings(){ const ov=$("#modal-overlay"); ov.style.display="none"; ov.innerHTML=""; }
 function exportProgress(){
-  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name","jpn-notes","jpn-pet","jpn-rate","jpn-test-log","jpn-pron-log","jpn-exercise-log","jpn-produce-log"];
+  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name","jpn-notes","jpn-pet","jpn-rate","jpn-test-log","jpn-pron-log","jpn-exercise-log","jpn-produce-log","jpn-wrong"];
   const out={ _app:"jpn-n4-n2", _exported:new Date().toISOString(), data:{} };
   keys.forEach(k=>{ const v=localStorage.getItem(k); if(v!==null) out.data[k]=v; });
   const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
@@ -1401,11 +1401,54 @@ function pushScoreLog(key, entry){
 
 let TEST=null;   // { def, answers[], remaining, interval, submitted }
 
+/* ---- 错题本 / Mistakes notebook: auto-collect missed questions + targeted review ----
+   Stored in jpn-wrong, keyed by question text. Missing a question adds/re-activates it;
+   answering it correctly (in any test, incl. the review) marks it cleared (mastered).
+   AI-generated questions (_ai) are excluded so unreviewed content is never reinforced. */
+function loadWrong(){ try{ return JSON.parse(localStorage.getItem("jpn-wrong"))||{}; }catch(e){ return {}; } }
+function saveWrong(w){ try{ localStorage.setItem("jpn-wrong", JSON.stringify(w)); }catch(e){} }
+function wrongKey(q){ return (q&&q.q?String(q.q):"").replace(/\s+/g,"").slice(0,120); }
+const WRONG_CATNAME={ "文法":["文法","Grammar"], "語彙":["語彙","Vocabulary"], "読解":["読解","Reading"] };
+function wrongCatLabel(c){ const m=WRONG_CATNAME[c]; return m?T(m[0],m[1]):c; }
+function wrongOutstanding(){ const w=loadWrong(); return Object.keys(w).filter(k=>!w[k].cleared).map(k=>Object.assign({key:k},w[k])); }
+function recordWrongAnswers(d){
+  if(!d||!d.questions||!TEST) return;
+  const w=loadWrong(); let changed=false;
+  d.questions.forEach((q,i)=>{
+    if(q._ai) return;                                  // never reinforce unreviewed AI questions
+    const key=wrongKey(q); if(!key) return;
+    const got=TEST.answers[i];
+    if(got===q.answer){
+      if(w[key] && !w[key].cleared){ w[key].cleared=true; w[key].clearedTs=Date.now(); changed=true; }
+    } else {
+      const prev=w[key]||{};
+      const enExp = (d.isMock||d.isReview) ? (q._explainEn||"") : (((ENT(d.id).q||[])[i]||{}).explainEn||"");
+      w[key]=Object.assign({}, prev, {
+        q:q.q, options:q.options, answer:q.answer, cat:q.cat, point:q.point, day:q.day||0,
+        explain:q.explain, explainEn:prev.explainEn||enExp, srcTitle:d.title||prev.srcTitle||"",
+        misses:(prev.misses||0)+1, cleared:false, lastTs:Date.now()
+      });
+      changed=true;
+    }
+  });
+  if(changed){
+    const keys=Object.keys(w);
+    if(keys.length>300){ keys.sort((a,b)=>(w[a].lastTs||0)-(w[b].lastTs||0)).slice(0,keys.length-300).forEach(k=>{ if(w[k].cleared) delete w[k]; }); }
+    saveWrong(w);
+  }
+}
+function buildWrongReview(){
+  const items=wrongOutstanding(); if(!items.length) return null;
+  const pick=shuffled(items).slice(0,20).map(it=>({ q:it.q, options:it.options, answer:it.answer, cat:it.cat, point:it.point, day:it.day, explain:it.explain, _explainEn:it.explainEn }));
+  return { id:"wrong", isReview:true, title:T("📕 错题复习","📕 Mistake Review"), timeMin:Math.max(5,Math.ceil(pick.length*0.8)), questions:pick };
+}
+
 function renderTestHome(){
   if(TEST&&TEST.interval) clearInterval(TEST.interval);
   TEST=null;
   const c=$("#page-test"); const best=loadTestBest();
   const mb=best["mock"], aiN=(window.Exam&&Exam.aiCount)?Exam.aiCount():0;
+  const wrongN=wrongOutstanding().length;
   const aiKey=!!(window.Assistant&&window.Assistant.hasKey&&window.Assistant.hasKey());
   let html=`<div class="test-intro"><h1>${T("📝 N2 考试中心","📝 N2 Exam Center")}</h1><p>${T("「考前指导」把考试吃透；「模拟考」按真实结构＋JLPT 计分练笔试；「官方样题」是最接近真题的官方材料（含真实听力音频）。下面的周测可日常快速诊断。","Read the Guide; drill the Mock (real structure + JLPT scoring, written part); use Official Samples — the most authentic material, with real listening audio. Weekly sets below are quick diagnostics.")}</p></div>
     <div class="exam-hub">
@@ -1413,6 +1456,7 @@ function renderTestHome(){
       <button class="exam-hub-card mock" id="exam-go-mock"><span class="ehc-ico">🎯</span><span class="ehc-tt">${T("模拟考","Mock Exam")}</span><span class="ehc-d">${T("真实题型顺序 ＋ JLPT 计分（笔试部分，不含听力）","real section order + JLPT score (written part; no listening)")}${mb?` · ${T("最佳","best")} ${mb.score}/${mb.total}`:""}${aiN?` · ✨${T("已扩充","+AI")} ${aiN}`:""}</span></button>
       <button class="exam-hub-card listen" id="exam-go-listen"><span class="ehc-ico">🎧</span><span class="ehc-tt">${T("听力练习","Listening")}</span><span class="ehc-d">${T("真人配音短对话 ＋ 选择 ＋ 脚本（站内练习）","voiced short dialogues + MCQ + transcript (in-app)")}</span></button>
       <button class="exam-hub-card official" id="exam-go-official"><span class="ehc-ico">📚</span><span class="ehc-tt">${T("官方样题","Official Samples")}</span><span class="ehc-d">${T("JLPT 官网免费样题 · 含真实听力音频","Official JLPT samples · real listening audio")}</span></button>
+      <button class="exam-hub-card wrong" id="exam-go-wrong"><span class="ehc-ico">📕</span><span class="ehc-tt">${T("错题本","Mistakes")}</span><span class="ehc-d">${T("做错的题自动收集 · 针对性复习","missed questions auto-collected · targeted review")}${wrongN?` · <b>${wrongN}</b> ${T("待复习","to review")}`:""}</span></button>
     </div>
     <div class="exam-aiexpand">${aiKey?`<button id="exam-ai-gen">✨ ${T("用 AI 把模拟卷扩充到完整长度","Expand the mock to full length with AI")}</button><span id="exam-ai-stat" class="exam-ai-stat"></span>`:`<span class="exam-ai-stat">${T("💡 在 ⚙ 填入 Claude Key，即可用 AI 把模拟卷扩充到完整长度（生成更多新题）。","💡 Add a Claude key in ⚙ to expand the mock to full length with AI-generated questions.")}</span>`}</div>
     <h2 class="test-sub">${T("📝 周测 · 快速练习","📝 Weekly sets · quick practice")}</h2>
@@ -1434,6 +1478,7 @@ function renderTestHome(){
   if($("#exam-go-mock")) $("#exam-go-mock").onclick=()=>{ if(window.Exam) startTest(Exam.buildFullMock()); };
   if($("#exam-go-official")) $("#exam-go-official").onclick=()=>renderExamOfficial();
   if($("#exam-go-listen")) $("#exam-go-listen").onclick=()=>renderExamListening();
+  if($("#exam-go-wrong")) $("#exam-go-wrong").onclick=()=>renderMistakes();
   const gen=$("#exam-ai-gen");
   if(gen) gen.onclick=async()=>{
     if(!window.Exam||!Exam.generateAI) return; gen.disabled=true; const st=$("#exam-ai-stat");
@@ -1459,6 +1504,42 @@ function renderExamOfficial(){
 }
 function renderExamListening(){
   const c=$("#page-test"); if(window.Exam&&Exam.renderListening) Exam.renderListening(c);
+}
+function renderMistakes(){
+  const c=$("#page-test"); const w=loadWrong();
+  const all=Object.keys(w).map(k=>Object.assign({key:k},w[k]));
+  const out=all.filter(x=>!x.cleared).sort((a,b)=>(b.lastTs||0)-(a.lastTs||0));
+  const cleared=all.filter(x=>x.cleared);
+  let html=`<div class="exam-guide"><button class="exam-back" id="exam-back">← ${T("返回考试中心","Back to Exam Center")}</button>
+    <h1>📕 ${T("错题本","Mistakes")}</h1>
+    <p class="exam-lead">${T("做错的题会自动收进来；复习时答对就「掌握」并移出。AI 生成的题不计入（避免强化未审校内容）。","Missed questions are collected automatically; answer one correctly in review to clear it. AI-generated questions are excluded so unreviewed content isn't reinforced.")}</p>`;
+  if(!out.length){
+    html+=`<p class="hc-empty">${cleared.length?T("🎉 错题都掌握了！继续做题保持手感。","🎉 All mistakes cleared! Keep practicing to stay sharp."):T("还没有错题。做几套周测或模拟考，做错的题会自动收进这里。","No mistakes yet. Take a weekly set or the mock — missed questions land here automatically.")}</p>`;
+  } else {
+    html+=`<div class="wrong-top"><button id="wrong-review" class="primary">📕 ${T("复习错题","Review mistakes")}（${Math.min(20,out.length)}）</button>
+      <span class="wrong-stat">${T("待复习","To review")} <b>${out.length}</b> · ${T("已掌握","Cleared")} ${cleared.length}</span></div>`;
+    const byCat={}; out.forEach(x=>{ (byCat[x.cat]=byCat[x.cat]||[]).push(x); });
+    Object.keys(byCat).forEach(cat=>{
+      html+=`<h2 class="test-sub">${esc(wrongCatLabel(cat))} · ${byCat[cat].length}</h2><div class="wrong-list">`;
+      byCat[cat].forEach(x=>{
+        const correct=(x.options&&x.options[x.answer]!=null)?x.options[x.answer]:"";
+        const dayLink = x.day ? ` <a data-day="${x.day}">→ ${T("复习 Day "+x.day,"Review Day "+x.day)}</a>` : "";
+        html+=`<div class="wrong-item"><div class="wi-q">${toRuby(x.q)}</div>
+          <div class="wi-a">${T("正解","Answer")}：<b>${toRuby(correct)}</b>${x.misses>1?` · ${T("错了","missed")} ${x.misses}×`:""}</div>
+          <div class="wi-exp"><span class="gp">${esc(x.point||"")}</span> — ${toRuby(zhen(x.explain, x.explainEn||""))}${dayLink}</div>
+          <button class="wi-clear" data-key="${escAttr(x.key)}">✓ ${T("标记已掌握","Mark cleared")}</button></div>`;
+      });
+      html+=`</div>`;
+    });
+    if(cleared.length) html+=`<details class="ai-guide"><summary>${T("已掌握","Cleared")} (${cleared.length})</summary><div class="wrong-list">`+cleared.map(x=>`<div class="wrong-item cleared"><div class="wi-q">${toRuby(x.q)}</div></div>`).join("")+`</div></details>`;
+  }
+  html+=`<button class="exam-back" id="exam-back2">← ${T("返回考试中心","Back to Exam Center")}</button></div>`;
+  c.innerHTML=html;
+  c.querySelectorAll("#exam-back,#exam-back2").forEach(b=>b.onclick=()=>renderTestHome());
+  const rv=$("#wrong-review"); if(rv) rv.onclick=()=>{ const def=buildWrongReview(); if(def) startTest(def); };
+  c.querySelectorAll(".wi-clear").forEach(b=>b.onclick=()=>{ const wl=loadWrong(), k=b.dataset.key; if(wl[k]){ wl[k].cleared=true; wl[k].clearedTs=Date.now(); saveWrong(wl); } renderMistakes(); });
+  c.querySelectorAll("#page-test a[data-day]").forEach(a=>a.onclick=()=>{ STATE.day=+a.dataset.day; STATE.session="noon"; showPage("daily"); });
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 
 function shuffled(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -1514,15 +1595,16 @@ function finishTest(auto){
     const okTxt = got===q.answer?`<span style="color:var(--good)">✓ ${T("正解","Correct")}</span>`:(got===null?`<span style="color:var(--ink-faint)">— ${T("未作答","Unanswered")}</span>`:`<span style="color:var(--bad)">✗ ${T("不正解","Incorrect")}</span>`);
     const correctLetter="ABCD"[TEST.order[i].indexOf(q.answer)];
     const eq=(ENT(d.id).q||[])[i]||{};
-    const enExp = d.isMock ? (q._explainEn||"") : (eq.explainEn||"");          // R6-5: mock carries its own EN explain
+    const enExp = (d.isMock||d.isReview) ? (q._explainEn||"") : (eq.explainEn||"");   // R6-5: mock/review carry their own EN explain
     const dayLink = q.day ? ` <a data-day="${q.day}">→ ${T("复习 Day "+q.day,"Review Day "+q.day)}</a>` : "";  // R6-8: no link for AI day:0
     const aiMark = q._ai ? ` <span class="q-aimark">✨ ${T("AI·未审校","AI·unreviewed")}</span>` : "";
     exp.innerHTML=`<div>${okTxt} · ${T("正解","Answer")}：${correctLetter}</div><div><span class="gp">${esc(q.point)}</span>${aiMark} — ${toRuby(zhen(q.explain, enExp))}${dayLink}</div>`;
     exp.classList.add("show");
   });
+  recordWrongAnswers(d);                                                   // 错题本: collect misses / clear mastered
   showEvaluation(auto);
   const score=d.questions.reduce((s,q,i)=>s+(TEST.answers[i]===q.answer?1:0),0);
-  saveTestBest(d.id,score,d.questions.length);
+  if(!d.isReview) saveTestBest(d.id,score,d.questions.length);             // review (id "wrong") isn't a real set → no phantom best
   pushScoreLog("jpn-test-log",{id:d.id,score,total:d.questions.length});   // attempt history → pet progress
   if(window.Pet) Pet.onStudy();
   document.querySelectorAll("#page-test a[data-day]").forEach(a=>a.onclick=()=>{ STATE.day=+a.dataset.day; STATE.session="noon"; showPage("daily"); });
@@ -1566,7 +1648,7 @@ function showEvaluation(auto){
     <div class="eval-actions"><button class="review" id="ev-review">${T("查看逐题解析 ↓","See per-question review ↓")}</button><button class="retry" id="ev-retry">${T("重做这套","Retry")}</button></div>
   </div>`;
   $("#page-test").insertAdjacentHTML("afterbegin",html);
-  $("#ev-retry").onclick=()=>startTest(d.id);
+  $("#ev-retry").onclick=()=>{ if(d.isReview){ const def=buildWrongReview(); if(def) startTest(def); else renderMistakes(); } else startTest(d.id); };
   $("#ev-review").onclick=()=>{ const q=document.querySelector(".q-card"); if(q) q.scrollIntoView({behavior:"smooth"}); };
 }
 
