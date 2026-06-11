@@ -19,7 +19,7 @@
   --header-bg:rgba(15,17,21,.92);
   --shadow:rgba(0,0,0,.45);      /* drawer / FAB / modal shadow tint */
   --radius:14px;
-  --maxw:880px;
+  --maxw:1280px;   /* content width; user-adjustable via ⚙ (jpn-width). wider default so the reading column isn't cramped */
   --serif-jp:"Hiragino Mincho ProN","Yu Mincho","Songti SC","Noto Serif JP",serif;
   --sans-jp:"Hiragino Kaku Gothic ProN","Yu Gothic","PingFang SC","Noto Sans JP",system-ui,sans-serif;
 }
@@ -1139,7 +1139,7 @@ footer{text-align:center;color:var(--ink-faint);font-size:.8rem;padding:30px 0}
 .pintro-ok.ready{opacity:1;animation:okGlow 1.9s ease-in-out infinite}
 @keyframes okGlow{0%,100%{box-shadow:0 8px 28px rgba(228,87,46,.45)}50%{box-shadow:0 10px 46px rgba(240,150,90,.85)}}
 /* balanced home layout: pet (left) + content centered as a GROUP → equal gutters */
-#page-home.wrap{max-width:1180px}
+#page-home.wrap{max-width:1240px}
 .home-layout{display:flex;gap:22px;align-items:flex-start}
 .home-pet{flex:0 0 240px;position:sticky;top:84px}
 .home-body{flex:1;min-width:0}

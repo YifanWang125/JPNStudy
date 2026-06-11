@@ -1029,6 +1029,11 @@ function applyTheme(t){
     b.title = (r==="light"?T("浅色模式","Light mode"):T("深色模式","Dark mode"))+(t==="auto"?T("（跟随系统）","(auto)"):"")+T("，点击切换",", click to switch"); }
 }
 function setTheme(t){ try{ localStorage.setItem("jpn-theme", t); }catch(e){} applyTheme(t); }
+/* content width — user-adjustable (你说想自定义宽度). Sets --maxw so the header + every page widen together. */
+const WIDTHS={ standard:"1040px", wide:"1280px", max:"1620px" };
+function getWidth(){ try{ const w=localStorage.getItem("jpn-width"); return WIDTHS[w]?w:"wide"; }catch(e){ return "wide"; } }
+function applyWidth(w){ document.documentElement.style.setProperty("--maxw", WIDTHS[w]||WIDTHS.wide); }
+function setWidth(w){ try{ localStorage.setItem("jpn-width", w); }catch(e){} applyWidth(w); }
 /* header quick toggle: binary flip of the CURRENT appearance — always changes in one click (auto lives in ⚙) */
 function toggleLightDark(){ const r=document.documentElement.getAttribute("data-theme")||resolvedTheme(getTheme()); setTheme(r==="light"?"dark":"light"); }
 
@@ -1254,6 +1259,10 @@ function openSettings(){
         <div class="theme-pick" id="theme-pick">
           ${[["light",T("☀️ 浅色","☀️ Light")],["dark",T("🌙 深色","🌙 Dark")],["auto",T("🖥 跟随系统","🖥 System")]].map(([v,l])=>`<button data-theme-val="${v}" class="${getTheme()===v?"on":""}">${l}</button>`).join("")}
         </div>
+        <p class="m-note" style="margin-top:14px">${T("阅读宽度：屏幕大就用「宽」或「超宽」，让课文/语法看着更舒服。","Reading width: on a big screen, pick Wide or Extra-wide so the lesson & grammar aren't cramped.")}</p>
+        <div class="theme-pick" id="width-pick">
+          ${[["standard",T("标准","Standard")],["wide",T("宽","Wide")],["max",T("超宽","Extra-wide")]].map(([v,l])=>`<button data-width-val="${v}" class="${getWidth()===v?"on":""}">${l}</button>`).join("")}
+        </div>
       </section>
       <section><h3>👤 ${T("你的名字（可选）","Your name (optional)")}</h3>
         <p class="m-note">${T("填了之后，主页会用它跟你打招呼（おかえりなさい、…！）。只存在本机浏览器。","If set, the home page greets you with it (おかえりなさい、…！). Stored on this device only.")}</p>
@@ -1287,6 +1296,7 @@ function openSettings(){
   $("#modal-close").onclick=closeSettings;
   ov.onclick=(e)=>{ if(e.target===ov) closeSettings(); };
   $("#theme-pick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ setTheme(b.dataset.themeVal); $("#theme-pick").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); });
+  if($("#width-pick")) $("#width-pick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ setWidth(b.dataset.widthVal); $("#width-pick").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); });
   $("#lang-pick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ if(getLang()===b.dataset.langVal) return; setLang(b.dataset.langVal); applyLang(); showPage(STATE.page); openSettings(); });
   $("#name-save").onclick=()=>{ const v=$("#usr-name").value.trim(); if(v) localStorage.setItem("jpn-name",v); else localStorage.removeItem("jpn-name"); $("#name-status").textContent=T("已保存 ✓","Saved ✓"); };
   $("#az-save").onclick=()=>{ const key=$("#az-key").value.trim(), region=$("#az-region").value.trim(); if(key&&region){ localStorage.setItem("jpn-azure-cfg",JSON.stringify({key,region})); $("#az-status").textContent=T("已保存 ✓ 发音评估将用 Azure","Saved ✓ — Azure will be used"); } else { $("#az-status").textContent=T("Key 和 Region 都要填","Enter both Key and Region"); } };
@@ -1309,7 +1319,7 @@ function openSettings(){
 }
 function closeSettings(){ const ov=$("#modal-overlay"); ov.style.display="none"; ov.innerHTML=""; }
 function exportProgress(){
-  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name","jpn-notes","jpn-pet","jpn-rate","jpn-test-log","jpn-pron-log","jpn-exercise-log","jpn-produce-log","jpn-wrong"];
+  const keys=["jpn-n2-progress","jpn-test-best","jpn-last-day","jpn-last-session","jpn-page","jpn-active-dates","jpn-name","jpn-notes","jpn-pet","jpn-rate","jpn-test-log","jpn-pron-log","jpn-exercise-log","jpn-produce-log","jpn-wrong","jpn-width","jpn-theme"];
   const out={ _app:"jpn-n4-n2", _exported:new Date().toISOString(), data:{} };
   keys.forEach(k=>{ const v=localStorage.getItem(k); if(v!==null) out.data[k]=v; });
   const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
@@ -1331,7 +1341,7 @@ function importProgress(e){
       PROG=loadProg();
       if(window.Notes && window.Notes.reload) window.Notes.reload();
       try{ setLang(getLang()); applyLang(); }catch(e){}        // R6-11: re-apply imported language…
-      try{ setTheme(getTheme()); }catch(e){}                    // …and theme
+      try{ setTheme(getTheme()); applyWidth(getWidth()); }catch(e){}   // …theme & width
       const last=parseInt(localStorage.getItem("jpn-last-day")||"1",10); STATE.day=(last>=1&&last<=TOTAL_DAYS)?last:1;
       alert(T("导入成功！进度已恢复。","Import complete — your progress has been restored."));
       closeSettings(); showPage(STATE.page);
@@ -1809,6 +1819,7 @@ function init(){
   $("#map-toggle").onclick=()=>toggleMap(!$("#map-view").classList.contains("show"));
   $("#gear-btn").onclick=openSettings;
   applyTheme(getTheme());
+  applyWidth(getWidth());
   applyLang();
   buildFabMenu();
   if($("#theme-btn")) $("#theme-btn").onclick=toggleLightDark;

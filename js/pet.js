@@ -674,7 +674,7 @@
   function panelHTML(){
     const p=pet();
     if(!p) return "";   // renderInto guarantees a pet via ensureEgg() before calling this
-    if(S.out && p.stage!=="egg" && !p.diedAt) return awayHTML(p);   // "out playing" → away card
+    if(S.out){ S.out=null; save(); }   // home is the pet's base — it's ALWAYS here when you open 主页 (no more empty "おでかけ中" card)
     const since=studySXP()-(p.hatchBase||p.adoptSXP||0);
     let next=null,prev=0; for(const [n,need] of STAGES){ if(since>=need) prev=need; else { next=need; break; } }
     const toNext = p.stage==="egg" ? Math.round((studySXP()-(p.adoptSXP||0))/TUNE.hatchCost*100)
