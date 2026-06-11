@@ -290,6 +290,56 @@ function render(){
   else if(STATE.session==="exercise"){ if(window.Exercises) Exercises.render(L); else renderNight(L); }
   else renderNight(L);
   updateProgressBar();
+  buildLessonTOC();
+}
+
+/* ---- in-page section nav (left rail): jump between 课文/词汇/语法点/对话… without
+   scrolling. Auto-built from the rendered section headings + each grammar point, so it
+   works for any session; empty (hidden) when a session has no sections (morning/night). */
+let _tocObserver=null;
+function buildLessonTOC(){
+  const toc=$("#lesson-toc"), body=$("#panel-body");
+  if(!toc||!body) return;
+  if(_tocObserver){ try{ _tocObserver.disconnect(); }catch(e){} _tocObserver=null; }
+  const blocks=body.querySelectorAll("section.block");
+  if(!blocks.length){ toc.innerHTML=""; toc.classList.remove("show"); return; }
+  const items=[];
+  blocks.forEach((sec,bi)=>{
+    const h=sec.querySelector("h2"); if(!h) return;
+    const id="sec-"+bi; sec.id=id;
+    const label=((h.childNodes[0]&&h.childNodes[0].textContent)||h.textContent||"").trim();
+    items.push({id, label, sub:false});
+    sec.querySelectorAll(".gram").forEach((gram,gi)=>{                 // grammar points become sub-entries
+      const h3=gram.querySelector("h3"); if(!h3) return;
+      const gid=id+"-g"+gi; gram.id=gid;
+      items.push({id:gid, label:h3.textContent.trim(), sub:true});
+    });
+  });
+  toc.innerHTML=`<div class="toc-head">${T("本节导航","On this page")}</div>`
+    + items.map(it=>`<a class="toc-link${it.sub?" sub":""}" data-to="${it.id}">${esc(it.label)}</a>`).join("");
+  toc.classList.add("show");
+  toc.querySelectorAll(".toc-link").forEach(a=>a.onclick=()=>{
+    const el=document.getElementById(a.dataset.to); if(!el) return;
+    const y=el.getBoundingClientRect().top + (window.scrollY||window.pageYOffset) - 76;
+    window.scrollTo({top:y, behavior:"smooth"});
+  });
+  if("IntersectionObserver" in window){                               // scrollspy: highlight the topmost section in view
+    const links={}; toc.querySelectorAll(".toc-link").forEach(a=>links[a.dataset.to]=a);
+    const visible=new Set();
+    _tocObserver=new IntersectionObserver(es=>{
+      es.forEach(e=>{ if(e.isIntersecting) visible.add(e.target.id); else visible.delete(e.target.id); });
+      // active = the entry whose top most recently passed the reading line (≤96px); the
+      // deepest/most-specific one wins over a tall parent section scrolled above.
+      let bestId=null, bestTop=-Infinity, fbId=null, fbTop=Infinity;
+      visible.forEach(id=>{ const el=document.getElementById(id); if(!el) return; const t=el.getBoundingClientRect().top;
+        if(t<=96 && t>bestTop){ bestTop=t; bestId=id; }
+        if(t<fbTop){ fbTop=t; fbId=id; } });
+      const winner=bestId||fbId;
+      toc.querySelectorAll(".toc-link.active").forEach(x=>x.classList.remove("active"));
+      if(winner && links[winner]){ links[winner].classList.add("active"); }
+    }, { rootMargin:"-76px 0px -68% 0px", threshold:0 });
+    items.forEach(it=>{ const el=document.getElementById(it.id); if(el) _tocObserver.observe(el); });
+  }
 }
 
 function renderHeader(L){
