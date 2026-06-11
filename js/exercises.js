@@ -65,16 +65,28 @@
     document.getElementById("ex-gen").onclick=()=>load(L,true);
     if(SET && SET._day===L.day){ paint(L); } else load(L,false);
   }
+  function withTimeout(p, ms){ return Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")), ms))]); }
+  let GEN=0;
   async function load(L,fresh){
-    const list=document.getElementById("ex-list"), mode=document.getElementById("ex-mode");
-    if(BUSY) return;
-    if(aiOn()){
-      BUSY=true; if(mode) mode.textContent=T("AI が問題を作成中…","AI is writing exercises…"); if(list) list.innerHTML=`<div class="ex-loading">…</div>`;
-      try{ const items=await claudeSet(L); SET={items, _day:L.day, ai:true}; }
-      catch(e){ SET={items:offlineSet(L), _day:L.day, ai:false}; }
-      BUSY=false;
-    } else { SET={items:offlineSet(L), _day:L.day, ai:false}; }
+    const mode=document.getElementById("ex-mode");
+    const myGen=++GEN, myDay=L.day;
+    // 1) ALWAYS show the offline set instantly — the screen is never empty or stuck.
+    SET={items:offlineSet(L), _day:myDay, ai:false};
     paint(L);
+    // 2) if a key is set, quietly upgrade to AI in the background, with a timeout so it can't hang.
+    if(aiOn()){
+      if(mode) mode.textContent=T("✨ AI 出題を準備中…（先做着这些）","✨ Loading AI exercises… (start on these meanwhile)");
+      try{
+        const items=await withTimeout(claudeSet(L), 30000);
+        if(myGen!==GEN) return;                                   // a newer load superseded this one
+        const started=(SET.items||[]).some(it=>it._done);
+        if(items && items.length && !started && STATE.session==="exercise" && STATE.day===myDay){
+          SET={items, _day:myDay, ai:true}; paint(L);             // swap in AI (paint resets the mode label)
+        } else if(mode){ mode.textContent=""; }                   // keep the offline set
+      }catch(e){
+        if(myGen===GEN && mode) mode.textContent=T("（本地题；AI 出題暂时不可用，点🎲可重试）","(local set — AI unavailable; tap 🎲 to retry)");
+      }
+    }
   }
   function paint(L){
     const list=document.getElementById("ex-list"), mode=document.getElementById("ex-mode");
