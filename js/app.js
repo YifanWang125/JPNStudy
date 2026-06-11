@@ -738,7 +738,7 @@ function renderNoon(L){
   // of sound (a matching v_ clip, or TTS fallback on) so it isn't a silent tap. (R5 F3d)
   body.querySelectorAll(".vc-part[data-w]").forEach(el=>{ const k="v_"+speechNorm(el.dataset.w);
     if(AUDIO_MANIFEST[k] || ttsFallbackOn()){ el.style.cursor="pointer"; el.onclick=()=>speakSequence([{text:el.dataset.w,node:null,audioKey:k}]); } });
-  body.querySelectorAll(".gloss").forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); gotoGlossary(parseInt(el.dataset.g,10)); });
+  body.querySelectorAll(".gloss").forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); showGlossPopover(el, parseInt(el.dataset.g,10)); });
   addCompleteButton(L,"noon",body);
 }
 
@@ -1279,9 +1279,46 @@ function glossarySection(){
     <div class="ref-head"><span class="r-emoji">📖</span><h2>${T("语法术语小词典","Grammar Term Glossary")} <span class="r-zh">${T("自動詞 / な形容詞 / 音便… 在单词页点这些术语会跳到这里","自動詞 / な形容詞 / 音便… tap these terms on a vocab card to jump here")}</span></h2><span class="r-arrow">▸</span></div>
     <div class="ref-body">${items}</div></div>`;
 }
+/* Inline term popover — show the definition right where you tapped, so you never
+   leave your lesson (bug: tapping 音便 jumped to 基础 with no way back). A small
+   "open in glossary" link still offers the full list, and THAT jump remembers
+   where you came from. */
+let _glossPopEl=null;
+function closeGlossPop(){ if(_glossPopEl){ _glossPopEl.remove(); _glossPopEl=null; document.removeEventListener("click",_glossPopOutside,true); document.removeEventListener("keydown",_glossPopKey,true); window.removeEventListener("scroll",closeGlossPop,true); } }
+function _glossPopOutside(e){ if(_glossPopEl && !_glossPopEl.contains(e.target) && !(e.target.classList&&e.target.classList.contains("gloss"))) closeGlossPop(); }
+function _glossPopKey(e){ if(e.key==="Escape") closeGlossPop(); }
+function showGlossPopover(el, idx){
+  closeGlossPop();
+  const g=GLOSSARY[idx]; if(!g) return;
+  const pop=document.createElement("div"); pop.className="gloss-pop";
+  pop.innerHTML=`<button class="gp-x" title="${T('关闭','Close')}">✕</button>
+    <div class="gp-term">${esc(g.term)}</div>
+    <div class="gp-def">${rubyMd(glossDef(g))}</div>
+    <a class="gp-more">📖 ${T("在词典中查看","Open in glossary")} →</a>`;
+  document.body.appendChild(pop);
+  _glossPopEl=pop;
+  const r=el.getBoundingClientRect();
+  const pw=Math.min(320, window.innerWidth-24); pop.style.width=pw+"px";
+  pop.style.left=Math.min(Math.max(8, r.left), window.innerWidth-pw-8)+"px";
+  pop.style.top=(r.bottom+8)+"px";
+  const ph=pop.getBoundingClientRect().height;                 // flip above if it would overflow the viewport bottom
+  if(r.bottom+8+ph>window.innerHeight-8 && r.top-ph-8>8) pop.style.top=(r.top-ph-8)+"px";
+  pop.querySelector(".gp-x").onclick=closeGlossPop;
+  pop.querySelector(".gp-more").onclick=()=>{ closeGlossPop(); gotoGlossary(idx); };
+  setTimeout(()=>{ document.addEventListener("click",_glossPopOutside,true); document.addEventListener("keydown",_glossPopKey,true); window.addEventListener("scroll",closeGlossPop,true); },0);
+}
+let _glossReturn=null;
 function gotoGlossary(idx){
+  if(STATE.page==="daily"||STATE.page==="home") _glossReturn={ page:STATE.page, day:STATE.day, session:STATE.session };  // so the user can get back
   showPage("general");
   setTimeout(()=>{
+    const wrap=$("#page-general");
+    if(_glossReturn && wrap && !document.getElementById("gloss-back")){
+      const bar=document.createElement("button"); bar.id="gloss-back"; bar.className="gloss-back";
+      bar.innerHTML="← "+T("返回刚才的学习","Back to your lesson");
+      bar.onclick=()=>{ const o=_glossReturn; _glossReturn=null; bar.remove(); if(o){ STATE.day=o.day; STATE.session=o.session; showPage(o.page); } };
+      wrap.insertBefore(bar, wrap.firstChild);
+    }
     const sec=document.querySelector('#page-general .ref-section[data-id="glossary"]');
     if(!sec) return; sec.classList.add("open");
     const it=(idx!=null)?document.getElementById("gloss-"+idx):null;
