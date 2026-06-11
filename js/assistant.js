@@ -192,6 +192,7 @@ ${courseIndex()}`;
 
   function gotoDay(n){
     if(!(n>=1&&n<=TOTAL_DAYS)) return;
+    if(window.pushNav) window.pushNav();              // universal back: return to where you were
     STATE.day=n; STATE.session="noon"; STATE.showZh=true;
     showPage("daily"); window.scrollTo(0,0);
   }

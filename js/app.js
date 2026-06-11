@@ -39,6 +39,7 @@ function applyLang(){
     en:"Progress is saved in this browser · real-voice audio (VOICEVOX) plays online too; falls back to system TTS only if a clip is missing · recording & pronunciation need a secure context (the https site or localhost) + Chrome/Edge",
     ja:"学習データはこのブラウザに保存されます · 音声(VOICEVOX)はオンラインでも再生（無い場合のみシステム音声）· 録音と発音採点は安全な接続（https サイトか localhost）と Chrome/Edge が必要",
     zh:"进度自动保存在本机浏览器 · 真人音频(VOICEVOX)在线也能播放，仅在缺失时回退系统语音 · 录音/发音评估需安全上下文（https 站点或 localhost）+ Chrome/Edge"}[LANG];
+  if(typeof updateBackPill==="function") updateBackPill();   // relabel the ← 返回 pill
 }
 /* UI string: T("中文","English"). zh by default; en in en-mode; in ja-mode use the Japanese
    override (window.JA_UI keyed by the English) and fall back to English, then Chinese. */
@@ -1044,6 +1045,31 @@ function makeDraggable(el, key, onTap){
     document.addEventListener("pointermove",move); document.addEventListener("pointerup",end); });
 }
 
+/* ---- Universal "go back": after any link-jump (term link, "Day N", AI/notes/index
+   link…) a floating pill returns you exactly where you were — page + day + session +
+   scroll. Push at the jump ORIGIN (before STATE changes); deliberate top-nav clears it. */
+let NAV_STACK=[];
+function pushNav(){
+  NAV_STACK.push({ page:STATE.page, day:STATE.day, session:STATE.session, scrollY:(window.scrollY||window.pageYOffset||0) });
+  if(NAV_STACK.length>50) NAV_STACK.shift();
+  updateBackPill();
+}
+function clearNav(){ NAV_STACK.length=0; updateBackPill(); }
+function navBack(){
+  const loc=NAV_STACK.pop(); updateBackPill();
+  if(!loc) return;
+  if(loc.day) STATE.day=loc.day; if(loc.session) STATE.session=loc.session;
+  showPage(loc.page);
+  setTimeout(()=>window.scrollTo(0, loc.scrollY||0), 60);
+}
+function updateBackPill(){
+  let el=document.getElementById("nav-back");
+  if(!el){ el=document.createElement("button"); el.id="nav-back"; el.className="nav-back"; el.onclick=navBack; if(document.body) document.body.appendChild(el); }
+  el.innerHTML="← "+T("返回","Back");
+  el.style.display = NAV_STACK.length ? "inline-flex" : "none";
+}
+if(typeof window!=="undefined"){ window.pushNav=pushNav; window.navBack=navBack; }
+
 function showPage(p){
   STATE.page=p;
   stopSpeak(); if(PRON && PRON.recording) stopRec();
@@ -1196,11 +1222,11 @@ function renderHome(){
   if($("#hi-ok")) $("#hi-ok").onclick=dismissIntro;
   c.querySelectorAll("[data-go]").forEach(el=>el.onclick=()=>{
     const g=el.dataset.go;
-    if(g==="test"){ showPage("test"); return; }
+    if(g==="test"){ pushNav(); showPage("test"); return; }
     const m=g.match(/^day:(\d+):(\w+)$/);
-    if(m){ STATE.day=parseInt(m[1],10); STATE.session=m[2]; if(m[2]==="morning") STATE.showZh=false; showPage("daily"); }
+    if(m){ pushNav(); STATE.day=parseInt(m[1],10); STATE.session=m[2]; if(m[2]==="morning") STATE.showZh=false; showPage("daily"); }
   });
-  c.querySelectorAll(".hm-cell[data-day]").forEach(el=>el.onclick=()=>{ STATE.day=parseInt(el.dataset.day,10); STATE.session="morning"; STATE.showZh=false; showPage("daily"); });
+  c.querySelectorAll(".hm-cell[data-day]").forEach(el=>el.onclick=()=>{ pushNav(); STATE.day=parseInt(el.dataset.day,10); STATE.session="morning"; STATE.showZh=false; showPage("daily"); });
   const pj=$(".phrase-jp"), pp=$(".phrase-play"), pe=$(".phrase-ex");
   if(pp) pp.onclick=(e)=>{ e.stopPropagation(); speakSequence([{text:ph.jp,node:null,audioKey:"x_"+speechNorm(ph.jp)}]); };
   if(pe) pe.onclick=()=>speakSequence([{text:ph.ex.jp,node:null,audioKey:"x_"+speechNorm(ph.ex.jp)}]);
@@ -1393,18 +1419,10 @@ function showGlossPopover(el, idx){
   pop.querySelector(".gp-more").onclick=()=>{ closeGlossPop(); gotoGlossary(idx); };
   setTimeout(()=>{ document.addEventListener("click",_glossPopOutside,true); document.addEventListener("keydown",_glossPopKey,true); window.addEventListener("scroll",closeGlossPop,true); },0);
 }
-let _glossReturn=null;
 function gotoGlossary(idx){
-  if(STATE.page==="daily"||STATE.page==="home") _glossReturn={ page:STATE.page, day:STATE.day, session:STATE.session };  // so the user can get back
+  pushNav();                         // universal back: return here after viewing the glossary
   showPage("general");
   setTimeout(()=>{
-    const wrap=$("#page-general");
-    if(_glossReturn && wrap && !document.getElementById("gloss-back")){
-      const bar=document.createElement("button"); bar.id="gloss-back"; bar.className="gloss-back";
-      bar.innerHTML="← "+T("返回刚才的学习","Back to your lesson");
-      bar.onclick=()=>{ const o=_glossReturn; _glossReturn=null; bar.remove(); if(o){ STATE.day=o.day; STATE.session=o.session; showPage(o.page); } };
-      wrap.insertBefore(bar, wrap.firstChild);
-    }
     const sec=document.querySelector('#page-general .ref-section[data-id="glossary"]');
     if(!sec) return; sec.classList.add("open");
     const it=(idx!=null)?document.getElementById("gloss-"+idx):null;
@@ -1438,7 +1456,7 @@ function renderGeneral(){
   c.innerHTML=html;
   c.querySelectorAll(".ref-head").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("open"));
   c.querySelectorAll(".r-ex").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:null,audioKey:"x_"+speechNorm(el.dataset.jp)}]));
-  c.querySelectorAll(".gidx-item").forEach(el=>el.onclick=()=>{ STATE.day=parseInt(el.dataset.day,10); STATE.session="noon"; showPage("daily"); });
+  c.querySelectorAll(".gidx-item").forEach(el=>el.onclick=()=>{ pushNav(); STATE.day=parseInt(el.dataset.day,10); STATE.session="noon"; showPage("daily"); });
   if(window.Gojuon) Gojuon.render();             // mount the interactive kana app
 }
 
@@ -1661,7 +1679,7 @@ function renderMistakes(){
   c.querySelectorAll("#exam-back,#exam-back2").forEach(b=>b.onclick=()=>renderTestHome());
   const rv=$("#wrong-review"); if(rv) rv.onclick=()=>{ const def=buildWrongReview(); if(def) startTest(def); };
   c.querySelectorAll(".wi-clear").forEach(b=>b.onclick=()=>{ const wl=loadWrong(), k=b.dataset.key; if(wl[k]){ wl[k].cleared=true; wl[k].clearedTs=Date.now(); saveWrong(wl); } renderMistakes(); });
-  c.querySelectorAll("#page-test a[data-day]").forEach(a=>a.onclick=()=>{ STATE.day=+a.dataset.day; STATE.session="noon"; showPage("daily"); });
+  c.querySelectorAll("#page-test a[data-day]").forEach(a=>a.onclick=()=>{ pushNav(); STATE.day=+a.dataset.day; STATE.session="noon"; showPage("daily"); });
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
@@ -1730,7 +1748,7 @@ function finishTest(auto){
   if(!d.isReview) saveTestBest(d.id,score,d.questions.length);             // review (id "wrong") isn't a real set → no phantom best
   pushScoreLog("jpn-test-log",{id:d.id,score,total:d.questions.length});   // attempt history → pet progress
   if(window.Pet) Pet.onStudy();
-  document.querySelectorAll("#page-test a[data-day]").forEach(a=>a.onclick=()=>{ STATE.day=+a.dataset.day; STATE.session="noon"; showPage("daily"); });
+  document.querySelectorAll("#page-test a[data-day]").forEach(a=>a.onclick=()=>{ pushNav(); STATE.day=+a.dataset.day; STATE.session="noon"; showPage("daily"); });
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
@@ -1795,7 +1813,7 @@ function init(){
   buildFabMenu();
   if($("#theme-btn")) $("#theme-btn").onclick=toggleLightDark;
   if(window.matchMedia){ try{ matchMedia("(prefers-color-scheme: light)").addEventListener("change",()=>{ if(getTheme()==="auto") applyTheme("auto"); }); }catch(e){} }
-  document.querySelectorAll("#page-nav button").forEach(b=>b.onclick=()=>showPage(b.dataset.p));
+  document.querySelectorAll("#page-nav button").forEach(b=>b.onclick=()=>{ clearNav(); showPage(b.dataset.p); });  // deliberate nav clears the back stack
 
   // pre-generated audio manifest (VOICEVOX). Prefer the <script>-loaded global
   // (works on file:// too); else fetch the JSON (http only). Absent → {} → TTS fallback.

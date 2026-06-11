@@ -54,6 +54,7 @@
   function firstDayOf(id){ const m=/^g:\d+:(.+)$/.exec(id); if(m) return CINDEX.firstGrammar[m[1]]; const r=CINDEX.byId[id]; return r?r.day:null; }
   function gotoCourse(id){
     const ref=CINDEX.byId[id]; if(!ref) return false;
+    if(window.pushNav) window.pushNav();              // universal back: return to the note you came from
     STATE.day=ref.day; STATE.session=ref.session||"noon"; STATE.showZh=true;
     showPage("daily"); window.scrollTo(0,0); return true;
   }
