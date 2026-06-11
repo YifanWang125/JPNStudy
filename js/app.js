@@ -772,7 +772,8 @@ function formatGrammarExp(text, isZh){
    Degrades to the current flat example list when a point has none of these. */
 function grammarExamplesHTML(g, ge){
   ge=ge||{};
-  const exHTML=(ex,k)=>`<div class="ex" data-jp="${esc(ex.jp)}">${toRuby(ex.jp)}<span class="zh">${esc(zhen(ex.zh, ex.en||(ge.ex||[])[k]))}</span></div>`;
+  const exHTML=(ex,k)=>`<div class="ex" data-jp="${esc(ex.jp)}">${toRuby(ex.jp)}<span class="zh">${esc(zhen(ex.zh, ex.en||(ge.ex||[])[k]))}</span></div>`
+    + (Array.isArray(ex.trace)&&ex.trace.length ? `<div class="ex-trace"><span class="ext-lab">🔧 ${T("怎么变来的","How it's built")}</span>${ex.trace.map(s=>`<span class="ext-s">${s.t?`<i>${esc(s.t)}</i>`:""}${toRuby(s.w)}</span>`).join('<b class="ext-ar">→</b>')}</div>` : "");
   const exs=g.examples||[];
   const grouped = Array.isArray(g.uses) && exs.some(e=>e.use);
   let html="";
@@ -1410,7 +1411,11 @@ const GLOSSARY = [
   {term:"受身形", aliases:["受身形","受身"], def:"受身（被动）：“被…”。書[か]く→書[か]かれる、食[た]べる→食[た]べられる；施动者用「に」。", defEn:"Passive: 'to be …ed.' 書く→書かれる, 食べる→食べられる; the agent takes に."},
   {term:"使役形", aliases:["使役形","使役"], def:"使役：“让/使…做”。書[か]く→書[か]かせる、食[た]べる→食[た]べさせる。", defEn:"Causative: 'make / let someone do.' 書く→書かせる, 食べる→食べさせる."},
   {term:"使役受身", aliases:["使役受身"], def:"使役受身：“被迫做”（不情愿）。書[か]く→書[か]かされる、食[た]べる→食[た]べさせられる。", defEn:"Causative-passive: 'be made to do' (unwillingly). 書く→書かされる, 食べる→食べさせられる."},
-  {term:"音便", aliases:["音便"], def:"音便：为了顺口发生的音变，主要在第1组动词的 て形/た形：書[か]く→書[か]いて、飲[の]む→飲[の]んで、話[はな]す→話[はな]して。详见“动词的活用”。", defEn:"Euphonic change (onbin): a sound change for ease of pronunciation, mainly in Group-1 verbs' て/た forms: 書く→書いて, 飲む→飲んで, 話す→話して."}
+  {term:"音便", aliases:["音便"], def:"音便：为了顺口发生的音变，主要在第1组动词的 て形/た形：書[か]く→書[か]いて、飲[の]む→飲[の]んで、話[はな]す→話[はな]して。详见“动词的活用”。", defEn:"Euphonic change (onbin): a sound change for ease of pronunciation, mainly in Group-1 verbs' て/た forms: 書く→書いて, 飲む→飲んで, 話す→話して."},
+  {term:"て形", aliases:["て形","て形（连接形）"], def:"动词「て形」(连接形，用于 〜ています／〜てから／〜てください 等)：\nI类(五段)音便—う・つ・る→って、ぬ・ぶ・む→んで、く→いて、ぐ→いで、す→して（例外 行[い]く→行[い]って）；\nII类(一段)去る＋て（食[た]べる→食[た]べて）；\nIII类 する→して、来[く]る→来[き]て。\n例：書[か]く→書[か]いて、勉強[べんきょう]する→勉強[べんきょう]して。", defEn:"Te-form (connective; used by 〜ています/〜てから/〜てください…): Group 1 (godan) euphonic — う・つ・る→って, ぬ・ぶ・む→んで, く→いて, ぐ→いで, す→して (exception 行く→行って); Group 2 (ichidan) drop る +て; Group 3 する→して, 来る→来て. e.g. 書く→書いて, 勉強する→勉強して."},
+  {term:"た形", aliases:["た形"], def:"动词「た形」(过去・完成)：和 て形 同一套规律，把 て/で 换成 た/だ。\n書[か]く→書[か]いた、飲[の]む→飲[の]んだ、食[た]べる→食[た]べた、する→した、来[く]る→来[き]た。", defEn:"Ta-form (past/perfective): same rules as the te-form, swapping て/で → た/だ. 書く→書いた, 飲む→飲んだ, 食べる→食べた, する→した, 来る→来た."},
+  {term:"ない形", aliases:["ない形"], def:"动词「ない形」(否定)：\nI类 词尾「う段」→「あ段」＋ない（書[か]く→書[か]かない；買[か]う→買[か]わない，う→わ）；\nII类 去る＋ない（食[た]べる→食[た]べない）；\nIII类 する→しない、来[く]る→来[こ]ない。", defEn:"Nai-form (negative): Group 1 final -u row → -a row + ない (書く→書かない; 買う→買わない, う→わ); Group 2 drop る +ない; Group 3 する→しない, 来る→来ない."},
+  {term:"ます形", aliases:["ます形"], def:"动词「ます形」(礼貌体)：\nI类「う段」→「い段」＋ます（書[か]く→書[か]きます）；\nII类 去る＋ます（食[た]べる→食[た]べます）；\nIII类 する→します、来[く]る→来[き]ます。\n去掉「ます」剩下的叫**词干/ます形**（書[か]き、食[た]べ），后面可接 〜そう・〜たい・〜ながら。", defEn:"Masu-form (polite): Group 1 -u row→-i row +ます (書く→書きます); Group 2 drop る +ます; Group 3 する→します, 来る→来ます. Dropping ます leaves the 'masu-stem' (書き, 食べ), which attaches to 〜そう/〜たい/〜ながら."}
 ];
 function glossDef(g){ return (LANG!=="zh" && g.defEn) ? g.defEn : g.def; }
 let _glossRe=null, _glossMap=null;

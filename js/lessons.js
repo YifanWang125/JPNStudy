@@ -108,9 +108,11 @@ const LESSONS = [
         { label:"结果状态 · 完成后持续", labelEn:"Resulting state · persists after the act" }
       ],
       examples:[
-        { jp:"今[いま]、ご飯[はん]を食[た]べています。", zh:"现在正在吃饭。", en:"I'm eating now.", use:1 },
+        { jp:"今[いま]、ご飯[はん]を食[た]べています。", zh:"现在正在吃饭。", en:"I'm eating now.", use:1,
+          trace:[{t:"辞書形",w:"食[た]べる"},{t:"て形",w:"食[た]べて"},{t:"",w:"＋います"}] },
         { jp:"雨[あめ]が降[ふ]っています。", zh:"正在下雨。", en:"It's raining.", use:1 },
-        { jp:"毎日[まいにち]、日本語[にほんご]を勉強[べんきょう]しています。", zh:"我每天学日语。", en:"I study Japanese every day.", use:2 },
+        { jp:"毎日[まいにち]、日本語[にほんご]を勉強[べんきょう]しています。", zh:"我每天学日语。", en:"I study Japanese every day.", use:2,
+          trace:[{t:"辞書形",w:"勉強[べんきょう]する"},{t:"て形",w:"勉強[べんきょう]して"},{t:"",w:"＋います"}] },
         { jp:"姉[あね]は東京[とうきょう]に住[す]んでいます。", zh:"姐姐住在东京。", en:"My sister lives in Tokyo.", use:3 },
         { jp:"田中[たなか]さんを知[し]っています。", zh:"我认识田中（不是“正在知道”）。", en:"I know Tanaka — a state, not 'in the process of knowing'.", use:3 }
       ],
@@ -835,7 +837,15 @@ const LESSONS = [
       examples:[
         { jp:"頭[あたま]が痛[いた]いので、早[はや]く帰[かえ]ってもいいですか。", zh:"我头疼，可以早点回去吗？（委婉请求用ので）" },
         { jp:"危[あぶ]ないから、触[さわ]らないで。", zh:"危险，别碰。（强语气用から）" }
-      ] },
+      ],
+      contrast:{
+        q:"から＝主观、语气强（解释自己判断、命令、禁止）；ので＝客观委婉（请求、说明理由更礼貌）。",
+        qEn:"から = subjective & strong (your own judgment, commands); ので = objective & softer (more polite for requests).",
+        rows:[
+          { jp:"危[あぶ]ないから、触[さわ]らないで。", zh:"危险，别碰！（から＋命令/禁止，语气强）", en:"It's dangerous, don't touch it! (から + command — strong)", tag:"主观·命令", tagEn:"subjective" },
+          { jp:"頭[あたま]が痛[いた]いので、早[はや]く帰[かえ]ってもいいですか。", zh:"我头疼，能早点回去吗？（ので＋礼貌请求）", en:"I have a headache, may I leave early? (ので + polite request)", tag:"客观·礼貌", tagEn:"polite" }
+        ]
+      } },
     { point:"〜ため（に）", label:"Reason / Purpose", zh:"「〜ため」可表原因（…的缘故）或目的（为了…）。动词原形＋ため＝目的；过去/状态＋ため＝原因。「働きたいため」(原因)。",
       examples:[
         { jp:"事故[じこ]のため、電車[でんしゃ]が止[と]まっています。", zh:"因事故，电车停运。（原因）" },
@@ -1006,7 +1016,17 @@ const LESSONS = [
     { point:"〜と", label:"Inevitable / natural result", zh:"前项一旦成立，必然/自然导出后项（恒常真理、机械操作、习惯）。后项不能用意志·命令·请求。「読むと覚えられる」「春になると咲く」。",
       examples:[
         { jp:"このボタンを押[お]すと、ドアが開[あ]きます。", zh:"一按这个按钮，门就开。" }
-      ] },
+      ],
+      contrast:{
+        q:"四个条件怎么选？问自己：是自然必然的结果？做完A再B？一般假设？还是承接对方的话题/前提？",
+        qEn:"Which conditional? Ask: an inevitable natural result? after A then B? a general hypothesis? or picking up the other person's topic?",
+        rows:[
+          { jp:"春[はる]になると、桜[さくら]が咲[さ]く。", zh:"一到春天樱花就开。（と＝自然·必然，后不接意志/命令）", en:"When spring comes, the cherries bloom. (と = inevitable; no volition after)", tag:"と 自然结果", tagEn:"と inevitable" },
+          { jp:"駅[えき]に着[つ]いたら、電話[でんわ]して。", zh:"到了车站就给我打电话。（たら＝最万能：做完/如果）", en:"When you get to the station, call me. (たら = most versatile)", tag:"たら 之后/如果", tagEn:"たら after / if" },
+          { jp:"安[やす]ければ、買[か]います。", zh:"便宜的话就买。（ば＝一般假设条件）", en:"If it's cheap, I'll buy it. (ば = hypothetical condition)", tag:"ば 假设", tagEn:"ば hypothetical" },
+          { jp:"日本[にほん]へ行[い]くなら、新幹線[しんかんせん]がいい。", zh:"要去日本的话，坐新干线好。（なら＝承接话题·提建议）", en:"If you're going to Japan, the shinkansen is best. (なら = given the topic)", tag:"なら 承接话题", tagEn:"なら given that" }
+        ]
+      } },
     { point:"〜たら", label:"All-purpose if / after", zh:"最万能：假设（如果）、确定的未来之后（…之后）。口语首选。「出会ったら書く」「家に着いたら電話する」。",
       examples:[
         { jp:"駅[えき]に着[つ]いたら、電話[でんわ]してください。", zh:"到了车站请打电话。" },
@@ -1091,7 +1111,15 @@ const LESSONS = [
     { point:"〜そうだ（伝聞）", label:"Hearsay — I hear that", zh:"转述听来的信息。接**简体句末**：降る／降った／難しい／学生だ＋そうだ。常与「〜によると・〜の話では・噂では」搭配。",
       examples:[
         { jp:"ニュースによると、地震[じしん]があったそうだ。", zh:"据新闻说，发生了地震。" }
-      ] },
+      ],
+      contrast:{
+        q:"同一个动词「降る」，接续不同意思完全不同：接简体句末＝伝聞（听说）；接ます形去ます（词干）＝様態（眼看、看起来）。",
+        qEn:"Same verb 降る — attachment flips the meaning: plain form + そうだ = hearsay; verb-stem + そうだ = looks like / about to.",
+        rows:[
+          { jp:"雨[あめ]が降[ふ]るそうだ。", zh:"听说要下雨。（降る＝简体＋そうだ＝伝聞）", en:"I hear it's going to rain. (plain 降る + そうだ = hearsay)", tag:"伝聞 听说", tagEn:"hearsay" },
+          { jp:"雨[あめ]が降[ふ]りそうだ。", zh:"眼看要下雨了。（降り＝词干＋そうだ＝様態）", en:"It looks about to rain. (stem 降り + そうだ = looks like)", tag:"様態 眼看", tagEn:"looks like" }
+        ]
+      } },
     { point:"〜そうだ（様態）", label:"Looks like / about to", zh:"凭眼前样子判断。接**动词ます形去ます／形容词词干**：降り＋そう、難し＋そう、よさそう。「今にも降りそうだ」＝眼看要下。否定：降りそうにない。",
       examples:[
         { jp:"このケーキ、おいしそう！", zh:"这蛋糕看起来好好吃！" },

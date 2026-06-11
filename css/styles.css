@@ -271,6 +271,12 @@ section.block > h2{
 .gc-zh{font-size:.84rem;color:var(--zh);margin-top:2px}
 .gc-tag{position:absolute;top:8px;right:10px;font-size:.7rem;font-weight:700;color:var(--accent);background:rgba(228,87,46,.12);padding:1px 8px;border-radius:10px}
 @media(min-width:620px){ .gc-rows{flex-direction:row} .gc-row{flex:1} }
+/* "how it's built" conjugation trace under an example */
+.ex-trace{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:-4px 0 12px;padding:7px 11px;background:rgba(120,120,150,.08);border-radius:0 0 9px 9px;font-size:.85rem}
+.ext-lab{color:var(--ink-faint);font-size:.74rem;font-weight:700;margin-right:2px}
+.ext-s{font-family:var(--serif-jp)}
+.ext-s i{font-style:normal;font-size:.68rem;color:var(--accent);background:rgba(228,87,46,.12);padding:0 6px;border-radius:5px;margin-right:4px;vertical-align:middle}
+.ext-ar{color:var(--accent-2);font-weight:700}
 .gram .ex{
   font-family:var(--serif-jp);font-size:1.12rem;background:var(--panel-2);
   border-radius:8px;padding:8px 12px;margin-top:8px;cursor:pointer;
