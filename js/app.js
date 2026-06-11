@@ -765,6 +765,38 @@ function formatGrammarExp(text, isZh){
   if(notes.length) html+=notes.map(n=>`<div class="ge-note">💡 ${ink(n)}</div>`).join("");
   return html || `<p>${ink(text)}</p>`;
 }
+/* Examples + (optional) usage grouping + (optional) minimal-pair contrast for a grammar point.
+   - g.uses[]  : concise per-use headers ({label,labelEn}); use N = index+1.
+   - example.use: tags an example to a use → examples render grouped under their use header.
+   - g.contrast: {q,qEn, rows:[{jp,zh,en,tag,tagEn}]} → a ⚖️ Compare block (same point, isolate the diff).
+   Degrades to the current flat example list when a point has none of these. */
+function grammarExamplesHTML(g, ge){
+  ge=ge||{};
+  const exHTML=(ex,k)=>`<div class="ex" data-jp="${esc(ex.jp)}">${toRuby(ex.jp)}<span class="zh">${esc(zhen(ex.zh, ex.en||(ge.ex||[])[k]))}</span></div>`;
+  const exs=g.examples||[];
+  const grouped = Array.isArray(g.uses) && exs.some(e=>e.use);
+  let html="";
+  if(grouped){
+    g.uses.forEach((u,ui)=>{
+      const n=ui+1, mine=exs.filter(e=>(e.use|0)===n);
+      if(!mine.length) return;
+      html+=`<div class="ge-use"><span class="ge-un">${n}</span><span class="ge-ut">${esc(zhen(u.label,u.labelEn))}</span></div>`;
+      html+=mine.map(exHTML).join("");
+    });
+    const rest=exs.filter(e=>!e.use);
+    if(rest.length){ html+=`<div class="ge-exlab">${T("其他","More")}</div>`+rest.map(exHTML).join(""); }
+  } else {
+    if(exs.length) html+=`<div class="ge-exlab">${T("例 · 例句","Examples")}</div>`;
+    html+=exs.map(exHTML).join("");
+  }
+  const c=g.contrast;
+  if(c && Array.isArray(c.rows) && c.rows.length){
+    html+=`<div class="ge-contrast"><div class="gc-h">⚖️ ${T("对比 · 抓住区别","Compare · spot the difference")}</div>`;
+    if(c.q) html+=`<div class="gc-q">${esc(zhen(c.q,c.qEn))}</div>`;
+    html+=`<div class="gc-rows">`+c.rows.map(r=>`<div class="gc-row" data-jp="${esc(r.jp)}"><div class="gc-jp">${toRuby(r.jp)}</div><div class="gc-zh">${esc(zhen(r.zh,r.en))}</div>${r.tag?`<span class="gc-tag">${esc(zhen(r.tag,r.tagEn))}</span>`:""}</div>`).join("")+`</div></div>`;
+  }
+  return html;
+}
 function renderNoon(L){
   const body=$("#panel-body");
   const E=ENL(L.day);
@@ -790,8 +822,7 @@ function renderNoon(L){
       <h3>${esc(g.point)}</h3>
       <div class="label">${esc(g.label||"")}</div>
       <div class="exp">${LANG!=="zh"&&ge.exp ? formatGrammarExp(ge.exp,false) : formatGrammarExp(g.zh,true)}</div>
-      ${g.examples.length?`<div class="ge-exlab">${T("例 · 例句","Examples")}</div>`:""}
-      ${g.examples.map((ex,k)=>`<div class="ex" data-jp="${esc(ex.jp)}">${toRuby(ex.jp)}<span class="zh">${esc(zhen(ex.zh,(ge.ex||[])[k]))}</span></div>`).join("")}
+      ${grammarExamplesHTML(g, ge)}
     </div>`; }).join("")}
   </section>`;
 
@@ -820,7 +851,7 @@ function renderNoon(L){
 
   /* click handlers: play vocab + examples + conversation + 拆解 + 术语跳转 */
   body.querySelectorAll(".play-w").forEach(b=>b.onclick=()=>speakSequence([{text:b.dataset.w,node:null,audioKey:"v_"+speechNorm(b.dataset.w)}]));
-  body.querySelectorAll(".ex,.conv-item,.vc-ex").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:el,audioKey:"x_"+speechNorm(el.dataset.jp)}]));
+  body.querySelectorAll(".ex,.conv-item,.vc-ex,.gc-row").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:el,audioKey:"x_"+speechNorm(el.dataset.jp)}]));
   // 🧩 breakdown parts: try the vocab clip for that reading; only wire it when there's a chance
   // of sound (a matching v_ clip, or TTS fallback on) so it isn't a silent tap. (R5 F3d)
   body.querySelectorAll(".vc-part[data-w]").forEach(el=>{ const k="v_"+speechNorm(el.dataset.w);

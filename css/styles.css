@@ -256,6 +256,21 @@ section.block > h2{
 .ge-lines p{margin:4px 0;line-height:1.75}
 .ge-note{margin:8px 0 0;padding:8px 12px;background:rgba(242,166,90,.10);border-left:3px solid var(--accent-2);border-radius:0 8px 8px 0;font-size:.9rem;line-height:1.7;color:var(--ink-dim)}
 .ge-exlab{font-size:.72rem;font-weight:700;color:var(--ink-faint);margin:12px 0 4px;letter-spacing:.06em;text-transform:uppercase}
+/* usage-grouped examples */
+.ge-use{display:flex;align-items:center;gap:7px;margin:12px 0 5px}
+.ge-un{flex:0 0 auto;width:19px;height:19px;border-radius:50%;background:var(--accent-2);color:#fff;font-size:.74rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ge-ut{font-family:var(--serif-jp);font-weight:700;color:var(--accent-2);font-size:.95rem}
+/* ⚖️ minimal-pair contrast block */
+.ge-contrast{margin:14px 0 2px;border:1px solid var(--line);border-radius:12px;background:var(--panel-2);overflow:hidden}
+.gc-h{padding:9px 14px;background:rgba(228,87,46,.12);font-weight:700;font-size:.86rem;color:var(--accent-2)}
+.gc-q{padding:9px 14px 4px;font-size:.88rem;color:var(--ink-dim);line-height:1.7}
+.gc-rows{display:flex;flex-direction:column;gap:1px;padding:6px 10px 12px}
+.gc-row{position:relative;padding:9px 12px;border:1px solid var(--line);border-radius:9px;cursor:pointer;background:var(--panel)}
+.gc-row:hover{outline:1px solid var(--accent)}
+.gc-jp{font-family:var(--serif-jp);line-height:1.7}
+.gc-zh{font-size:.84rem;color:var(--zh);margin-top:2px}
+.gc-tag{position:absolute;top:8px;right:10px;font-size:.7rem;font-weight:700;color:var(--accent);background:rgba(228,87,46,.12);padding:1px 8px;border-radius:10px}
+@media(min-width:620px){ .gc-rows{flex-direction:row} .gc-row{flex:1} }
 .gram .ex{
   font-family:var(--serif-jp);font-size:1.12rem;background:var(--panel-2);
   border-radius:8px;padding:8px 12px;margin-top:8px;cursor:pointer;

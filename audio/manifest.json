@@ -1731,5 +1731,13 @@
 "listen_l14_0": "audio/listen/l14_0.mp3",
 "listen_l14_1": "audio/listen/l14_1.mp3",
 "listen_l14_2": "audio/listen/l14_2.mp3",
-"listen_l14_3": "audio/listen/l14_3.mp3"
+"listen_l14_3": "audio/listen/l14_3.mp3",
+"x_中国から来ました": "audio/ex/65193ec2f1b0.mp3",
+"x_寒いから、コートを着ます": "audio/ex/5d0dbc37354a.mp3",
+"x_今、ご飯を食べています": "audio/ex/618bd53c9d63.mp3",
+"x_雨が降っています": "audio/ex/62ebb785d15a.mp3",
+"x_毎日、日本語を勉強しています": "audio/ex/d93b9f87f485.mp3",
+"x_田中さんを知っています": "audio/ex/d70f6edbeb1a.mp3",
+"x_今、走っています": "audio/ex/1579d1694091.mp3",
+"x_毎朝、走っています": "audio/ex/6cd365bd9c39.mp3"
 }

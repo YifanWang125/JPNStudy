@@ -88,16 +88,41 @@ const LESSONS = [
       examples:[
         { jp:"日本[にほん]は朝[あさ]から雨[あめ]です。", zh:"日本从早上开始就下雨。" },
         { jp:"駅[えき]から家[いえ]まで歩[ある]きます。", zh:"从车站走到家。（から…まで 从…到…）" }
-      ]
+      ],
+      contrast:{
+        q:"「から」前面接名词还是句子？接续不同，意思也不同。",
+        qEn:"Is から after a noun or a clause? The attachment changes the meaning.",
+        rows:[
+          { jp:"中国[ちゅうごく]から来[き]ました。", zh:"从中国来。（名词＋から＝起点）", en:"I came from China. (noun + から = origin)", tag:"起点 from", tagEn:"origin" },
+          { jp:"寒[さむ]いから、コートを着[き]ます。", zh:"因为冷，所以穿外套。（句子＋から＝原因）", en:"It's cold, so I wear a coat. (clause + から = reason)", tag:"原因 because", tagEn:"reason" }
+        ]
+      }
     },
     {
       point:"〜ています",
-      label:"Progressive & Habitual aspect",
-      zh:"两个核心用法：① 正在进行（今、勉強しています＝正在学习）；② 习惯 / 状态持续（練習しています＝一直在练习）。结构＝动词て形＋います。⚠️ 看例句「住んでいます」用的是「で」不是「て」：因为「住む」是 む 结尾，て形发生音便变成「住んで」（ぬ／ぶ／む → んで），所以实际是「住んで＋います」。凡是变位或读音的改变，背后多半是这种音便规律——详见基础·动词的活用。",
+      label:"Progressive / Habitual / Resulting state",
+      zh:"三个核心用法：① 进行（动作此刻在持续）；② 习惯（一段时间反复做）；③ 结果状态（动作完成后状态持续）。结构＝动词て形＋います。⚠️ 区分关键看动词性质：会持续的动作（食べる／走る）配「今」是进行、配「毎日」是习惯；瞬间动词（知る／住む／結婚する）的ています几乎总是③结果状态，不是“正在知道”。注意「住んでいます」用「で」不是「て」：む 结尾的动词て形发生音便（ぬ／ぶ／む→んで），详见基础·动词的活用。",
+      uses:[
+        { label:"进行 · 此刻在做", labelEn:"In progress · happening now" },
+        { label:"习惯 · 反复做", labelEn:"Habit · done repeatedly" },
+        { label:"结果状态 · 完成后持续", labelEn:"Resulting state · persists after the act" }
+      ],
       examples:[
-        { jp:"姉[あね]は東京[とうきょう]に住[す]んでいます。", zh:"姐姐住在东京。（状态持续）" },
-        { jp:"毎日[まいにち]日記[にっき]を書[か]いています。", zh:"我每天写日记。（习惯）" }
-      ]
+        { jp:"今[いま]、ご飯[はん]を食[た]べています。", zh:"现在正在吃饭。", en:"I'm eating now.", use:1 },
+        { jp:"雨[あめ]が降[ふ]っています。", zh:"正在下雨。", en:"It's raining.", use:1 },
+        { jp:"毎日[まいにち]、日本語[にほんご]を勉強[べんきょう]しています。", zh:"我每天学日语。", en:"I study Japanese every day.", use:2 },
+        { jp:"姉[あね]は東京[とうきょう]に住[す]んでいます。", zh:"姐姐住在东京。", en:"My sister lives in Tokyo.", use:3 },
+        { jp:"田中[たなか]さんを知[し]っています。", zh:"我认识田中（不是“正在知道”）。", en:"I know Tanaka — a state, not 'in the process of knowing'.", use:3 }
+      ],
+      contrast:{
+        q:"同一个动词，「今」和「毎日」意思就变了——关键问：这个动作此刻这一秒还能继续做吗？",
+        qEn:"Same verb, but 今 vs 毎日 flips the meaning — ask: can this action literally continue this very second?",
+        rows:[
+          { jp:"今[いま]、走[はし]っています。", zh:"现在正在跑。", en:"I'm running now.", tag:"进行", tagEn:"in progress" },
+          { jp:"毎朝[まいあさ]、走[はし]っています。", zh:"每天早上跑步（说话时未必在跑）。", en:"I run every morning (not necessarily now).", tag:"习惯", tagEn:"habit" },
+          { jp:"田中[たなか]さんを知[し]っています。", zh:"认识田中（结果状态，不能说“正在知道”）。", en:"I know Tanaka (a state — never 'in progress').", tag:"结果状态", tagEn:"state" }
+        ]
+      }
     },
     {
       point:"V-てから",
