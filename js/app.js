@@ -679,6 +679,41 @@ function renderResult(L){
 }
 
 /* ----------------------------- NOON ----------------------------- */
+/* Turn a free-form grammar explanation into scannable blocks — 用法/Usage list,
+   构成/Structure, notes, and clean per-sentence lines — driven by latent markers
+   (①②③ / 结构＝ / ⚠️·注意). Universal across all points; when no markers are present
+   it just segments into tidy lines (still far better than one wall of text). */
+function _splitSentences(t, isZh){
+  if(isZh) return String(t).split(/。/).map(s=>s.trim()).filter(Boolean);
+  return String(t).replace(/([.!?])\s+/g,"$1").split("").map(s=>s.trim()).filter(Boolean);
+}
+function formatGrammarExp(text, isZh){
+  text=String(text||"").trim(); if(!text) return "";
+  const ink = s => isZh ? linkTerms(s) : esc(s);
+  const STRUCT_RE = isZh ? /^(结构|構成|构成|接续|接續|形式)\s*[＝=:：]?\s*(.+)$/ : /^(structure|form|pattern)\s*[:：]\s*(.+)$/i;
+  const NOTE_RE   = isZh ? /^(⚠️?|注意|💡|❗|区分|对比)\s*[:：、]?\s*(.+)$/ : /^(note|caution|tip|careful|vs\.?)\b[:：]?\s*(.+)$/i;
+  const usages=[], notes=[], lines=[]; let structure="", usageHead="";
+  _splitSentences(text, isZh).forEach(seg=>{
+    let m;
+    if((m=seg.match(STRUCT_RE))){ structure=m[2].trim(); return; }
+    if((m=seg.match(NOTE_RE))){ notes.push(m[2].trim()); return; }
+    if(/[①②③④⑤⑥]/.test(seg)){                                   // enumerated usages, e.g. "两个核心用法：① … ；② …"
+      const head=seg.match(/^([^①②③④⑤⑥]+?)[：:]\s*(?=[①-⑥])/);
+      if(head) usageHead=head[1].trim();
+      seg.replace(/^[^①②③④⑤⑥]*[：:]\s*(?=[①-⑥])/,"").split(/[①②③④⑤⑥]/)
+         .map(s=>s.replace(/^[、，；;\s]+|[、，；;\s]+$/g,"")).filter(Boolean)
+         .forEach(p=>usages.push(p));
+      return;
+    }
+    lines.push(seg);
+  });
+  let html="";
+  if(usages.length) html+=`<div class="ge-usages"><span class="ge-h">${usageHead?ink(usageHead):T("用法","Usage")}</span><ol>${usages.map(u=>`<li>${ink(u)}</li>`).join("")}</ol></div>`;
+  if(structure) html+=`<div class="ge-struct"><span class="ge-lab">${T("构成","Structure")}</span><code>${ink(structure)}</code></div>`;
+  if(lines.length) html+=`<div class="ge-lines">${lines.map(l=>`<p>${ink(l)}</p>`).join("")}</div>`;
+  if(notes.length) html+=notes.map(n=>`<div class="ge-note">💡 ${ink(n)}</div>`).join("");
+  return html || `<p>${ink(text)}</p>`;
+}
 function renderNoon(L){
   const body=$("#panel-body");
   const E=ENL(L.day);
@@ -703,7 +738,8 @@ function renderNoon(L){
     ${L.grammar.map(g=>{ const ge=(E.gramEn&&E.gramEn[g.point])||{}; return `<div class="gram">
       <h3>${esc(g.point)}</h3>
       <div class="label">${esc(g.label||"")}</div>
-      <div class="exp">${LANG!=="zh"&&ge.exp ? esc(ge.exp) : linkTerms(g.zh)}</div>
+      <div class="exp">${LANG!=="zh"&&ge.exp ? formatGrammarExp(ge.exp,false) : formatGrammarExp(g.zh,true)}</div>
+      ${g.examples.length?`<div class="ge-exlab">${T("例 · 例句","Examples")}</div>`:""}
       ${g.examples.map((ex,k)=>`<div class="ex" data-jp="${esc(ex.jp)}">${toRuby(ex.jp)}<span class="zh">${esc(zhen(ex.zh,(ge.ex||[])[k]))}</span></div>`).join("")}
     </div>`; }).join("")}
   </section>`;

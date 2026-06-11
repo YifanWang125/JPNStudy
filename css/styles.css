@@ -231,6 +231,17 @@ section.block > h2{
 .gram h3{font-family:var(--serif-jp);font-size:1.25rem;color:var(--jp)}
 .gram .label{font-size:.8rem;color:var(--noon);letter-spacing:.3px;margin:2px 0 8px;font-weight:600}
 .gram .exp{font-size:.95rem;color:var(--ink);margin-bottom:10px}
+/* structured grammar explanation blocks (formatGrammarExp) */
+.ge-usages{margin:0 0 9px}
+.ge-h{display:inline-block;font-size:.74rem;font-weight:700;color:var(--accent-2);background:rgba(242,166,90,.16);padding:1px 9px;border-radius:6px}
+.ge-usages ol{margin:6px 0 0;padding-left:22px}
+.ge-usages li{margin:3px 0;line-height:1.7}
+.ge-struct{display:flex;align-items:baseline;gap:8px;margin:9px 0;flex-wrap:wrap}
+.ge-lab{font-size:.74rem;font-weight:700;color:var(--accent)}
+.ge-struct code{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-family:var(--serif-jp);font-size:.95rem;color:var(--jp)}
+.ge-lines p{margin:4px 0;line-height:1.75}
+.ge-note{margin:8px 0 0;padding:8px 12px;background:rgba(242,166,90,.10);border-left:3px solid var(--accent-2);border-radius:0 8px 8px 0;font-size:.9rem;line-height:1.7;color:var(--ink-dim)}
+.ge-exlab{font-size:.72rem;font-weight:700;color:var(--ink-faint);margin:12px 0 4px;letter-spacing:.06em;text-transform:uppercase}
 .gram .ex{
   font-family:var(--serif-jp);font-size:1.12rem;background:var(--panel-2);
   border-radius:8px;padding:8px 12px;margin-top:8px;cursor:pointer;
