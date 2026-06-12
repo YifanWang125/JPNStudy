@@ -336,6 +336,31 @@ textarea.typing:focus{outline:none;border-color:var(--night)}
 .diff .miss{color:var(--bad);text-decoration:underline wavy var(--bad);background:rgba(224,98,106,.12);border-radius:3px}
 .diff .extra{color:var(--accent-2);opacity:.7;text-decoration:line-through}
 .typing-tip{font-size:.83rem;color:var(--ink-faint);margin-bottom:10px}
+/* 🖼️ 看图复述 / Recall from cues */
+.recall-intent{display:flex;gap:8px;margin-bottom:12px}
+.recall-intent button{flex:0 0 auto;padding:7px 14px;border:1px solid var(--line);border-radius:20px;background:transparent;color:var(--ink-dim);font-size:.86rem;cursor:pointer}
+.recall-intent button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.recall-list{display:flex;flex-direction:column;gap:12px}
+.rc{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--panel)}
+.rc-cue{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.rc-emoji{font-size:1.9rem;line-height:1;min-width:40px;text-align:center;filter:grayscale(.4);opacity:.65}
+.rc-emoji.has{filter:none;opacity:1}
+.rc-hints{display:flex;gap:6px;flex-wrap:wrap}
+.rc-h{padding:4px 11px;border:1px solid var(--line);border-radius:16px;background:var(--panel-2);color:var(--ink-dim);font-size:.8rem;cursor:pointer}
+.rc-h:hover{border-color:var(--accent-2);color:var(--accent-2)}
+.rc-h.on{background:rgba(242,166,90,.16);color:var(--accent-2);border-color:var(--accent-2)}
+.rc-h.rv{margin-left:auto}
+.rc-h.rec{background:var(--bad,#c0392b);color:#fff;border-color:transparent;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.55}}
+.rc-kw{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.rc-chip{font-family:var(--serif-jp);background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:2px 10px;font-size:.95rem}
+.rc-dim{color:var(--ink-faint);font-size:.85rem}
+.rc-zh{margin-top:9px;color:var(--zh);font-size:.92rem}
+.rc-said{margin-top:9px;font-size:.88rem;color:var(--ink-dim);background:var(--panel-2);border-radius:8px;padding:7px 11px}
+.rc-said b{font-family:var(--serif-jp);color:var(--ink)}
+.rc-ans{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:10px}
+.rc-jp{font-family:var(--serif-jp);font-size:1.15rem;line-height:1.9}
+.rc-play{background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer;padding:3px 9px;font-size:.9rem}
 
 .reflect-list{list-style:none;counter-reset:r}
 .reflect-list li{

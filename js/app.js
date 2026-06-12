@@ -870,6 +870,7 @@ function renderNight(L){
     <div class="write-modes">
       <button data-m="type" class="${STATE.writeMode==='type'?'active':''}">${T("⌨️ 输入核对 Type & Check","⌨️ Type & Check")}</button>
       <button data-m="hide" class="${STATE.writeMode==='hide'?'active':''}">${T("🙈 遮挡默写 Hide & Recall","🙈 Hide & Recall")}</button>
+      <button data-m="recall" class="${STATE.writeMode==='recall'?'active':''}">${T("🖼️ 看图复述 Recall","🖼️ Recall from cues")}</button>
     </div>
     <div id="write-area"></div>
     <section class="block" style="margin-top:30px"><h2>${T("🪞 反思 · 反思问题","🪞 Reflection")}</h2>
@@ -878,6 +879,7 @@ function renderNight(L){
   `;
   body.querySelectorAll(".write-modes button").forEach(b=>b.onclick=()=>{ STATE.writeMode=b.dataset.m; renderNight(L); });
   if(STATE.writeMode==="type") renderTypeMode(L);
+  else if(STATE.writeMode==="recall") renderRecallMode(L);
   else renderHideMode(L);
   addCompleteButton(L,"night",body);
 }
@@ -949,6 +951,86 @@ function renderHideMode(L){
 /* wrap visible glyphs in .mask blocks (keep ruby structure but hide) */
 function maskSentence(jp){
   return "<span class='mask'>"+toRuby(jp)+"</span>";
+}
+
+/* ---------------- 🖼️ 看图复述 / Recall from cues ----------------
+   Bob's teacher's method: hide the text, leave only a cue, and PRODUCE the line
+   (retell in your own words, or recite). A progressive hint ladder reveals as
+   little as you need: 🖼️ emoji scene → 🔑 keywords → 🀄 中文 → 👁 full text + 🔊.
+   Emoji come from one cheap, cached Claude call per day (offline → keywords/中文). */
+function recallKeywords(jp){
+  const ks=[]; const re=/([一-鿿々]+)\[[^\]]*\]/g; let m;
+  while((m=re.exec(jp))) ks.push(m[1]);
+  return ks;
+}
+function loadDayEmoji(L, cb){
+  let cache={}; try{ cache=JSON.parse(localStorage.getItem("jpn-emoji"))||{}; }catch(e){}
+  if(Array.isArray(cache[L.day])){ cb(cache[L.day]); return; }
+  if(!(window.Assistant && Assistant.hasKey && Assistant.hasKey() && Assistant.complete)){ cb(null); return; }
+  const lines=L.paragraph.map((s,i)=>(i+1)+". "+toPlain(s.jp));
+  const sys="あなたは文の情景を絵文字で表す。各文に、思い出す手がかりになる絵文字を2〜4個。説明は不要。";
+  const usr="次の各文に対応する絵文字を、JSON配列で（文の順番どおり、各要素は絵文字だけの文字列）出力。前後に説明は書かない：\n"+lines.join("\n");
+  Promise.race([
+    Assistant.complete({system:sys, messages:[{role:"user",content:usr}], max_tokens:220}),
+    new Promise((_,rej)=>setTimeout(()=>rej(new Error("t")),25000))
+  ]).then(txt=>{ try{ const mm=String(txt).match(/\[[\s\S]*\]/); const arr=mm?JSON.parse(mm[0]):null;
+      if(Array.isArray(arr)&&arr.length){ cache[L.day]=arr; try{localStorage.setItem("jpn-emoji",JSON.stringify(cache));}catch(e){} cb(arr); return; } }catch(e){} cb(null);
+  }).catch(()=>cb(null));
+}
+function renderRecallMode(L){
+  const area=$("#write-area"); const E=ENL(L.day);
+  const intent=STATE.recallIntent||"retell";
+  area.innerHTML=`
+    <div class="recall-intent">
+      <button data-ri="retell" class="${intent==='retell'?'active':''}">${T("🗣️ 复述 · 用自己的话","🗣️ Retell · own words")}</button>
+      <button data-ri="recite" class="${intent==='recite'?'active':''}">${T("📖 背诵 · 照原文","📖 Recite · verbatim")}</button>
+    </div>
+    <p class="typing-tip">${intent==='retell'
+      ? T("课文已盖住，只剩提示。看着提示，用日语把这一句的<b>意思</b>说或写出来——不必和原文一字不差。卡住了再逐级看提示。","The passage is hidden — only cues remain. Using the cues, say or write each line's <b>meaning</b> in Japanese — it needn't match word-for-word. Reveal more cues only when stuck.")
+      : T("课文已盖住。看图凭记忆把<b>原文</b>一句句说/背出来，再揭晓对照。提示逐级解锁：先看图，再关键词、中文，最后原文＋朗读。","The passage is hidden. From the cue, reproduce each line <b>verbatim</b> from memory (speak or recite), then reveal to compare. Cues unlock step by step.")}</p>
+    <div class="recall-list">${L.paragraph.map((s,i)=>{
+      const kws=recallKeywords(s.jp);
+      return `<div class="rc" data-i="${i}">
+        <div class="rc-cue"><span class="rc-emoji" data-i="${i}" title="${T('视觉提示','visual cue')}">🖼️</span>
+          <div class="rc-hints">
+            <button class="rc-h" data-h="kw">🔑 ${T("关键词","Keywords")}</button>
+            <button class="rc-h" data-h="zh">🀄 ${T("中文","Meaning")}</button>
+            <button class="rc-h" data-h="say">🎤 ${T("说说看","Speak")}</button>
+            <button class="rc-h rv" data-h="rv">👁 ${T("答案","Reveal")}</button>
+          </div>
+        </div>
+        <div class="rc-kw" hidden>${kws.length?kws.map(k=>`<span class="rc-chip">${esc(k)}</span>`).join(""):`<span class="rc-dim">${T("（这句没有汉字关键词）","(no kanji keywords here)")}</span>`}</div>
+        <div class="rc-zh" hidden>${esc(zhen(s.zh,(E.paraEn||[])[i]))}</div>
+        <div class="rc-said" hidden></div>
+        <div class="rc-ans" hidden></div>
+      </div>`;
+    }).join("")}</div>`;
+  area.querySelectorAll(".recall-intent button").forEach(b=>b.onclick=()=>{ STATE.recallIntent=b.dataset.ri; renderRecallMode(L); });
+  area.querySelectorAll(".rc").forEach(card=>{
+    const i=+card.dataset.i, s=L.paragraph[i];
+    card.querySelectorAll(".rc-h").forEach(b=>b.onclick=()=>{
+      const h=b.dataset.h;
+      if(h==="kw"||h==="zh"){ const el=card.querySelector(h==="kw"?".rc-kw":".rc-zh"); el.hidden=!el.hidden; b.classList.toggle("on",!el.hidden); }
+      else if(h==="say"){ recallSpeak(card,b); }
+      else { const el=card.querySelector(".rc-ans");
+        if(el.hidden){ el.hidden=false; b.classList.add("on");
+          el.innerHTML=`<div class="rc-jp ${STATE.furi?'':'hide-furi'}">${toRuby(s.jp)}</div><button class="rc-play">🔊</button>`;
+          el.querySelector(".rc-play").onclick=()=>speakSequence([{text:s.jp,node:null,audioKey:audioKeyFor(L.day,i)}]);
+        } else { el.hidden=true; b.classList.remove("on"); }
+      }
+    });
+  });
+  loadDayEmoji(L,(arr)=>{ if(!arr) return; area.querySelectorAll(".rc-emoji[data-i]").forEach(el=>{ const e=arr[+el.dataset.i]; if(e){ el.textContent=e; el.classList.add("has"); } }); });
+}
+function recallSpeak(card,b){
+  const said=card.querySelector(".rc-said"); said.hidden=false;
+  if(!SpeechRec){ said.textContent=T("此浏览器不支持语音输入，建议用 Chrome。","Voice input isn't supported here — try Chrome."); return; }
+  const r=new SpeechRec(); r.lang="ja-JP"; r.interimResults=false; r.maxAlternatives=1;
+  b.classList.add("rec"); said.textContent=T("🔴 听着呢…说一句日语","🔴 Listening… say it in Japanese");
+  r.onresult=e=>{ const t=e.results[0][0].transcript; said.innerHTML=`${T("你说的","You said")}：<b>${esc(t)}</b> · ${T("点「👁 答案」对照","tap 👁 Reveal to compare")}`; };
+  r.onerror=()=>{ b.classList.remove("rec"); said.textContent=T("（没听清，再试一次）","(didn't catch it — try again)"); };
+  r.onend=()=>b.classList.remove("rec");
+  try{ r.start(); }catch(e){ b.classList.remove("rec"); }
 }
 
 /* ----------------------------- PLANNED ----------------------------- */
