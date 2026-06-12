@@ -1059,8 +1059,8 @@ function renderPictureTalk(L){
   area.innerHTML=`
     <p class="typing-tip">${T("课文盖住了，只剩一幅画。看着画，用<b>自己的话</b>把它说/写出来——说给 "+pet+" 听。准备好了，再请「先生」点评。","The text is hidden — only a picture. In <b>your own words</b>, say or write it for "+pet+". When you're ready, ask the 先生 for feedback.")}</p>
     <div class="pt-scene">
-      <div class="pt-art">${(CW.scene||["🎴"]).map(e=>`<span>${e}</span>`).join("")}${CW._generic?`<div class="pt-artcap">${esc(zhen(L.theme,(E&&E.themeEn)||L.theme))}</div>`:""}<div class="pt-arttag">${T("插画占位 · 真插画稍后生成","placeholder — real art coming")}</div></div>
-      <div class="pt-task">🎴 ${esc(zhen(CW.task.zh, CW.task.en))}</div>
+      <div class="pt-art">${(window.SCENE_ART && (SCENE_ART.byDay[L.day]||SCENE_ART.fallback)) || (CW.scene||["🎴"]).map(e=>`<span>${e}</span>`).join("")}<div class="pt-artcap">${esc(zhen(L.theme,(E&&E.themeEn)||L.theme))}</div></div>
+      <div class="pt-task">🎴 ${zhen(CW.task.zh, CW.task.en)}</div>
     </div>
     <textarea id="pt-input" class="pt-input" rows="3" placeholder="${T('用日语说说看…（也可以点🎤说出来）','Say it in Japanese… (or tap 🎤 to speak)')}"></textarea>
     <div class="pt-actions">
