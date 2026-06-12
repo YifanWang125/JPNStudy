@@ -1046,13 +1046,20 @@ function fmtFeedback(txt){ return esc(String(txt||"")).replace(/([一-鿿々ぁ-
 function petWorldName(){ return (window.COMPANION_WORLD&&COMPANION_WORLD.world&&COMPANION_WORLD.world.pet)||"みけ"; }
 function aiReady(){ return !!(window.Assistant&&Assistant.hasKey&&Assistant.hasKey()&&Assistant.complete); }
 function renderPictureTalk(L){
-  const area=$("#write-area"); const pet=petWorldName();
-  const CW=(window.COMPANION_WORLD&&COMPANION_WORLD.byDay&&COMPANION_WORLD.byDay[L.day])||null;
-  if(!CW){ area.innerHTML=`<p class="typing-tip">${T("这一天的「看图说话」还在准备中，先用其它模式吧。","Picture-talk for this day is still being drawn — try another mode for now.")}</p>`; return; }
+  const area=$("#write-area"); const pet=petWorldName(); const E=ENL(L.day);
+  let CW=(window.COMPANION_WORLD&&COMPANION_WORLD.byDay&&COMPANION_WORLD.byDay[L.day])||null;
+  if(!CW){
+    // universal fallback — works on EVERY day from its own passage; the hand-authored
+    // companion-world page is just an optional upgrade, never a requirement.
+    CW={ _generic:true,
+      task:{ zh:`看着这个场景，用今天学的语法和词汇，把「${esc(L.theme)}」这段内容用<b>你自己的话</b>说出来——不用照搬原文。`,
+             en:`From this scene, use today's grammar & vocab to tell "${esc(zhen(L.theme,(E&&E.themeEn)||L.theme))}" in <b>your own words</b> — no need to copy the passage.` },
+      cheers:["わー、いいね！もっと聞[き]きたいな。","すごい！その調子[ちょうし]！","えへへ、君[きみ]の声[こえ]、好[す]き。","いっしょに頑張[がんば]ろう！"] };
+  }
   area.innerHTML=`
     <p class="typing-tip">${T("课文盖住了，只剩一幅画。看着画，用<b>自己的话</b>把它说/写出来——说给 "+pet+" 听。准备好了，再请「先生」点评。","The text is hidden — only a picture. In <b>your own words</b>, say or write it for "+pet+". When you're ready, ask the 先生 for feedback.")}</p>
     <div class="pt-scene">
-      <div class="pt-art">${(CW.scene||["🎴"]).map(e=>`<span>${e}</span>`).join("")}<div class="pt-arttag">${T("插画占位 · 真插画稍后生成","placeholder — real art coming")}</div></div>
+      <div class="pt-art">${(CW.scene||["🎴"]).map(e=>`<span>${e}</span>`).join("")}${CW._generic?`<div class="pt-artcap">${esc(zhen(L.theme,(E&&E.themeEn)||L.theme))}</div>`:""}<div class="pt-arttag">${T("插画占位 · 真插画稍后生成","placeholder — real art coming")}</div></div>
       <div class="pt-task">🎴 ${esc(zhen(CW.task.zh, CW.task.en))}</div>
     </div>
     <textarea id="pt-input" class="pt-input" rows="3" placeholder="${T('用日语说说看…（也可以点🎤说出来）','Say it in Japanese… (or tap 🎤 to speak)')}"></textarea>
