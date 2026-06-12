@@ -871,6 +871,7 @@ function renderNight(L){
       <button data-m="type" class="${STATE.writeMode==='type'?'active':''}">${T("⌨️ 输入核对 Type & Check","⌨️ Type & Check")}</button>
       <button data-m="hide" class="${STATE.writeMode==='hide'?'active':''}">${T("🙈 遮挡默写 Hide & Recall","🙈 Hide & Recall")}</button>
       <button data-m="recall" class="${STATE.writeMode==='recall'?'active':''}">${T("🖼️ 看图复述 Recall","🖼️ Recall from cues")}</button>
+      <button data-m="picture" class="${STATE.writeMode==='picture'?'active':''}">${T("🎴 看图说话 给みけ讲","🎴 Picture-talk · tell みけ")}</button>
     </div>
     <div id="write-area"></div>
     <section class="block" style="margin-top:30px"><h2>${T("🪞 反思 · 反思问题","🪞 Reflection")}</h2>
@@ -880,6 +881,7 @@ function renderNight(L){
   body.querySelectorAll(".write-modes button").forEach(b=>b.onclick=()=>{ STATE.writeMode=b.dataset.m; renderNight(L); });
   if(STATE.writeMode==="type") renderTypeMode(L);
   else if(STATE.writeMode==="recall") renderRecallMode(L);
+  else if(STATE.writeMode==="picture") renderPictureTalk(L);
   else renderHideMode(L);
   addCompleteButton(L,"night",body);
 }
@@ -1031,6 +1033,83 @@ function recallSpeak(card,b){
   r.onerror=()=>{ b.classList.remove("rec"); said.textContent=T("（没听清，再试一次）","(didn't catch it — try again)"); };
   r.onend=()=>b.classList.remove("rec");
   try{ r.start(); }catch(e){ b.classList.remove("rec"); }
+}
+
+/* ---------------- 🎴 看图说话 / Picture-talk (Stage-1 slice) ----------------
+   Bob's vision: a VISUAL prompt → you express your own idea → feedback. Two
+   personas, kept strictly apart: みけ (the companion / peer — reacts in-character,
+   NEVER corrects) and the 先生 (professor / the AI grader — the only corrector,
+   on demand). The validated daily passage stays the primary model (不喧宾夺主);
+   言の葉の国 is only an additive frame. Real art replaces the emoji placeholder later. */
+function withTimeout(p,ms){ return Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),ms))]); }
+function fmtFeedback(txt){ return esc(String(txt||"")).replace(/([一-鿿々ぁ-んァ-ヶ]+)\[([^\]]+)\]/g,(m,k,r)=>`<ruby>${k}<rt>${r}</rt></ruby>`).replace(/\n/g,"<br>"); }
+function petWorldName(){ return (window.COMPANION_WORLD&&COMPANION_WORLD.world&&COMPANION_WORLD.world.pet)||"みけ"; }
+function aiReady(){ return !!(window.Assistant&&Assistant.hasKey&&Assistant.hasKey()&&Assistant.complete); }
+function renderPictureTalk(L){
+  const area=$("#write-area"); const pet=petWorldName();
+  const CW=(window.COMPANION_WORLD&&COMPANION_WORLD.byDay&&COMPANION_WORLD.byDay[L.day])||null;
+  if(!CW){ area.innerHTML=`<p class="typing-tip">${T("这一天的「看图说话」还在准备中，先用其它模式吧。","Picture-talk for this day is still being drawn — try another mode for now.")}</p>`; return; }
+  area.innerHTML=`
+    <p class="typing-tip">${T("课文盖住了，只剩一幅画。看着画，用<b>自己的话</b>把它说/写出来——说给 "+pet+" 听。准备好了，再请「先生」点评。","The text is hidden — only a picture. In <b>your own words</b>, say or write it for "+pet+". When you're ready, ask the 先生 for feedback.")}</p>
+    <div class="pt-scene">
+      <div class="pt-art">${(CW.scene||["🎴"]).map(e=>`<span>${e}</span>`).join("")}<div class="pt-arttag">${T("插画占位 · 真插画稍后生成","placeholder — real art coming")}</div></div>
+      <div class="pt-task">🎴 ${esc(zhen(CW.task.zh, CW.task.en))}</div>
+    </div>
+    <textarea id="pt-input" class="pt-input" rows="3" placeholder="${T('用日语说说看…（也可以点🎤说出来）','Say it in Japanese… (or tap 🎤 to speak)')}"></textarea>
+    <div class="pt-actions">
+      <button id="pt-mic" class="pt-btn">🎤 ${T("说出来","Speak")}</button>
+      <button id="pt-mike" class="pt-btn primary">💬 ${T("说给"+pet+"听","Tell "+pet)}</button>
+      <button id="pt-prof" class="pt-btn">📖 ${T("让先生点评","Ask the 先生")}</button>
+      <button id="pt-model" class="pt-btn ghost">👁 ${T("看范例 + 🔊","Model + 🔊")}</button>
+    </div>
+    <div id="pt-mike-say" class="pt-mike" hidden></div>
+    <div id="pt-prof-say" class="pt-prof" hidden></div>
+    <div id="pt-model-box" class="pt-model" hidden></div>`;
+  $("#pt-mic").onclick=()=>ptSpeak();
+  $("#pt-mike").onclick=()=>ptCompanion(CW);
+  $("#pt-prof").onclick=()=>ptProfessor(L);
+  $("#pt-model").onclick=()=>{
+    const b=$("#pt-model-box");
+    if(b.hidden){ b.hidden=false;
+      b.innerHTML=`<div class="pt-model-h">${T("范例 · 今天的课文（这才是要掌握的）","Model · today's passage (this is what to master)")}</div>`
+        + L.paragraph.map((s,i)=>`<div class="ex" data-jp="${esc(s.jp)}" data-k="${audioKeyFor(L.day,i)}">${toRuby(s.jp)}<span class="zh">${esc(zhen(s.zh,(ENL(L.day).paraEn||[])[i]))}</span></div>`).join("")
+        + (CW.mikeIntro?`<div class="pt-model-h" style="margin-top:10px">${esc(pet)} ${T("的版本（仅作世界观参考）","'s version (world-flavor only)")}</div><div class="ex" data-jp="${esc(CW.mikeIntro)}" data-k="x_${esc(speechNorm(toPlain(CW.mikeIntro)))}">${toRuby(CW.mikeIntro)}</div>`:"");
+      b.querySelectorAll(".ex").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:el,audioKey:el.dataset.k}]));
+    } else b.hidden=true;
+  };
+}
+function ptSpeak(){
+  const ta=$("#pt-input"), b=$("#pt-mic");
+  if(!SpeechRec){ alert(T("此浏览器不支持语音输入，建议用 Chrome / Edge。","Voice input isn't supported here — try Chrome / Edge.")); return; }
+  const r=new SpeechRec(); r.lang="ja-JP"; r.interimResults=false; r.maxAlternatives=1;
+  b.classList.add("rec"); b.textContent="🔴 "+T("听着呢…","Listening…");
+  const reset=()=>{ b.classList.remove("rec"); b.textContent="🎤 "+T("说出来","Speak"); };
+  r.onresult=e=>{ const t=e.results[0][0].transcript; ta.value=(ta.value?ta.value+" ":"")+t; };
+  r.onerror=reset; r.onend=reset;
+  try{ r.start(); }catch(e){ reset(); }
+}
+async function ptCompanion(CW){
+  const pet=petWorldName(), attempt=($("#pt-input").value||"").trim(), box=$("#pt-mike-say"); box.hidden=false;
+  if(!attempt){ box.innerHTML=`<b>${esc(pet)}</b>：${toRuby(T("先说点什么给我听嘛～","Say something for me first~"))}`; return; }
+  const canned=(CW.cheers&&CW.cheers.length)?CW.cheers[Math.floor(Math.random()*CW.cheers.length)]:"わー、いいね！";
+  if(!aiReady()){ box.innerHTML=`<b>${esc(pet)}</b>：${toRuby(canned)}`; return; }
+  box.innerHTML=`<b>${esc(pet)}</b>：<span class="pt-typing">…</span>`;
+  const sys=`あなたは「${pet}」。言[こと]の葉[は]の国[くに]の小[ちい]さな言霊[ことだま]で、ユーザーの学習[がくしゅう]仲間[なかま]。相手[あいて]が日本語[にほんご]で話[はな]したことに、短[みじか]く・温[あたた]かく・キャラとして反応[はんのう]する。やさしい日本語（N5〜N4、漢字には「漢字[かな]」のふりがな）。⚠️ 絶対[ぜったい]に文法[ぶんぽう]を直[なお]したり教[おし]えたりしない。先生[せんせい]じゃなく、友[とも]だち。1〜2文[ぶん]だけ。`;
+  try{ const txt=await withTimeout(Assistant.complete({system:sys, messages:[{role:"user",content:`相手[あいて]が言[い]った：「${attempt}」`}], model:"claude-haiku-4-5", max_tokens:120}), 20000);
+    box.innerHTML=`<b>${esc(pet)}</b>：${fmtFeedback(String(txt).trim())}`;
+  }catch(e){ box.innerHTML=`<b>${esc(pet)}</b>：${toRuby(canned)}`; }
+}
+async function ptProfessor(L){
+  const attempt=($("#pt-input").value||"").trim(), box=$("#pt-prof-say"); box.hidden=false;
+  const head=`<div class="pt-prof-h">📖 ${T("先生","Professor")}</div>`;
+  if(!attempt){ box.innerHTML=head+T("先写或说一句，再来找我点评。","Write or say a line first, then ask me."); return; }
+  if(!aiReady()){ box.innerHTML=head+T("现在没接 AI。先对照下面「范例」自查：达意了吗？语法对吗？有没有更自然的说法？（在 ⚙ 填 Claude Key 即可逐句点评）","No AI connected. Self-check against the Model below: did it get across? grammar ok? a more natural way? (add a Claude key in ⚙ for line-by-line feedback)"); return; }
+  box.innerHTML=head+`<span class="pt-typing">…</span>`;
+  const gram=(L.grammar||[]).map(g=>g.point).join("、");
+  const sys=`あなたは中国語母語の日本語学習者を教える優[やさ]しいベテラン日本語教師（「先生[せんせい]」）。学生[がくせい]はDay${L.day}「${L.theme}」で学[まな]んだ内容[ないよう]（文法[ぶんぽう]：${gram}）を、絵[え]を見[み]て自分[じぶん]の言葉[ことば]で産出[さんしゅつ]する練習[れんしゅう]をしている。学生の発話[はつわ]を見て、**中国語で**短くフィードバック：①伝[つた]わったか（达意，先肯定做得好的地方） ②間違[まちが]いがあれば指摘[してき]して直[なお]す ③もっと自然[しぜん]な言[い]い方[かた]を一つ。日本語の例[れい]には「漢字[かな]」のふりがな。学生は間違いを恐[おそ]れているので、励[はげ]ますトーンで、5行以内。`;
+  try{ const txt=await withTimeout(Assistant.complete({system:sys, messages:[{role:"user",content:`学生[がくせい]の発話[はつわ]：「${attempt}」`}], max_tokens:500}), 30000);
+    box.innerHTML=head+fmtFeedback(String(txt));
+  }catch(e){ box.innerHTML=head+T("（点评失败，请重试，或检查 ⚙ 里的 Key / 额度）","(feedback failed — retry, or check the key / credit in ⚙)"); }
 }
 
 /* ----------------------------- PLANNED ----------------------------- */
