@@ -853,7 +853,7 @@ function renderNoon(L){
       ${v.parts?`<div class="vc-parts"><span class="vc-tag">${T("🧩 拆解","🧩 Breakdown")}</span>${v.parts.map(p=>`<span class="vc-part" ${p.r?`data-w="${esc(p.r)}"`:""}><b>${esc(p.p)}</b>${p.r?`<i>${esc(p.r)}</i>`:""}＝${esc(LANG!=="zh"?(POS_EN[p.m]||p.m):p.m)}</span>`).join('<span class="vc-plus">＋</span>')}</div>`:""}
       ${v.ex?`<div class="vc-ex" data-jp="${esc(v.ex.jp)}"><span class="vc-tag">${T("📝 例","📝 e.g.")}</span>${toRuby(v.ex.jp)}<span class="zh">${esc(zhen(v.ex.zh,(E.vocabExEn&&E.vocabExEn[v.w])))}</span></div>`:""}
       ${(window.Conjugate&&Conjugate.isVerb(v.w,v.r,v.pos))?`<button class="vc-conj-btn" data-w="${escAttr(v.w)}" data-r="${escAttr(v.r)}" data-pos="${escAttr(v.pos||"")}"${v.g?` data-g="${escAttr(v.g)}"`:""}>🔄 ${T("活用 · 变位（点开看全部变化）","Conjugation (tap for all forms)")}</button><div class="vc-conj" hidden></div>`:""}
-      ${((window.LEXICON&&LEXICON[v.w])||aiReady())?`<button class="vc-lex-btn" data-w="${escAttr(v.w)}" data-r="${escAttr(v.r)}">🔎 ${T("词义扩展 · 近义 / 用法","Word notes · synonyms & usage")}</button><div class="vc-lex" hidden></div>`:""}
+      ${((window.LEXICON&&LEXICON[v.w])||(window.LEXICON_GEN&&LEXICON_GEN[v.w])||aiReady())?`<button class="vc-lex-btn" data-w="${escAttr(v.w)}" data-r="${escAttr(v.r)}">🔎 ${T("词义扩展 · 近义 / 用法","Word notes · synonyms & usage")}</button><div class="vc-lex" hidden></div>`:""}
     </div>`).join("")}
     </div></section>`;
 
@@ -908,8 +908,10 @@ function renderNoon(L){
   body.querySelectorAll(".vc-lex-btn").forEach(b=>b.onclick=()=>{
     const box=b.nextElementSibling; if(!box) return;
     if(box.hidden){
-      if(!box.dataset.built){ const lx=window.LEXICON&&LEXICON[b.dataset.w];
-        if(lx){ box.innerHTML=renderLexHTML(lx); } else { aiLex(b.dataset.w, b.dataset.r, box); }
+      if(!box.dataset.built){ const w=b.dataset.w; const lx=window.LEXICON&&LEXICON[w]; const gen=window.LEXICON_GEN&&LEXICON_GEN[w];
+        if(lx){ box.innerHTML=renderLexHTML(lx); }
+        else if(gen){ box.innerHTML=`<div class="lx-ai">✨ ${T("AI 草拟 · 未审校","AI draft · unreviewed")}</div>`+renderLexHTML(gen); }
+        else { aiLex(w, b.dataset.r, box); }
         box.dataset.built="1";
         box.querySelectorAll(".lx-w[data-jp]").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:el,audioKey:"x_"+speechNorm(el.dataset.jp)}]));
       }
