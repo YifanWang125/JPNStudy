@@ -240,6 +240,29 @@ section.block > h2{
 .cj-u b{font-family:var(--serif-jp);font-weight:400;color:var(--jp);font-size:1.02rem}
 .cj-u i{font-style:normal;color:var(--ink-faint);font-size:.8rem}
 .cj-u em{font-style:normal;color:var(--zh);font-size:.8rem;margin-left:auto}
+/* 🔎 词义扩展 / lexicon */
+.vc-lex-btn{margin-top:7px;width:100%;text-align:left;padding:7px 11px;border:1px dashed var(--line);border-radius:8px;background:transparent;color:var(--accent);font-size:.84rem;cursor:pointer}
+.vc-lex-btn:hover{border-color:var(--accent);background:rgba(228,87,46,.07)}
+.vc-lex-btn.on{border-style:solid;background:rgba(228,87,46,.1)}
+.vc-lex{margin-top:8px}
+.lx-sec{margin-bottom:11px}
+.lx-h{font-size:.8rem;font-weight:700;color:var(--accent-2);margin:0 0 6px}
+.lx-h2{font-size:.74rem;font-weight:700;color:var(--ink-faint);margin:8px 0 4px}
+.lx-roots{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:6px}
+.lx-root{font-family:var(--serif-jp);background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:4px 10px}
+.lx-root i{font-style:normal;color:var(--ink-faint);font-size:.78rem;margin-left:5px}
+.lx-plus{color:var(--accent-2);font-weight:700}
+.lx-pat{margin:6px 0;font-size:.88rem}
+.lx-pat b{color:var(--accent);background:rgba(228,87,46,.1);border-radius:5px;padding:1px 7px;font-size:.74rem;margin-right:5px}
+.lx-words{display:flex;flex-direction:column;gap:5px}
+.lx-w{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;font-family:var(--serif-jp);cursor:pointer;padding:3px 6px;border-radius:7px}
+.lx-w:hover{background:var(--panel-2)}
+.lx-w i{font-style:normal;color:var(--ink-dim);font-size:.84rem;font-family:var(--sans-jp)}
+.lx-w em{font-style:normal;color:var(--ink-faint);font-size:.78rem;font-family:var(--sans-jp);margin-left:auto}
+.lx-note{font-size:.86rem;color:var(--ink-dim);line-height:1.75;margin:6px 0}
+.lx-note.key{background:rgba(242,166,90,.1);border-left:3px solid var(--accent-2);border-radius:0 8px 8px 0;padding:8px 11px}
+.lx-more{font-size:.82rem;color:var(--ink-faint);line-height:1.7;margin-top:6px}
+.lx-ai{font-size:.72rem;color:var(--accent-2);font-weight:700;margin-bottom:5px}
 .gloss{border-bottom:1px dashed var(--accent-2);color:var(--accent-2);cursor:pointer}
 .gloss:hover{background:rgba(242,166,90,.15)}
 /* inline term popover (tap a glossary term → definition right there, no navigation) */

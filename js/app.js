@@ -805,6 +805,37 @@ function conjTableHTML(t){
     <div class="cj-use-h">🗣️ ${T("日常常用","Everyday use")}</div>
     <div class="cj-use">${t.usage.map(u=>`<div class="cj-u"><b>${esc(u.kanji)}</b><i>${esc(u.kana)}</i><em>${esc(u.zh)}</em></div>`).join("")}</div>`;
 }
+/* 🔎 词义扩展 — compound-verb breakdown + synonyms/antonyms/related w/ usage nuance.
+   Authored (window.LEXICON) = reliable; else an AI lookup (cached, labelled). */
+function renderLexHTML(lx){
+  let h="";
+  if(lx.compound){ const c=lx.compound;
+    h+=`<div class="lx-sec"><div class="lx-h">🧩 ${T("复合动词拆解","Compound verb")}</div>`;
+    h+=`<div class="lx-roots">${(c.roots||[]).map(r=>`<span class="lx-root">${toRuby(r.w)}<i>${esc(r.m)}</i></span>`).join('<span class="lx-plus">＋</span>')}</div>`;
+    if(c.why) h+=`<div class="lx-note">${toRuby(c.why)}</div>`;
+    if(c.pattern) h+=`<div class="lx-pat"><b>${T("规律","Pattern")}</b> ${toRuby(c.pattern)}</div>`;
+    if(c.family&&c.family.length) h+=`<div class="lx-h2">${T("同类词","Same pattern")}</div><div class="lx-words">${c.family.map(f=>`<span class="lx-w" data-jp="${esc(toPlain(f.w))}">${toRuby(f.w)}<i>${esc(f.m)}</i></span>`).join("")}</div>`;
+    if(c.more) h+=`<div class="lx-more">${toRuby(c.more)}</div>`;
+    h+=`</div>`;
+  }
+  const list=(title,arr)=> (arr&&arr.length)?`<div class="lx-sec"><div class="lx-h">${title}</div><div class="lx-words">${arr.map(s=>`<span class="lx-w" data-jp="${esc(toPlain((s.w||"").replace(/〜.*$/,"")))}">${toRuby(s.w)}${s.m?`<i>${esc(s.m)}</i>`:""}${s.note?`<em>${esc(s.note)}</em>`:""}</span>`).join("")}</div></div>`:"";
+  h+=list("≈ "+T("近义 / 类义","Synonyms"), lx.syn);
+  h+=list("↔ "+T("反义","Antonyms"), lx.ant);
+  h+=list("🔗 "+T("相关","Related"), lx.related);
+  if(lx.note) h+=`<div class="lx-note key">💡 ${toRuby(lx.note)}</div>`;
+  return h;
+}
+async function aiLex(word, reading, box){
+  let cache={}; try{ cache=JSON.parse(localStorage.getItem("jpn-lex-ai"))||{}; }catch(e){}
+  if(cache[word]){ box.innerHTML=`<div class="lx-ai">✨ ${T("AI 生成 · 未审校","AI · unreviewed")}</div>`+cache[word]; return; }
+  if(!aiReady()){ box.innerHTML=`<div class="lx-note">${T("这个词还没有人工编写的扩展。在 ⚙ 填入 Claude Key 后，可让 AI 生成近义词/用法区别。","No authored notes for this word yet. Add a Claude key in ⚙ to let AI generate synonyms/usage.")}</div>`; return; }
+  box.innerHTML=`<span class="pt-typing">…</span>`;
+  const sys="你是日语词汇老师，学生是中文母语的 N2 学习者。简洁讲解这个词：①如果是复合动词，拆出词根、说明为什么这样组合、并给同类用法；②近义词/反义词/相近表达，并说明用法区别（什么场合用哪个）。中文为主，日语词用「漢字[かな]」加振假名。5～8 行。";
+  try{ const txt=await withTimeout(Assistant.complete({system:sys, messages:[{role:"user",content:`词：${word}（${reading}）`}], max_tokens:520}), 30000);
+    const html=fmtFeedback(String(txt)); cache[word]=html; try{ localStorage.setItem("jpn-lex-ai",JSON.stringify(cache)); }catch(e){}
+    box.innerHTML=`<div class="lx-ai">✨ ${T("AI 生成 · 未审校","AI · unreviewed")}</div>`+html;
+  }catch(e){ box.innerHTML=`<div class="lx-note">${T("（生成失败，请重试，或检查 ⚙ 的 Key/额度）","(failed — retry, or check the key/credit in ⚙)")}</div>`; }
+}
 function renderNoon(L){
   const body=$("#panel-body");
   const E=ENL(L.day);
@@ -822,6 +853,7 @@ function renderNoon(L){
       ${v.parts?`<div class="vc-parts"><span class="vc-tag">${T("🧩 拆解","🧩 Breakdown")}</span>${v.parts.map(p=>`<span class="vc-part" ${p.r?`data-w="${esc(p.r)}"`:""}><b>${esc(p.p)}</b>${p.r?`<i>${esc(p.r)}</i>`:""}＝${esc(LANG!=="zh"?(POS_EN[p.m]||p.m):p.m)}</span>`).join('<span class="vc-plus">＋</span>')}</div>`:""}
       ${v.ex?`<div class="vc-ex" data-jp="${esc(v.ex.jp)}"><span class="vc-tag">${T("📝 例","📝 e.g.")}</span>${toRuby(v.ex.jp)}<span class="zh">${esc(zhen(v.ex.zh,(E.vocabExEn&&E.vocabExEn[v.w])))}</span></div>`:""}
       ${(window.Conjugate&&Conjugate.isVerb(v.w,v.r,v.pos))?`<button class="vc-conj-btn" data-w="${escAttr(v.w)}" data-r="${escAttr(v.r)}" data-pos="${escAttr(v.pos||"")}"${v.g?` data-g="${escAttr(v.g)}"`:""}>🔄 ${T("活用 · 变位（点开看全部变化）","Conjugation (tap for all forms)")}</button><div class="vc-conj" hidden></div>`:""}
+      ${((window.LEXICON&&LEXICON[v.w])||aiReady())?`<button class="vc-lex-btn" data-w="${escAttr(v.w)}" data-r="${escAttr(v.r)}">🔎 ${T("词义扩展 · 近义 / 用法","Word notes · synonyms & usage")}</button><div class="vc-lex" hidden></div>`:""}
     </div>`).join("")}
     </div></section>`;
 
@@ -870,6 +902,17 @@ function renderNoon(L){
     const box=b.nextElementSibling; if(!box) return;
     if(box.hidden){
       if(!box.dataset.built){ box.innerHTML=conjTableHTML(window.Conjugate&&Conjugate.table(b.dataset.w,b.dataset.r,b.dataset.pos,b.dataset.g||"")); box.dataset.built="1"; }
+      box.hidden=false; b.classList.add("on");
+    } else { box.hidden=true; b.classList.remove("on"); }
+  });
+  body.querySelectorAll(".vc-lex-btn").forEach(b=>b.onclick=()=>{
+    const box=b.nextElementSibling; if(!box) return;
+    if(box.hidden){
+      if(!box.dataset.built){ const lx=window.LEXICON&&LEXICON[b.dataset.w];
+        if(lx){ box.innerHTML=renderLexHTML(lx); } else { aiLex(b.dataset.w, b.dataset.r, box); }
+        box.dataset.built="1";
+        box.querySelectorAll(".lx-w[data-jp]").forEach(el=>el.onclick=()=>speakSequence([{text:el.dataset.jp,node:el,audioKey:"x_"+speechNorm(el.dataset.jp)}]));
+      }
       box.hidden=false; b.classList.add("on");
     } else { box.hidden=true; b.classList.remove("on"); }
   });
