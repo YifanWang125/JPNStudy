@@ -222,6 +222,24 @@ section.block > h2{
 .vc-ex{margin-top:9px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-family:var(--serif-jp);font-size:1.08rem;cursor:pointer}
 .vc-ex:hover{border-color:var(--accent)}
 .vc-ex .zh{display:block;font-family:var(--sans-jp);font-size:.82rem;color:var(--zh);margin-top:3px}
+/* 🔄 verb conjugation table */
+.vc-conj-btn{margin-top:9px;width:100%;text-align:left;padding:7px 11px;border:1px dashed var(--line);border-radius:8px;background:transparent;color:var(--accent-2);font-size:.84rem;cursor:pointer}
+.vc-conj-btn:hover{border-color:var(--accent-2);background:rgba(242,166,90,.08)}
+.vc-conj-btn.on{border-style:solid;background:rgba(242,166,90,.12)}
+.vc-conj{margin-top:8px}
+.cj-grp{font-size:.8rem;color:var(--ink-dim);margin:2px 2px 7px}
+.cj-grp b{color:var(--accent-2)}
+.cj-tbl{width:100%;border-collapse:collapse;font-size:.92rem}
+.cj-tbl td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:baseline}
+.cj-l{color:var(--ink-dim);font-size:.82rem;white-space:nowrap;width:34%}
+.cj-k{font-family:var(--serif-jp);color:var(--jp);font-size:1.05rem}
+.cj-r{font-family:var(--sans-jp);color:var(--ink-faint);font-size:.84rem;white-space:nowrap}
+.cj-use-h{font-size:.78rem;font-weight:700;color:var(--ink-faint);margin:11px 0 5px}
+.cj-use{display:flex;flex-direction:column;gap:5px}
+.cj-u{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.cj-u b{font-family:var(--serif-jp);font-weight:400;color:var(--jp);font-size:1.02rem}
+.cj-u i{font-style:normal;color:var(--ink-faint);font-size:.8rem}
+.cj-u em{font-style:normal;color:var(--zh);font-size:.8rem;margin-left:auto}
 .gloss{border-bottom:1px dashed var(--accent-2);color:var(--accent-2);cursor:pointer}
 .gloss:hover{background:rgba(242,166,90,.15)}
 /* inline term popover (tap a glossary term → definition right there, no navigation) */

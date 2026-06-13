@@ -798,6 +798,13 @@ function grammarExamplesHTML(g, ge){
   }
   return html;
 }
+function conjTableHTML(t){
+  if(!t) return `<div class="cj-grp">${T("（这个词暂时无法自动变位）","(can't auto-conjugate this word)")}</div>`;
+  return `<div class="cj-grp">${T("分类","Type")}：<b>${esc(t.groupName)}</b></div>
+    <table class="cj-tbl"><tbody>${t.rows.map(r=>`<tr><td class="cj-l">${esc(r.zh)}</td><td class="cj-k">${esc(r.kanji)}</td><td class="cj-r">${esc(r.kana)}</td></tr>`).join("")}</tbody></table>
+    <div class="cj-use-h">🗣️ ${T("日常常用","Everyday use")}</div>
+    <div class="cj-use">${t.usage.map(u=>`<div class="cj-u"><b>${esc(u.kanji)}</b><i>${esc(u.kana)}</i><em>${esc(u.zh)}</em></div>`).join("")}</div>`;
+}
 function renderNoon(L){
   const body=$("#panel-body");
   const E=ENL(L.day);
@@ -814,6 +821,7 @@ function renderNoon(L){
       <div class="vc-mean">${LANG!=="zh" ? esc((E.vocabEn&&E.vocabEn[v.w])||v.en||v.zh) : (linkTerms(v.zh)+(v.en?`<span class="v-en"> · ${esc(v.en)}</span>`:""))}</div>
       ${v.parts?`<div class="vc-parts"><span class="vc-tag">${T("🧩 拆解","🧩 Breakdown")}</span>${v.parts.map(p=>`<span class="vc-part" ${p.r?`data-w="${esc(p.r)}"`:""}><b>${esc(p.p)}</b>${p.r?`<i>${esc(p.r)}</i>`:""}＝${esc(LANG!=="zh"?(POS_EN[p.m]||p.m):p.m)}</span>`).join('<span class="vc-plus">＋</span>')}</div>`:""}
       ${v.ex?`<div class="vc-ex" data-jp="${esc(v.ex.jp)}"><span class="vc-tag">${T("📝 例","📝 e.g.")}</span>${toRuby(v.ex.jp)}<span class="zh">${esc(zhen(v.ex.zh,(E.vocabExEn&&E.vocabExEn[v.w])))}</span></div>`:""}
+      ${(window.Conjugate&&Conjugate.isVerb(v.w,v.r,v.pos))?`<button class="vc-conj-btn" data-w="${escAttr(v.w)}" data-r="${escAttr(v.r)}" data-pos="${escAttr(v.pos||"")}"${v.g?` data-g="${escAttr(v.g)}"`:""}>🔄 ${T("活用 · 变位（点开看全部变化）","Conjugation (tap for all forms)")}</button><div class="vc-conj" hidden></div>`:""}
     </div>`).join("")}
     </div></section>`;
 
@@ -858,6 +866,13 @@ function renderNoon(L){
   body.querySelectorAll(".vc-part[data-w]").forEach(el=>{ const k="v_"+speechNorm(el.dataset.w);
     if(AUDIO_MANIFEST[k] || ttsFallbackOn()){ el.style.cursor="pointer"; el.onclick=()=>speakSequence([{text:el.dataset.w,node:null,audioKey:k}]); } });
   body.querySelectorAll(".gloss").forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); showGlossPopover(el, parseInt(el.dataset.g,10)); });
+  body.querySelectorAll(".vc-conj-btn").forEach(b=>b.onclick=()=>{
+    const box=b.nextElementSibling; if(!box) return;
+    if(box.hidden){
+      if(!box.dataset.built){ box.innerHTML=conjTableHTML(window.Conjugate&&Conjugate.table(b.dataset.w,b.dataset.r,b.dataset.pos,b.dataset.g||"")); box.dataset.built="1"; }
+      box.hidden=false; b.classList.add("on");
+    } else { box.hidden=true; b.classList.remove("on"); }
+  });
   addCompleteButton(L,"noon",body);
 }
 
